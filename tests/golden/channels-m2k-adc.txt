@@ -1,0 +1,37 @@
+==============================================================================
+What this hardware measures
+==============================================================================
+
+  NOTE: this is a synthetic fixture, not a real capture. Hand-authored stand-
+  in for a real ADALM2000 capture. Values and attribute sets are plausible,
+  not measured. Replace with `./iio_discover.py --json >
+  fixtures/m2k-snapshot.json` run against real hardware.
+
+==============================================================================
+m2k-adc   (iio:device0)
+==============================================================================
+  The oscilloscope input. Both scope channels arrive through this one device,
+  interleaved in the same buffer. [overlay: UNVERIFIED]
+
+  voltage0  [input, streaming, buffer slot 0]
+    An input channel measuring electrical potential, reported in millivolts.
+    Samples      le:s12/16>>0
+    Right now    raw 1234, offset -2048, scale 0.062500
+                 (1234 + -2048) * 0.0625 = -50.875 mV
+                 = -0.050875 V
+    Scope channel 1. libm2k's M2kAnalogIn indexes this device's channels
+    directly as ANALOG_IN_CHANNEL_1 and _2, so voltage0 is the first scope
+    input, not an internal rail. [overlay: sourced]
+      source: libm2k src/analog/m2kanalogin_impl.cpp --
+      https://github.com/analogdevicesinc/libm2k
+
+  voltage1  [input, streaming, buffer slot 1]
+    An input channel measuring electrical potential, reported in millivolts.
+    Samples      le:s12/16>>0
+    Right now    raw -96, offset -2048, scale 0.062500
+                 (-96 + -2048) * 0.0625 = -134 mV
+                 = -0.134 V
+    Scope channel 2, by the same indexing. [overlay: sourced]
+      source: libm2k src/analog/m2kanalogin_impl.cpp --
+      https://github.com/analogdevicesinc/libm2k
+

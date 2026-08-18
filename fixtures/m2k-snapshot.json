@@ -1,0 +1,973 @@
+{
+  "_synthetic": true,
+  "_synthetic_note": "Hand-authored stand-in for a real ADALM2000 capture. Values and attribute sets are plausible, not measured. Replace with `./iio_discover.py --json > fixtures/m2k-snapshot.json` run against real hardware.",
+  "uri": "usb:1.5.5",
+  "description": "Analog Devices M2k (SYNTHETIC FIXTURE)",
+  "context_attrs": [
+    {
+      "name": "fw_version",
+      "type": "context",
+      "value": "v0.33",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "hw_model",
+      "type": "context",
+      "value": "Analog Devices M2k Rev.D (Z7010-M2k)",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "local,kernel",
+      "type": "context",
+      "value": "4.19.0-g8f2ff1e",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "serial",
+      "type": "context",
+      "value": "SYNTHETIC0000",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "usb,idProduct",
+      "type": "context",
+      "value": "b673",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "usb,idVendor",
+      "type": "context",
+      "value": "0456",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    }
+  ],
+  "devices": [
+    {
+      "id": "iio:device0",
+      "name": "m2k-adc",
+      "label": "m2k-adc",
+      "device_attrs": [
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": "[1 1 65536]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "65536"
+          }
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": "[1 1 100000000]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "100000000"
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "watermark",
+          "type": "buffer",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibbias",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "offset",
+              "type": "channel",
+              "value": "-2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1234",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "100000000",
+              "read_error": null,
+              "available_raw": "[1 1 100000000]",
+              "available": {
+                "kind": "range",
+                "min": "1",
+                "step": "1",
+                "max": "100000000"
+              }
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.062500",
+              "read_error": null,
+              "available_raw": "0.062500 0.006250",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "0.062500",
+                  "0.006250"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 1,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibbias",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "offset",
+              "type": "channel",
+              "value": "-2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "-96",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "100000000",
+              "read_error": null,
+              "available_raw": "[1 1 100000000]",
+              "available": {
+                "kind": "range",
+                "min": "1",
+                "step": "1",
+                "max": "100000000"
+              }
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.062500",
+              "read_error": null,
+              "available_raw": "0.062500 0.006250",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "0.062500",
+                  "0.006250"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device1",
+      "name": "m2k-dac-a",
+      "label": "m2k-dac-a",
+      "device_attrs": [
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": "[1 1 65536]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "65536"
+          }
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "75000000",
+          "read_error": null,
+          "available_raw": "[1 1 100000000]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "100000000"
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": null,
+              "read_error": "Permission denied",
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": "[1 1 100000000]",
+              "available": {
+                "kind": "range",
+                "min": "1",
+                "step": "1",
+                "max": "100000000"
+              }
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.001000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device2",
+      "name": "m2k-dac-b",
+      "label": "m2k-dac-b",
+      "device_attrs": [
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": "[1 1 65536]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "65536"
+          }
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "75000000",
+          "read_error": null,
+          "available_raw": "[1 1 100000000]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "100000000"
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": null,
+              "read_error": "Permission denied",
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": "[1 1 100000000]",
+              "available": {
+                "kind": "range",
+                "min": "1",
+                "step": "1",
+                "max": "100000000"
+              }
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.001000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device3",
+      "name": "m2k-logic-analyzer-rx",
+      "label": "m2k-logic-analyzer-rx",
+      "device_attrs": [
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": "[1 1 100000000]",
+          "available": {
+            "kind": "range",
+            "min": "1",
+            "step": "1",
+            "max": "100000000"
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 1,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 2,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 3,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage4",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 4,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage5",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 5,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage6",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 6,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage7",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 7,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage8",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 8,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage9",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 9,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage10",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 10,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage11",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 11,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage12",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 12,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage13",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 13,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage14",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 14,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage15",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 15,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 1.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        }
+      ]
+    },
+    {
+      "id": "iio:device4",
+      "name": "ad9963",
+      "label": "ad9963",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "temp0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": null,
+          "data_format": null,
+          "attrs": [
+            {
+              "name": "offset",
+              "type": "channel",
+              "value": "-2732",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "31450",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": null,
+          "data_format": null,
+          "attrs": [
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device5",
+      "name": "m2k-fabric",
+      "label": "m2k-fabric",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": null,
+          "data_format": null,
+          "attrs": [
+            {
+              "name": "gain",
+              "type": "channel",
+              "value": "high",
+              "read_error": null,
+              "available_raw": "low high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "low",
+                  "high"
+                ]
+              }
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": null,
+          "data_format": null,
+          "attrs": [
+            {
+              "name": "gain",
+              "type": "channel",
+              "value": "low",
+              "read_error": null,
+              "available_raw": "low high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "low",
+                  "high"
+                ]
+              }
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": null,
+          "data_format": null,
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
