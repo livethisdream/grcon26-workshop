@@ -1,0 +1,4 @@
+# Only needed to run the test suite. Neither tool needs anything beyond the
+# standard library; iio_discover.py additionally needs the libiio Python
+# bindings (python3-libiio / pylibiio), which pip cannot install for you.
+pytest

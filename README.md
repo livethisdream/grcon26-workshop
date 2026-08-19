@@ -98,6 +98,7 @@ tests/                pytest, no hardware required
 ## Tests
 
 ```
+pip install -r requirements-dev.txt
 python3 -m pytest tests -q
 ```
 
