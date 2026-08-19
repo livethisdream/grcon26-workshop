@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import iio_explain
@@ -102,6 +103,19 @@ def make_handler(snapshot, annotated, source_path):
                 self._send_static("index.html")
             elif route in ("/app.js", "/style.css"):
                 self._send_static(route.lstrip("/"))
+            elif route == "/api/block":
+                query = urllib.parse.parse_qs(
+                    urllib.parse.urlparse(self.path).query)
+                wanted = (query.get("device") or [""])[0]
+                try:
+                    text = iio_grc.generate_block(snapshot, wanted)
+                except ValueError as error:
+                    self._send_json(404, {"error": str(error)})
+                    return
+                self._send_json(200, {
+                    "filename": "%s.block.yml" % text.split("\n", 1)[0][4:],
+                    "yaml": text,
+                })
             elif route == "/api/tree":
                 self._send_json(200, {
                     "source": os.path.basename(source_path),

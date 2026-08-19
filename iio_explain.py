@@ -600,8 +600,11 @@ def annotate_device(device):
         "overlay": ({"text": note["text"], "confidence": note["confidence"],
                      "source": note.get("source"), "check": note.get("check")}
                     if note else None),
+        # Hardware order, so the page lists channels the way the block
+        # will number its ports.
         "channels": [annotate_channel(device, c)
-                     for c in device.get("channels", [])],
+                     for c in sorted(device.get("channels", []),
+                                     key=sem.channel_sort_key)],
         "device_attrs": groups["device_attrs"],
         "buffer_attrs": groups["buffer_attrs"],
         "debug_attrs": groups["debug_attrs"],

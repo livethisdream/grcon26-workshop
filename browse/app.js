@@ -61,6 +61,8 @@ function selectDevice(device) {
   renderDevices();
   renderContents();
   showDetail(null);
+  $("block").hidden = true;
+  $("gen-copy").hidden = true;
   emit();
 }
 
@@ -423,3 +425,30 @@ function copy(input, button) {
     done();
   }
 }
+
+
+// ------------------------------------------------- generated GRC block
+
+// Rung 3: the dropdowns the page shows can be baked into a block
+// definition, because a GRC block is just a YAML file and the legal
+// values are in the capture. GRC picks it up through GRC_BLOCKS_PATH.
+
+$("gen").onclick = () => {
+  if (!state.device) return;
+  fetch("/api/block?device=" + encodeURIComponent(state.device.label))
+    .then((r) => r.json())
+    .then((payload) => {
+      const pre = $("block");
+      pre.hidden = false;
+      pre.textContent = payload.error
+        ? payload.error
+        : "# " + payload.filename + "\n\n" + payload.yaml;
+      const copy = $("gen-copy");
+      copy.hidden = !!payload.error;
+      copy.onclick = () => {
+        navigator.clipboard.writeText(payload.yaml);
+        copy.textContent = "copied";
+        setTimeout(() => { copy.textContent = "copy"; }, 1200);
+      };
+    });
+};

@@ -30,6 +30,7 @@ In GRC, `uri` and `device` are string fields -- type the text bare, no
 quotes. `channels` and `params` are raw fields -- type a Python list.
 """
 
+import iio_overlays
 import iio_semantics as sem
 
 DEFAULT_BUFFER_SIZE = 0x8000
@@ -53,9 +54,13 @@ def find_channel(device, chan_id):
 
 
 def stream_channels(device):
-    """The channels that can actually carry samples: the scan elements."""
-    return [c for c in (device or {}).get("channels", [])
-            if c.get("scan_element")]
+    """The channels that can actually carry samples: the scan elements.
+
+    In hardware order: this list becomes the order of the block's ports.
+    """
+    streams = [c for c in (device or {}).get("channels", [])
+               if c.get("scan_element")]
+    return sorted(streams, key=sem.channel_sort_key)
 
 
 def sysfs_name(channel, attr_name):
@@ -191,7 +196,10 @@ def build(data, selection):
             warnings.append(
                 "Channel '%s' is an output. A Device Source reads inputs; "
                 "an output channel belongs on a Device Sink." % chan_id)
-        channels.append(channel.get("id"))
+        channels.append(channel)
+
+    channels.sort(key=sem.channel_sort_key)
+    channels = [c.get("id") for c in channels]
 
     if not channels:
         warnings.append(
@@ -275,3 +283,355 @@ def render_fields(fields):
         {"id": "params", "label": "Parameters", "kind": "raw",
          "text": repr(fields["params"])},
     ]
+
+
+# ------------------------------------------------- generated GRC blocks
+#
+# GRC cannot populate a dropdown from live hardware. It does not have to:
+# a block definition is a YAML file, and the legal values are sitting in
+# the capture. So generate the block instead of patching GRC.
+#
+# Two facts about GRC decide the shape of what follows, both read off
+# grc/core/params/param.py rather than guessed:
+#
+#   1. An `enum` parameter's option is substituted into the make template
+#      VERBATIM -- it is never evaluated. A string option therefore has to
+#      carry its own quotes: "'push-pull'", not "push-pull". gr-iio's own
+#      blocks do exactly this.
+#   2. GRC finds out-of-tree definitions through GRC_BLOCKS_PATH.
+
+CATEGORY = "[ADALM2000]"
+
+# Above this many dropdowns a block stops being usable. Attributes that
+# repeat across channels collapse into one parameter that applies to all
+# of them; the per-channel keys go in the documentation so nothing is
+# actually taken away.
+COLLAPSE_FROM = 2
+
+
+def _identifier(text):
+    """A GRC parameter id has to be a Python identifier."""
+    return "p_" + "".join(c if c.isalnum() or c == "_" else "_" for c in text)
+
+
+def _quote(text):
+    """Quote a value for verbatim substitution into a make template."""
+    return "'%s'" % str(text).replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _yaml_scalar(text):
+    """Emit a scalar that survives a YAML round trip.
+
+    Everything here is quoted rather than guessing which bare words are
+    safe -- "on", "no" and "1.0" all mean something else unquoted.
+    """
+    return '"%s"' % str(text).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _yaml_block(text, indent):
+    """A literal block scalar, for documentation that contains anything."""
+    pad = " " * indent
+    lines = str(text).rstrip().split("\n")
+    return "|\n" + "\n".join(pad + line if line else "" for line in lines)
+
+
+def dropdown_attrs(device):
+    """The attributes this device published a list of legal values for.
+
+    Returns a list of {"key_template", "attr", "channels", "options",
+    "attr_dict"}. A channel attribute that appears on several channels
+    with the same options becomes one entry covering all of them.
+    """
+    entries = []
+
+    for group in ("device_attrs", "buffer_attrs", "debug_attrs"):
+        for attr in device.get(group, []):
+            available = attr.get("available")
+            if available and available["kind"] == "options":
+                entries.append({
+                    "attr": attr["name"],
+                    "label": attr["name"],
+                    "channels": [],
+                    "keys": [attr["name"]],
+                    "options": available["values"],
+                    "attr_dict": attr,
+                    "channel_dict": None,
+                })
+
+    # Group channel attributes by (name, options) so 18 identical
+    # trigger_mux_out dropdowns become one.
+    grouped = {}
+    order = []
+    for channel in device.get("channels", []):
+        for attr in channel.get("attrs", []):
+            available = attr.get("available")
+            if not available or available["kind"] != "options":
+                continue
+            key = (attr["name"], tuple(available["values"]))
+            if key not in grouped:
+                grouped[key] = []
+                order.append(key)
+            grouped[key].append((channel, attr))
+
+    for key in order:
+        members = grouped[key]
+        name, options = key[0], list(key[1])
+        keys = [sysfs_name(channel, attr["name"]) for channel, attr in members]
+        label = name
+        if len(members) >= COLLAPSE_FROM:
+            label = "%s (all %d channels)" % (name, len(members))
+        entries.append({
+            "attr": name,
+            "label": label,
+            "channels": [c.get("id") for c, _ in members],
+            "keys": keys,
+            "options": options,
+            "attr_dict": members[0][1],
+            "channel_dict": members[0][0],
+        })
+
+    return entries
+
+
+def _documentation(device, entries, streaming, is_sink):
+    """What GRC shows in the block's Documentation tab.
+
+    The point of putting it here is that a participant reading a
+    flowgraph never has to leave GRC to find out what an attribute means
+    or where the claim came from.
+    """
+    import iio_explain
+
+    label = device.get("name") or device.get("id")
+    lines = ["Generated from a live capture of %s." % label, ""]
+
+    note = iio_overlays.device_note(device)
+    if note:
+        lines += [note["text"], "  [overlay: %s]" % note["confidence"], ""]
+
+    lines.append("Streaming channels: %s"
+                 % (", ".join(streaming) or "none"))
+    lines.append("Direction: %s" % ("output (sink)" if is_sink else "input (source)"))
+    lines.append("")
+
+    for entry in entries:
+        annotated = iio_explain.annotate_attr(
+            device, entry["channel_dict"], entry["attr_dict"])
+        lines.append("%s" % entry["label"])
+        lines.append("  legal values: %s" % " ".join(entry["options"]))
+        if annotated["summary"]:
+            lines.append("  %s  [abi]" % annotated["summary"])
+        if annotated["abi"]:
+            lines.append("  kernel: %s" % annotated["abi"]["paragraphs"][0])
+        if annotated["overlay"]:
+            lines.append("  on this board: %s  [overlay: %s]"
+                         % (annotated["overlay"]["text"],
+                            annotated["overlay"]["confidence"]))
+        if len(entry["keys"]) > 1:
+            lines.append("  applies to all of: %s" % " ".join(entry["keys"]))
+        lines.append("")
+
+    lines += [
+        "Anything not offered as a dropdown goes in 'Other parameters' as",
+        "\"<sysfs name>=<value>\" strings -- that is also how you set one",
+        "channel differently from the rest.",
+    ]
+    return "\n".join(lines)
+
+
+def generate_block(data, device_name, category=CATEGORY):
+    """Write a GRC block definition for one device, with real dropdowns.
+
+    Returns the YAML text. Whether it is a source or a sink is decided by
+    the device's own streaming channels, not by an argument -- the M2K's
+    DAC devices only make sense as sinks.
+    """
+    device = find_device(data, device_name)
+    if device is None:
+        raise ValueError("no device '%s' in this capture" % device_name)
+
+    label = device.get("name") or device.get("id")
+    streams = stream_channels(device)
+    is_sink = bool(streams) and all(c.get("output") for c in streams)
+    stream_ids = [c.get("id") for c in streams]
+    entries = dropdown_attrs(device)
+
+    block_id = "m2k_%s_%s" % (
+        "".join(c if c.isalnum() else "_" for c in label),
+        "sink" if is_sink else "source")
+
+    out = []
+    out.append("id: %s" % block_id)
+    out.append("label: %s" % _yaml_scalar(
+        "M2K %s %s" % (label, "sink" if is_sink else "source")))
+    out.append("category: %s" % _yaml_scalar(category))
+    out.append("flags: [python, throttle]")
+    out.append("")
+    out.append("parameters:")
+    out.append("-   id: uri")
+    out.append("    label: IIO context URI")
+    out.append("    dtype: string")
+    out.append("    default: %s" % _yaml_scalar(data.get("uri") or "local:"))
+    out.append("")
+    out.append("-   id: channels")
+    out.append("    label: Channels")
+    out.append("    dtype: raw")
+    out.append("    default: %s" % _yaml_scalar(repr(stream_ids)))
+    out.append("")
+    out.append("-   id: buffer_size")
+    out.append("    label: Buffer size")
+    out.append("    dtype: int")
+    out.append("    default: %d" % DEFAULT_BUFFER_SIZE)
+    out.append("")
+    if is_sink:
+        out.append("-   id: interpolation")
+        out.append("    label: Interpolation")
+        out.append("    dtype: int")
+        out.append("    default: 1")
+        out.append("")
+        out.append("-   id: cyclic")
+        out.append("    label: Cyclic")
+        out.append("    dtype: bool")
+        out.append("    default: %s" % _yaml_scalar("False"))
+        out.append("    options: [%s, %s]"
+                   % (_yaml_scalar("False"), _yaml_scalar("True")))
+        out.append("    option_labels: [%s, %s]"
+                   % (_yaml_scalar("False"), _yaml_scalar("True")))
+        out.append("")
+    else:
+        out.append("-   id: decimation")
+        out.append("    label: Decimation")
+        out.append("    dtype: int")
+        out.append("    default: 1")
+        out.append("")
+
+    for entry in entries:
+        out.append("-   id: %s" % _identifier(entry["attr"]))
+        out.append("    label: %s" % _yaml_scalar(entry["label"]))
+        out.append("    dtype: enum")
+        # An enum option is substituted verbatim, so it carries its own
+        # quotes. The empty option is what "leave this alone" looks like:
+        # a shown value must never mean a value written to the hardware.
+        options = ["''"] + [_quote(v) for v in entry["options"]]
+        labels = ["leave alone"] + list(entry["options"])
+        out.append("    default: %s" % _yaml_scalar("''"))
+        out.append("    options: [%s]"
+                   % ", ".join(_yaml_scalar(o) for o in options))
+        out.append("    option_labels: [%s]"
+                   % ", ".join(_yaml_scalar(l) for l in labels))
+        out.append("")
+
+    out.append("-   id: extra_params")
+    out.append("    label: Other parameters")
+    out.append("    dtype: raw")
+    out.append("    default: \"[]\"")
+    out.append("")
+
+    if is_sink:
+        out.append("inputs:")
+    else:
+        out.append("outputs:")
+    out.append("-   domain: stream")
+    out.append("    dtype: short")
+    out.append("    multiplicity: ${ len(channels) }")
+    if not is_sink:
+        out.append("-   domain: message")
+        out.append("    id: msg")
+        out.append("    optional: true")
+    out.append("")
+    out.append("asserts:")
+    out.append("- ${ len(channels) > 0 }")
+    out.append("")
+
+    out.append("templates:")
+    out.append("    imports: from gnuradio import iio")
+    out.append("    make: |-")
+    for line in _make_template(label, entries, is_sink).split("\n"):
+        out.append("        " + line)
+    out.append("")
+    out.append("documentation: %s"
+               % _yaml_block(_documentation(device, entries, stream_ids,
+                                            is_sink), 4))
+    out.append("")
+    out.append("file_format: 1")
+    return "\n".join(out) + "\n"
+
+
+def _make_template(label, entries, is_sink):
+    """The constructor call, assembling params from the dropdowns.
+
+    Empty dropdowns drop out of the list, so a block that has been opened
+    and closed again writes nothing to the hardware.
+    """
+    pairs = []
+    for entry in entries:
+        variable = "${%s}" % _identifier(entry["attr"])
+        if len(entry["keys"]) == 1:
+            pairs.append("(%r, %s)" % (entry["keys"][0], variable))
+        else:
+            pairs.append("[(k, %s) for k in %r]" % (variable, entry["keys"]))
+
+    singles = [p for p in pairs if p.startswith("(")]
+    multiples = [p for p in pairs if p.startswith("[")]
+    terms = []
+    if singles:
+        terms.append("[%s]" % ", ".join(singles))
+    terms.extend(multiples)
+    assembled = " + ".join(terms) if terms else "[]"
+
+    call = "iio.device_sink" if is_sink else "iio.device_source"
+    tail = ("${buffer_size}, ${interpolation} - 1, ${cyclic})" if is_sink
+            else "${buffer_size}, ${decimation} - 1)")
+    return ("%s(${uri}, %r, ${channels}, '',\n"
+            "    [k + '=' + v for k, v in %s if v] + ${extra_params},\n"
+            "    %s" % (call, label, assembled, tail))
+
+
+def generate_all(data, category=CATEGORY):
+    """Every device that can stream, as {filename: yaml text}."""
+    out = {}
+    for device in data.get("devices", []):
+        if not stream_channels(device):
+            continue
+        label = device.get("name") or device.get("id")
+        text = generate_block(data, label, category)
+        out["%s.block.yml" % text.split("\n", 1)[0][4:]] = text
+    return out
+
+
+def main():
+    import argparse
+    import json
+    import os
+
+    parser = argparse.ArgumentParser(
+        description="Generate GNU Radio block definitions from an IIO "
+                    "capture, with dropdowns filled in from the hardware.")
+    parser.add_argument("snapshot", help="JSON from iio_discover.py --json")
+    parser.add_argument("--out", default="grc_blocks",
+                        help="directory to write .block.yml files into")
+    parser.add_argument("--device", help="just this one device")
+    args = parser.parse_args()
+
+    with open(args.snapshot) as handle:
+        data = json.load(handle)
+
+    if args.device:
+        text = generate_block(data, args.device)
+        blocks = {"%s.block.yml" % text.split("\n", 1)[0][4:]: text}
+    else:
+        blocks = generate_all(data)
+
+    os.makedirs(args.out, exist_ok=True)
+    for name, text in sorted(blocks.items()):
+        with open(os.path.join(args.out, name), "w") as handle:
+            handle.write(text)
+        print("%s" % os.path.join(args.out, name))
+    print("\nGRC_BLOCKS_PATH=%s gnuradio-companion"
+          % os.path.abspath(args.out))
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

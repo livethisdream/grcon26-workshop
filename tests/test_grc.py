@@ -171,3 +171,11 @@ def test_logic_analyzer_streams_from_rx_not_the_config_device(real_snapshot):
                                        "channels": ["voltage0"]})
     assert rx["fields"]["channels"] == ["voltage0"]
     assert rx["warnings"] == []
+
+
+def test_emitted_channels_follow_the_hardware_order(real_snapshot):
+    """Port order comes from the hardware, not from the click order."""
+    result = iio_grc.build(real_snapshot, {
+        "device": "m2k-logic-analyzer-rx",
+        "channels": ["voltage10", "voltage2", "voltage1"]})
+    assert result["fields"]["channels"] == ["voltage1", "voltage2", "voltage10"]

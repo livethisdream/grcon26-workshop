@@ -7,6 +7,7 @@ Workshop tooling for GNU Radio + ADALM2000. Three tools, deliberately split.
 | `iio_discover.py` | yes | yes | what is here, what is it set to, what values are legal |
 | `iio_explain.py` | no | no | what does it *mean* |
 | `iio_browse.py` | no | no | what do I type into the GNU Radio block |
+| `iio_grc.py` | no | no | the same, as a generated GRC block |
 
 The split matters: capture once on the bench, explain anywhere.
 
@@ -66,6 +67,42 @@ you take logic-analyzer samples from `m2k-logic-analyzer-rx` and not from
 
 `iio_grc.py` holds that translation and is tested on its own; the browser
 only renders what it returns.
+
+## Blocks with the hardware's own dropdowns
+
+GRC cannot populate a dropdown from live hardware. It does not have to — a
+block definition is a YAML file, and the legal values are already in the
+capture. So generate the block instead of patching GRC:
+
+```
+./iio_grc.py fixtures/m2k-real.json --out grc_blocks
+GRC_BLOCKS_PATH=$PWD/grc_blocks gnuradio-companion
+```
+
+One block per streaming device, source or sink according to the hardware's
+own channel directions. Every attribute that published an `*_available`
+list becomes a real dropdown holding real values — `trigger_mux_out` offers
+exactly the six the M2K reports, and nothing else.
+
+Two details that make the generated blocks usable rather than merely
+correct:
+
+- **Repeats collapse.** `m2k-logic-analyzer-rx` publishes three attributes
+  across eighteen channels. Eighteen identical dropdowns is not a usable
+  block, so they become one parameter applied to all of them, and the
+  per-channel keys go in the block's documentation for anyone who needs to
+  set one pin differently. Fifty-six dropdowns become five.
+- **Every dropdown starts at "leave alone."** A shown value must never mean
+  a value written to the hardware. Open a generated block, close it again,
+  and it writes nothing.
+
+The block's Documentation tab carries the meaning across too: the kernel's
+own words, the board note, and the provenance tag for each, so a
+participant reading a flowgraph never has to leave GRC to find out what
+`rate_mux` does or who said so.
+
+The browser has a **generate .block.yml** button that does the same thing
+for whichever device you are looking at.
 
 ## Where meaning comes from
 

@@ -700,6 +700,22 @@ def attrs_by_info(attrs, channel=None):
     return out
 
 
+def channel_sort_key(channel):
+    """Order channels the way the hardware does, not the way ls does.
+
+    The scan index comes first, because that is the order samples arrive
+    in. It is not enough on its own: the M2K's logic analyzer reports
+    scan index 0 for all sixteen of its channels, since they share one
+    scan element. The channel's own index breaks the tie, which is what
+    stops voltage10 from sorting between voltage1 and voltage2.
+    """
+    bits = parse_channel_id(channel.get("id") or "")
+    index = bits["index"] if bits and bits["index"] is not None else 0
+    scan = channel.get("scan_index")
+    return (scan if scan is not None and scan >= 0 else 1 << 30,
+            index, channel.get("id") or "")
+
+
 def describe_channel(channel):
     """One-sentence plain-English description of what a channel measures."""
     bits = parse_channel_id(channel.get("id") or "")
