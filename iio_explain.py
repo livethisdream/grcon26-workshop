@@ -511,6 +511,114 @@ def show_glossary(data, args):
         print(text)
 
 
+# -------------------------------------------------------- machine output
+#
+# Everything above prints to a terminal. The browser in iio_browse.py
+# needs the same facts as data. Rather than write the meaning down twice
+# and let the two drift, the facts get assembled here once and rendered
+# in two places.
+
+def annotate_attr(device, channel, attr):
+    """Everything known about one attribute, as a plain dict.
+
+    The four sources answer independently and each keeps its own tag, so
+    a reader can always see whether a claim came from the kernel, from
+    the name, or from a person guessing.
+    """
+    parsed = sem.parse_attr_name(attr["name"], channel)
+    info = sem.info_word_info(parsed["info"])
+    chan_type = sem.channel_type_info(parsed["channel_type"])
+    reference = sem.abi_reference(parsed["sysfs_name"], attr.get("type"))
+    note = iio_overlays.attr_note(device, parsed["info"])
+
+    provenance = ["parsed"]
+    if info or chan_type or reference:
+        provenance.append("abi")
+    if note:
+        provenance.append("overlay:" + note["confidence"])
+
+    return {
+        "name": attr["name"],
+        "sysfs_name": parsed["sysfs_name"],
+        "type": attr.get("type"),
+        "value": attr.get("value"),
+        "read_error": attr.get("read_error"),
+        "available": attr.get("available"),
+        "info_word": parsed["info"],
+        "understood": sem.is_understood(parsed),
+        "parsed": {k: parsed[k] for k in
+                   ("direction", "channel_type", "channel_index",
+                    "modifier", "differential")},
+        "summary": info["summary"] if info else None,
+        "unit": info["unit"] if info else None,
+        "detail": info.get("detail") if info else None,
+        "needs_conversion": bool(info and info.get("needs_conversion")),
+        "channel_type": ({"type": parsed["channel_type"],
+                          "quantity": chan_type["quantity"],
+                          "unit": chan_type["unit"],
+                          "note": chan_type.get("note")}
+                         if chan_type else None),
+        "abi": ({"paragraphs": reference["description"],
+                 "kernel_version": reference["kernel_version"],
+                 "source": reference["source"]}
+                if reference else None),
+        "overlay": ({"text": note["text"], "confidence": note["confidence"],
+                     "source": note.get("source"), "check": note.get("check")}
+                    if note else None),
+        "provenance": provenance,
+    }
+
+
+def annotate_channel(device, channel):
+    """Everything known about one channel, as a plain dict."""
+    return {
+        "id": channel.get("id"),
+        "name": channel.get("name"),
+        "output": bool(channel.get("output")),
+        "scan_element": bool(channel.get("scan_element")),
+        "scan_index": channel.get("scan_index"),
+        "description": sem.describe_channel(channel),
+        "identity": sem.channel_identity(device, channel, iio_overlays),
+        "data_format": sem.describe_data_format(channel.get("data_format")),
+        "conversion": conversion_for(channel),
+        "attrs": [annotate_attr(device, channel, a)
+                  for a in channel.get("attrs", [])],
+    }
+
+
+def annotate_device(device):
+    """A whole device: its note, its channels, its non-channel attributes."""
+    note = iio_overlays.device_note(device)
+    groups = {}
+    for group in ("device_attrs", "buffer_attrs", "debug_attrs"):
+        groups[group] = [annotate_attr(device, None, a)
+                         for a in device.get(group, [])]
+    return {
+        "id": device.get("id"),
+        "name": device.get("name"),
+        "label": device.get("name") or device.get("id"),
+        "overlay": ({"text": note["text"], "confidence": note["confidence"],
+                     "source": note.get("source"), "check": note.get("check")}
+                    if note else None),
+        "channels": [annotate_channel(device, c)
+                     for c in device.get("channels", [])],
+        "device_attrs": groups["device_attrs"],
+        "buffer_attrs": groups["buffer_attrs"],
+        "debug_attrs": groups["debug_attrs"],
+    }
+
+
+def annotate(data):
+    """A whole capture, annotated. This is what the browser loads."""
+    return {
+        "uri": data.get("uri"),
+        "description": data.get("description"),
+        "context_attrs": [annotate_attr(None, None, a)
+                          for a in data.get("context_attrs", [])],
+        "devices": [annotate_device(d) for d in data.get("devices", [])],
+    }
+
+
 # ------------------------------------------------------------------ main
 
 def main():

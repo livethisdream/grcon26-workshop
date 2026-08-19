@@ -1,11 +1,12 @@
 # IIO discovery and semantics
 
-Workshop tooling for GNU Radio + ADALM2000. Two tools, deliberately split.
+Workshop tooling for GNU Radio + ADALM2000. Three tools, deliberately split.
 
 | | needs libiio | needs hardware | what it answers |
 | --- | --- | --- | --- |
 | `iio_discover.py` | yes | yes | what is here, what is it set to, what values are legal |
 | `iio_explain.py` | no | no | what does it *mean* |
+| `iio_browse.py` | no | no | what do I type into the GNU Radio block |
 
 The split matters: capture once on the bench, explain anywhere.
 
@@ -29,12 +30,42 @@ hardware:
 ./iio_explain.py fixtures/m2k-snapshot.json --glossary            # participant handout
 ```
 
-`fixtures/m2k-snapshot.json` is hand-authored and says so in the file. Replace
-it with a real capture as soon as there is hardware:
+`fixtures/m2k-snapshot.json` is hand-authored and says so in the file.
+`fixtures/m2k-real.json` is a capture from an actual Rev.D M2K over the
+network backend, and is what the examples below use. Take your own with:
 
 ```
-./iio_discover.py --json > fixtures/m2k-snapshot.json
+./iio_discover.py --uri ip:192.168.2.1 --json > fixtures/m2k-real.json
 ```
+
+The synthetic fixture stays: it keeps the golden output stable and needs no
+regeneration. The real one is what participants should be reading.
+
+## Browsing it, and getting block parameters out
+
+```
+./iio_browse.py fixtures/m2k-real.json      # then open http://127.0.0.1:8737
+```
+
+The same capture, in a browser, with the meaning next to each attribute and
+its provenance tag intact. Tick the channels you want, pick values from the
+dropdowns the hardware itself published, and the right-hand panel gives you
+the fields for GNU Radio's **IIO Device Source** block.
+
+It serves on `127.0.0.1` by default; `--host 0.0.0.0` serves a room from one
+laptop. No dependencies beyond the standard library and no build step, which
+is what makes it usable in a session that installs nothing.
+
+The mapping it does for you is the one that is easy to get wrong by hand:
+gr-iio resolves each `params` key with `iio_device_identify_filename()`, so
+the key has to be the full sysfs filename. libiio reports a channel
+attribute as `scale`; the block needs `in_voltage0_scale`. It also warns when
+a channel has no scan index and therefore cannot stream at all — which is why
+you take logic-analyzer samples from `m2k-logic-analyzer-rx` and not from
+`m2k-logic-analyzer`.
+
+`iio_grc.py` holds that translation and is tested on its own; the browser
+only renders what it returns.
 
 ## Where meaning comes from
 
@@ -50,8 +81,10 @@ guesswork stay distinguishable.
 | `[overlay: UNVERIFIED]` | written from documentation | **do not teach as fact yet** |
 
 `./iio_explain.py FILE --unknown` reports how much is explained and by what.
-On the current fixture that is 95% from the ABI alone, with the remainder
-covered by the board pack.
+On the synthetic fixture that is 95% from the ABI alone. On the real capture
+it is 57%, because real hardware exposes a great deal the synthetic fixture
+never did — mostly logic-analyzer trigger attributes, which the board pack
+does not cover yet.
 
 ## The kernel is the source of truth
 
