@@ -231,12 +231,45 @@ def enumerate_context(uri=None, device_filter=None):
 
 
 def scan():
-    """List reachable contexts (local, USB, network)."""
+    """List discoverable contexts.
+
+    Note the word discoverable. This finds the local context and USB
+    devices, plus network devices only if libiio was built with mDNS and
+    the device advertises itself. A board sitting at a fixed address --
+    which is what an M2K on its USB ethernet gadget is -- will NOT show
+    up here. You have to name it with --uri.
+    """
     _require_iio()
     try:
         return dict(iio.scan_contexts())
     except AttributeError:
         return {}
+
+
+def uri_hint():
+    """What to try when --scan did not turn up what you expected.
+
+    Scanning misses more than people expect, and the failure is silent:
+    you get a short list with your board absent and no clue why.
+    """
+    return "\n".join((
+        "Not everything is discoverable. --scan finds the local context and",
+        "USB devices, and network devices only if libiio was built with mDNS",
+        "support and the device advertises itself. If your board is missing,",
+        "name it directly:",
+        "",
+        "  --uri ip:192.168.2.1   an M2K over its USB ethernet gadget, which",
+        "                         is the usual way an M2K appears. It is at a",
+        "                         fixed address and does not advertise, so it",
+        "                         never shows up in a scan.",
+        "  --uri ip:ADDRESS       any board reachable over the network",
+        "  --uri usb:1.5.5        a USB device by bus.device.interface",
+        "  --uri local:           the IIO devices on this machine",
+        "",
+        "If ip:192.168.2.1 times out, check the interface exists first:",
+        "  ip addr | grep -B2 192.168.2   # the host end of the M2K link",
+        "  ping -c1 192.168.2.1",
+    ))
 
 
 # -------------------------------------------------------------- printing
@@ -339,12 +372,12 @@ def main():
 
     if args.scan:
         contexts = scan()
-        if not contexts:
-            print("No contexts found.")
-            return 1
         for uri, description in sorted(contexts.items()):
             print("%-24s %s" % (uri, description))
-        return 0
+        if not contexts:
+            print("No contexts found.")
+        print("\n%s" % uri_hint())
+        return 0 if contexts else 1
 
     try:
         data = enumerate_context(args.uri, args.device)

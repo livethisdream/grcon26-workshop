@@ -70,6 +70,25 @@ it with a real capture as soon as there is hardware:
 ./iio_discover.py --json > fixtures/m2k-snapshot.json
 ```
 
+## Connecting to an M2K
+
+An M2K normally appears as a USB ethernet gadget at a fixed address, so it is
+**not discoverable** — `--scan` finds local and USB backends, plus mDNS if
+libiio was built with it, and a board at a static address advertises nothing.
+Name it directly:
+
+```
+./iio_discover.py --uri ip:192.168.2.1 --json > fixtures/m2k-snapshot.json
+```
+
+`--scan` prints this hint itself when it comes up short. If the address times
+out, check the host end of the link exists before blaming libiio:
+
+```
+ip addr | grep -B2 192.168.2
+ping -c1 192.168.2.1
+```
+
 ## Where meaning comes from
 
 Every line of output is tagged with its source, so fact, convention and

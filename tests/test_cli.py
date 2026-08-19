@@ -101,3 +101,14 @@ def test_channels_output_matches_golden(repo_root):
     with open(GOLDEN) as handle:
         assert out == handle.read(), \
             "output changed; review it, then REGEN_GOLDEN=1 pytest to accept"
+
+
+def test_scan_hint_names_the_m2k_default_address():
+    """--scan cannot discover a fixed-address board; it must say so."""
+    import iio_discover
+
+    hint = iio_discover.uri_hint()
+    assert "ip:192.168.2.1" in hint
+    assert "usb:" in hint
+    # The reason matters more than the address -- it is why people give up.
+    assert "does not advertise" in hint
