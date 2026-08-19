@@ -1,0 +1,50 @@
+[project]
+name = "grcon26-iio-tools"
+version = "0.1.0"
+description = "IIO discovery and semantics tooling for the GRCon26 GNU Radio + ADALM2000 workshop"
+readme = "README.md"
+requires-python = ">=3.9"
+
+# Deliberately empty. Both tools are standard library only, so a participant
+# can copy a single file onto a machine and run it. The one exception is the
+# libiio binding that iio_discover.py needs, and that cannot come from pip in
+# any reliable way -- see the note below.
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+# Scripts in the repo root, not an installable package.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+# ---------------------------------------------------------------------------
+# About libiio
+#
+# `iio_discover.py` imports `iio`, the libiio Python binding. It is not listed
+# as a dependency on purpose:
+#
+#   * The binding is a wrapper around a native library. Installing the Python
+#     side without the matching libiio.so gives you an import that fails at
+#     runtime instead of at install time, which is worse than not having it.
+#   * On Linux the supported route is the distro package (python3-libiio),
+#     which lands in system site-packages, where a normal uv venv cannot see
+#     it.
+#
+# So: to run the explainer, the tests, or anything offline, a plain uv venv is
+# all you need. To run discovery against real hardware, build the venv so it
+# can see the system packages:
+#
+#     uv venv --system-site-packages
+#     uv sync
+#     uv run ./iio_discover.py --scan
+#
+# Or skip the venv for that one script and run it with system python, which is
+# what its shebang does:
+#
+#     ./iio_discover.py --scan
+# ---------------------------------------------------------------------------

@@ -17,17 +17,51 @@ anywhere else:  ./iio_explain.py m2k.json --channels
 That is also how this works in a room of twenty people with one M2K between
 them, and why nobody needs to install libiio during the session.
 
+## Setup
+
+Managed with [uv](https://docs.astral.sh/uv/).
+
+```
+uv sync
+```
+
+That is enough for everything except talking to real hardware. Both tools are
+standard library only, so there is nothing to resolve but the test runner.
+
+**For hardware,** `iio_discover.py` needs the libiio Python binding, which uv
+cannot install for you — it wraps a native library, and the supported route on
+Linux is the distro package (`sudo apt install python3-libiio`), which lands in
+system site-packages where a normal venv cannot see it. Build the venv so it
+can:
+
+```
+uv venv --system-site-packages
+uv sync
+uv run ./iio_discover.py --scan
+```
+
+The `--system-site-packages` flag survives later `uv sync` runs, so this is a
+one-time step. Or skip the venv for that one script — its shebang uses system
+python, which is why `./iio_discover.py --scan` already works:
+
+```
+./iio_discover.py --scan
+```
+
 ## Try it now
 
 There is a synthetic M2K snapshot checked in, so everything runs with no
 hardware:
 
 ```
-./iio_explain.py fixtures/m2k-snapshot.json                       # what it measures
-./iio_explain.py fixtures/m2k-snapshot.json --attr raw --limit 1  # one attribute, in depth
-./iio_explain.py fixtures/m2k-snapshot.json --unknown             # what we still cannot explain
-./iio_explain.py fixtures/m2k-snapshot.json --glossary            # participant handout
+uv run ./iio_explain.py fixtures/m2k-snapshot.json                       # what it measures
+uv run ./iio_explain.py fixtures/m2k-snapshot.json --attr raw --limit 1  # one attribute, in depth
+uv run ./iio_explain.py fixtures/m2k-snapshot.json --unknown             # what we still cannot explain
+uv run ./iio_explain.py fixtures/m2k-snapshot.json --glossary            # participant handout
 ```
+
+`uv run` is not required for the explainer — it has no dependencies, so plain
+`./iio_explain.py` works too. Use whichever you prefer.
 
 `fixtures/m2k-snapshot.json` is hand-authored and says so in the file. Replace
 it with a real capture as soon as there is hardware:
@@ -60,8 +94,8 @@ the Linux tree and parses it into `iio_abi_data.json` (826 documented
 attribute names). `iio_explain.py` quotes it rather than paraphrasing:
 
 ```
-./iio_abi_fetch.py                        # refresh the cache
-./iio_abi_fetch.py --show in_voltage0_raw # what the kernel says
+uv run ./iio_abi_fetch.py                        # refresh the cache
+uv run ./iio_abi_fetch.py --show in_voltage0_raw # what the kernel says
 ```
 
 The cache is checked in, so the tools work offline. Re-run the fetch to track
@@ -84,6 +118,7 @@ four sources in order and reports which one answered:
 ## Files
 
 ```
+pyproject.toml        uv project; dependencies are empty on purpose
 iio_discover.py       enumeration (the original tool, plus sample-layout capture)
 iio_explain.py        the explainer CLI
 iio_semantics.py      ABI knowledge: name grammar, units, conversion
@@ -98,8 +133,7 @@ tests/                pytest, no hardware required
 ## Tests
 
 ```
-pip install -r requirements-dev.txt
-python3 -m pytest tests -q
+uv run pytest
 ```
 
 Everything runs without libiio and without an M2K. `REGEN_GOLDEN=1` accepts
