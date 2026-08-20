@@ -746,15 +746,17 @@ def describe_channel(channel):
     return text + "."
 
 
-def is_understood(parsed):
-    """Did the ABI tables actually explain this attribute?
+def is_understood(parsed, attr_type=None):
+    """Did anything generic actually explain this attribute?
 
     Drives `iio_explain.py --unknown`, which is the honest measure of how
-    much hand-written glossary is still owed.
+    much hand-written glossary is still owed -- so it has to count every
+    generic source, not just our own table. An attribute the kernel
+    documents is explained whether or not we got round to summarising it.
     """
     if parsed["info"] in INFO_WORDS:
         return True
-    return False
+    return abi_reference(parsed["sysfs_name"], attr_type) is not None
 
 
 # ------------------------------------------------- the kernel's own words

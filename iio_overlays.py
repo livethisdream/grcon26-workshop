@@ -351,6 +351,106 @@ DEVICE_PACKS["m2k-fabric"]["attrs"].update({
 })
 
 
+# ---------------------------------------------------------------------------
+# When the device does not expose a scale at all.
+#
+# A real m2k-adc channel has exactly two attributes: calibbias and calibscale.
+# No _raw, no _scale, no _offset. So the IIO interface genuinely cannot tell
+# you what a scope sample is worth -- the conversion lives in libm2k, computed
+# from the input range and the calibration, and is never written back to
+# sysfs.
+#
+# That is worth stating outright rather than leaving as a shrug. A recipe here
+# is rendered wherever the explainer would otherwise say "nothing on the
+# device tells you what these counts are worth".
+# ---------------------------------------------------------------------------
+
+DEVICE_PACKS["m2k-adc"]["scale_recipe"] = _e(
+    "IIO will not tell you -- but libm2k computes it, and you can too.\n"
+    "\n"
+    "    volts = sample * scale\n"
+    "    scale = 0.78 / (2048 * 1.3 * range_gain) * calib_gain * filter_comp\n"
+    "\n"
+    "range_gain comes from the `gain` attribute on m2k-fabric for the same\n"
+    "channel number:\n"
+    "\n"
+    "    gain = 'low'   ->  range_gain 0.02017   (the +/-25 V range)\n"
+    "                       scale 14.52 mV/count, full scale about +/-29.7 V\n"
+    "    gain = 'high'  ->  range_gain 0.21229   (the +/-2.5 V range)\n"
+    "                       scale 1.380 mV/count, full scale about +/-2.83 V\n"
+    "\n"
+    "calib_gain is this channel's calibscale, and filter_comp is a per-sample-\n"
+    "rate correction libm2k keeps in a lookup table -- both are 1.0 until\n"
+    "calibration runs. So the two numbers above are what a fresh board gives\n"
+    "you.\n"
+    "\n"
+    "The consequence worth remembering: a raw count means nothing on its own\n"
+    "here, and it means something DIFFERENT depending on a setting stored on\n"
+    "a completely different IIO device.",
+    confidence=SOURCED, source=LIBM2K,
+    check="Feed a known DC level in, capture samples, and confirm "
+          "sample * scale lands on it. Then flip m2k-fabric gain and "
+          "confirm the same input needs the other scale.")
+
+
+def scale_recipe(device):
+    """How to convert counts to real units when no _scale attribute exists."""
+    pack = _pack(device)
+    return pack.get("scale_recipe") if pack else None
+
+
+# ---------------------------------------------------------------------------
+# The three devices that are not part of the signal path.
+# ---------------------------------------------------------------------------
+
+DEVICE_PACKS["xadc"] = {
+    "device": _e(
+        "The Zynq's own system monitor, not part of your signal path at all. "
+        "It measures the FPGA's die temperature and internal supply rails. "
+        "Worth recognising precisely so you do not go looking for your "
+        "signal here: its temp and voltage channels are the board's health, "
+        "not the input. It is an upstream Linux driver, so unlike most of "
+        "this board its attributes are properly documented by the kernel.",
+        check="Compare in_temp0_raw against the die temperature Vivado "
+              "reports."),
+    "channels": {},
+    "attrs": {},
+}
+
+DEVICE_PACKS["ad5625"] = {
+    "device": _e(
+        "A quad DAC used for control, not for output. libm2k reads and "
+        "writes its channels to set the scope's hardware vertical offset -- "
+        "M2kAnalogIn reaches for channel (2 + i) of this device to get the "
+        "offset for scope channel i. So moving a trace up and down on screen "
+        "changes a DAC here, not anything on m2k-adc.",
+        confidence=SOURCED, source=LIBM2K,
+        check="Change the vertical offset in Scopy and watch this device's "
+              "raw values move."),
+    "channels": {},
+    "attrs": {},
+}
+
+DEVICE_PACKS["ad5627"] = {
+    "device": _e(
+        "A dual DAC on the control path alongside ad5625. Which reference it "
+        "drives has not been traced -- the trigger level and the DAC output "
+        "stage are both candidates.",
+        check="Sweep each channel's raw value and watch what moves on the "
+              "analog front end."),
+    "channels": {},
+    "attrs": {},
+}
+
+# trigger_delay exists on the digital side too, with the same meaning.
+DEVICE_PACKS["m2k-logic-analyzer-rx"]["attrs"]["trigger_delay"] = _e(
+    "How many samples to wait after the trigger fires before capture "
+    "starts; negative values give pre-trigger data. libm2k reads and writes "
+    "it on channel 0 of this device for the whole digital block, not "
+    "per-pin.",
+    confidence=SOURCED, source=LIBM2K_TRIG)
+
+
 # ------------------------------------------------------------------ lookup
 
 def _pack(device):

@@ -143,4 +143,42 @@ def test_streaming_channel_still_shows_the_conversion(repo_root):
 def test_streaming_channel_without_scale_says_so(repo_root):
     """voltage1 has no attributes at all -- do not silently show nothing."""
     out = run(repo_root, "iio_explain.py", STREAMING, "--channels")
-    assert "nothing on the device tells you what they are worth" in flat(out)
+    assert "nothing on this device tells you what they are worth" in flat(out)
+
+
+def test_no_scale_falls_back_to_the_board_recipe(repo_root):
+    """A real m2k-adc has no _scale, so the overlay has to supply it."""
+    out = flat(run(repo_root, "iio_explain.py", STREAMING, "--channels"))
+    assert "IIO will not tell you -- but libm2k computes it" in out
+    assert "scale = 0.78 / (2048 * 1.3 * range_gain)" in out
+    # The recipe reaches across to another device; say so.
+    assert "gain` attribute on m2k-fabric" in out
+
+
+def test_recipe_is_attributed_not_asserted(repo_root):
+    out = flat(run(repo_root, "iio_explain.py", STREAMING, "--channels"))
+    assert "[overlay: sourced]" in out
+    assert "m2kanalogin_impl.cpp" in out
+
+
+def test_unknown_device_gets_the_generic_fallback(repo_root):
+    """No board pack means say so, not invent a recipe."""
+    import json
+    import os
+    import tempfile
+
+    with open(os.path.join(repo_root, STREAMING)) as handle:
+        data = json.load(handle)
+    data["devices"][0]["name"] = "some-other-adc"
+    data["devices"][0]["id"] = "iio:device0"
+    handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                         dir=os.path.join(repo_root, "fixtures"))
+    json.dump(data, handle)
+    handle.close()
+    try:
+        out = flat(run(repo_root, "iio_explain.py",
+                       os.path.relpath(handle.name, repo_root), "--channels"))
+        assert "has to come from the datasheet or from a vendor library" in out
+        assert "libm2k computes it" not in out
+    finally:
+        os.unlink(handle.name)

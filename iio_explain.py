@@ -98,7 +98,7 @@ def walk(data, device_filter=None):
 
 # ------------------------------------------------------------- annotation
 
-def conversion_for(channel):
+def conversion_for(channel, device=None):
     """Work the raw -> real arithmetic for a channel, if it can be worked."""
     by_info = sem.attrs_by_info(channel.get("attrs", []), channel)
     raw = by_info.get("raw")
@@ -122,6 +122,7 @@ def conversion_for(channel):
                 "scale": (by_info.get("scale") or {}).get("value"),
                 "offset": (by_info.get("offset") or {}).get("value"),
                 "chan_type": bits["type"] if bits else None,
+                "recipe": iio_overlays.scale_recipe(device),
             }
         return None
     if raw.get("value") is None:
@@ -154,9 +155,19 @@ def print_conversion(result, indent=4):
         scale, offset = result.get("scale"), result.get("offset")
         if scale is None:
             print(para("No _scale either, so the samples are raw counts and "
-                       "nothing on the device tells you what they are worth. "
-                       "That conversion has to come from the datasheet or "
-                       "from a vendor library.", indent))
+                       "nothing on this device tells you what they are "
+                       "worth.", indent))
+            recipe = result.get("recipe")
+            if recipe:
+                print()
+                for line in recipe["text"].splitlines():
+                    print("%s%s" % (" " * indent, line) if line else "")
+                print(para(tag("overlay", recipe["confidence"]), indent))
+                if recipe.get("source"):
+                    print(para("source: %s" % recipe["source"], indent))
+            else:
+                print(para("That conversion has to come from the datasheet "
+                           "or from a vendor library.", indent))
             return
         print(para("The same contract still applies, one sample at a time. "
                    "Apply it in your flowgraph:", indent))
@@ -235,7 +246,7 @@ def show_channels(data, args):
                 if args.verbose:
                     print(para(fmt["english"], 17, WIDTH))
 
-            print_conversion(conversion_for(channel))
+            print_conversion(conversion_for(channel, device))
 
             findings = sem.channel_identity(device, channel, iio_overlays)
             if not args.verbose and any(not f.get("fallback") for f in findings):
@@ -332,7 +343,7 @@ def show_attr(data, args):
             print("\n  Turning it into a measurement:")
             print(para("real = (raw + offset) * scale   -- offset first, "
                        "then scale. %s" % tag("abi"), 4))
-            print_conversion(conversion_for(channel))
+            print_conversion(conversion_for(channel, device))
 
         reference = sem.abi_reference(parsed["sysfs_name"], attr.get("type"))
         if reference:
@@ -407,7 +418,7 @@ def show_unknown(data, args):
     for device, channel, attr in walk(data, args.device):
         total += 1
         parsed = sem.parse_attr_name(attr["name"], channel)
-        if sem.is_understood(parsed):
+        if sem.is_understood(parsed, attr.get("type")):
             continue
         key = parsed["info"]
         entry = unknown.setdefault(key, {"count": 0, "where": set(),
@@ -584,7 +595,7 @@ def annotate_attr(device, channel, attr):
         "read_error": attr.get("read_error"),
         "available": attr.get("available"),
         "info_word": parsed["info"],
-        "understood": sem.is_understood(parsed),
+        "understood": sem.is_understood(parsed, attr.get("type")),
         "parsed": {k: parsed[k] for k in
                    ("direction", "channel_type", "channel_index",
                     "modifier", "differential")},
@@ -689,6 +700,15 @@ def main():
     ap.add_argument("--limit", type=int, default=4,
                     help="max matches for --attr (default 4)")
     args = ap.parse_args()
+
+    # These outputs are long and people pipe them to head or less. Without
+    # this, closing the pipe early raises BrokenPipeError instead of just
+    # ending.
+    try:
+        import signal
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except (ImportError, AttributeError, ValueError):
+        pass
 
     data = load(args)
 
