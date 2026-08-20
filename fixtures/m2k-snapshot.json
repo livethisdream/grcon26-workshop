@@ -1,9 +1,71 @@
 {
-  "_synthetic": true,
-  "_synthetic_note": "Hand-authored stand-in for a real ADALM2000 capture. Values and attribute sets are plausible, not measured. Replace with `./iio_discover.py --json > fixtures/m2k-snapshot.json` run against real hardware.",
-  "uri": "usb:1.5.5",
-  "description": "Analog Devices M2k (SYNTHETIC FIXTURE)",
+  "uri": "ip:192.168.2.1",
+  "description": "192.168.2.1 Linux (none) 5.15.36-182064-g7aa63204d396 #10 SMP PREEMPT Fri Oct 11 13:17:19 CEST 2024 armv7l",
   "context_attrs": [
+    {
+      "name": "cal,gain_neg_adc",
+      "type": "context",
+      "value": "0.9958052777684621",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,gain_neg_dac",
+      "type": "context",
+      "value": "0.9998222538215429",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,gain_pos_adc",
+      "type": "context",
+      "value": "0.9990567032110423",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,gain_pos_dac",
+      "type": "context",
+      "value": "0.9986241178820292",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,offset_neg_adc",
+      "type": "context",
+      "value": "-0.002509645909645905",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,offset_neg_dac",
+      "type": "context",
+      "value": "0.01659999999999999",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,offset_pos_adc",
+      "type": "context",
+      "value": "0.0015642246642246643",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "cal,offset_pos_dac",
+      "type": "context",
+      "value": "0.0031000000000000055",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
     {
       "name": "fw_version",
       "type": "context",
@@ -15,7 +77,31 @@
     {
       "name": "hw_model",
       "type": "context",
-      "value": "Analog Devices M2k Rev.D (Z7010-M2k)",
+      "value": "Analog Devices M2k Rev.D (Z7010)",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "hw_model_variant",
+      "type": "context",
+      "value": "1",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "hw_serial",
+      "type": "context",
+      "value": "1044734a420b0003efff3000fc3468bf80",
+      "read_error": null,
+      "available_raw": null,
+      "available": null
+    },
+    {
+      "name": "ip,ip-addr",
+      "type": "context",
+      "value": "192.168.2.1",
       "read_error": null,
       "available_raw": null,
       "available": null
@@ -23,31 +109,15 @@
     {
       "name": "local,kernel",
       "type": "context",
-      "value": "4.19.0-g8f2ff1e",
+      "value": "5.15.36-182064-g7aa63204d396",
       "read_error": null,
       "available_raw": null,
       "available": null
     },
     {
-      "name": "serial",
+      "name": "uri",
       "type": "context",
-      "value": "SYNTHETIC0000",
-      "read_error": null,
-      "available_raw": null,
-      "available": null
-    },
-    {
-      "name": "usb,idProduct",
-      "type": "context",
-      "value": "b673",
-      "read_error": null,
-      "available_raw": null,
-      "available": null
-    },
-    {
-      "name": "usb,idVendor",
-      "type": "context",
-      "value": "0456",
+      "value": "ip:192.168.2.1",
       "read_error": null,
       "available_raw": null,
       "available": null
@@ -56,110 +126,42 @@
   "devices": [
     {
       "id": "iio:device0",
-      "name": "m2k-adc",
-      "label": "m2k-adc",
+      "name": "xadc",
+      "label": "xadc",
       "device_attrs": [
-        {
-          "name": "oversampling_ratio",
-          "type": "device",
-          "value": "1",
-          "read_error": null,
-          "available_raw": "[1 1 65536]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "65536"
-          }
-        },
         {
           "name": "sampling_frequency",
           "type": "device",
-          "value": "100000000",
-          "read_error": null,
-          "available_raw": "[1 1 100000000]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "100000000"
-          }
-        }
-      ],
-      "buffer_attrs": [
-        {
-          "name": "data_available",
-          "type": "buffer",
-          "value": "0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        },
-        {
-          "name": "length_align_bytes",
-          "type": "buffer",
-          "value": "8",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        },
-        {
-          "name": "watermark",
-          "type": "buffer",
-          "value": "1",
+          "value": "240384",
           "read_error": null,
           "available_raw": null,
           "available": null
         }
       ],
-      "debug_attrs": [
-        {
-          "name": "direct_reg_access",
-          "type": "debug",
-          "value": "0x0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        }
-      ],
+      "buffer_attrs": [],
+      "debug_attrs": [],
       "channels": [
         {
-          "id": "voltage0",
+          "id": "temp0",
           "name": null,
           "output": false,
-          "scan_element": true,
-          "scan_index": 0,
+          "scan_element": false,
+          "scan_index": -2,
           "data_format": {
-            "length": 16,
-            "bits": 12,
+            "length": 0,
+            "bits": 0,
             "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": true,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
             "is_be": false,
             "with_scale": false
           },
           "attrs": [
             {
-              "name": "calibbias",
-              "type": "channel",
-              "value": "0",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "calibscale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
               "name": "offset",
               "type": "channel",
-              "value": "-2048",
+              "value": "-2219",
               "read_error": null,
               "available_raw": null,
               "available": null
@@ -167,77 +169,85 @@
             {
               "name": "raw",
               "type": "channel",
-              "value": "1234",
+              "value": "2500",
               "read_error": null,
               "available_raw": null,
               "available": null
             },
             {
-              "name": "sampling_frequency",
+              "name": "scale",
               "type": "channel",
-              "value": "100000000",
+              "value": "123.040771484",
               "read_error": null,
-              "available_raw": "[1 1 100000000]",
-              "available": {
-                "kind": "range",
-                "min": "1",
-                "step": "1",
-                "max": "100000000"
-              }
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage0",
+          "name": "vccint",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vccint",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1350",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
             },
             {
               "name": "scale",
               "type": "channel",
-              "value": "0.062500",
+              "value": "0.732421875",
               "read_error": null,
-              "available_raw": "0.062500 0.006250",
-              "available": {
-                "kind": "options",
-                "values": [
-                  "0.062500",
-                  "0.006250"
-                ]
-              }
+              "available_raw": null,
+              "available": null
             }
           ]
         },
         {
           "id": "voltage1",
-          "name": null,
+          "name": "vccaux",
           "output": false,
-          "scan_element": true,
-          "scan_index": 1,
+          "scan_element": false,
+          "scan_index": -2,
           "data_format": {
-            "length": 16,
-            "bits": 12,
+            "length": 0,
+            "bits": 0,
             "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": true,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
             "is_be": false,
             "with_scale": false
           },
           "attrs": [
             {
-              "name": "calibbias",
+              "name": "label",
               "type": "channel",
-              "value": "0",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "calibscale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "offset",
-              "type": "channel",
-              "value": "-2048",
+              "value": "vccaux",
               "read_error": null,
               "available_raw": null,
               "available": null
@@ -245,37 +255,311 @@
             {
               "name": "raw",
               "type": "channel",
-              "value": "-96",
+              "value": "2443",
               "read_error": null,
               "available_raw": null,
               "available": null
             },
             {
-              "name": "sampling_frequency",
+              "name": "scale",
               "type": "channel",
-              "value": "100000000",
+              "value": "0.732421875",
               "read_error": null,
-              "available_raw": "[1 1 100000000]",
-              "available": {
-                "kind": "range",
-                "min": "1",
-                "step": "1",
-                "max": "100000000"
-              }
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": "vccbram",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vccbram",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1351",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
             },
             {
               "name": "scale",
               "type": "channel",
-              "value": "0.062500",
+              "value": "0.732421875",
               "read_error": null,
-              "available_raw": "0.062500 0.006250",
-              "available": {
-                "kind": "options",
-                "values": [
-                  "0.062500",
-                  "0.006250"
-                ]
-              }
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": "vccpint",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vccpint",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1350",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.732421875",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": "vccpaux",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vccpaux",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2446",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.732421875",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage5",
+          "name": "vccoddr",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vccoddr",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1831",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.732421875",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage6",
+          "name": "vrefp",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vrefp",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1693",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.732421875",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage7",
+          "name": "vrefn",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "vrefn",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "-10",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.732421875",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage8",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2447",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.244140625",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
             }
           ]
         }
@@ -283,604 +567,8 @@
     },
     {
       "id": "iio:device1",
-      "name": "m2k-dac-a",
-      "label": "m2k-dac-a",
-      "device_attrs": [
-        {
-          "name": "oversampling_ratio",
-          "type": "device",
-          "value": "1",
-          "read_error": null,
-          "available_raw": "[1 1 65536]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "65536"
-          }
-        },
-        {
-          "name": "sampling_frequency",
-          "type": "device",
-          "value": "75000000",
-          "read_error": null,
-          "available_raw": "[1 1 100000000]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "100000000"
-          }
-        }
-      ],
-      "buffer_attrs": [
-        {
-          "name": "data_available",
-          "type": "buffer",
-          "value": "0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        }
-      ],
-      "debug_attrs": [],
-      "channels": [
-        {
-          "id": "voltage0",
-          "name": null,
-          "output": true,
-          "scan_element": true,
-          "scan_index": 0,
-          "data_format": {
-            "length": 16,
-            "bits": 12,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": true,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": [
-            {
-              "name": "calibscale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "raw",
-              "type": "channel",
-              "value": null,
-              "read_error": "Permission denied",
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "sampling_frequency",
-              "type": "channel",
-              "value": "75000000",
-              "read_error": null,
-              "available_raw": "[1 1 100000000]",
-              "available": {
-                "kind": "range",
-                "min": "1",
-                "step": "1",
-                "max": "100000000"
-              }
-            },
-            {
-              "name": "scale",
-              "type": "channel",
-              "value": "0.001000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "iio:device2",
-      "name": "m2k-dac-b",
-      "label": "m2k-dac-b",
-      "device_attrs": [
-        {
-          "name": "oversampling_ratio",
-          "type": "device",
-          "value": "1",
-          "read_error": null,
-          "available_raw": "[1 1 65536]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "65536"
-          }
-        },
-        {
-          "name": "sampling_frequency",
-          "type": "device",
-          "value": "75000000",
-          "read_error": null,
-          "available_raw": "[1 1 100000000]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "100000000"
-          }
-        }
-      ],
-      "buffer_attrs": [
-        {
-          "name": "data_available",
-          "type": "buffer",
-          "value": "0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        }
-      ],
-      "debug_attrs": [],
-      "channels": [
-        {
-          "id": "voltage0",
-          "name": null,
-          "output": true,
-          "scan_element": true,
-          "scan_index": 0,
-          "data_format": {
-            "length": 16,
-            "bits": 12,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": true,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": [
-            {
-              "name": "calibscale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "raw",
-              "type": "channel",
-              "value": null,
-              "read_error": "Permission denied",
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "sampling_frequency",
-              "type": "channel",
-              "value": "75000000",
-              "read_error": null,
-              "available_raw": "[1 1 100000000]",
-              "available": {
-                "kind": "range",
-                "min": "1",
-                "step": "1",
-                "max": "100000000"
-              }
-            },
-            {
-              "name": "scale",
-              "type": "channel",
-              "value": "0.001000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "iio:device3",
-      "name": "m2k-logic-analyzer-rx",
-      "label": "m2k-logic-analyzer-rx",
-      "device_attrs": [
-        {
-          "name": "sampling_frequency",
-          "type": "device",
-          "value": "100000000",
-          "read_error": null,
-          "available_raw": "[1 1 100000000]",
-          "available": {
-            "kind": "range",
-            "min": "1",
-            "step": "1",
-            "max": "100000000"
-          }
-        }
-      ],
-      "buffer_attrs": [
-        {
-          "name": "data_available",
-          "type": "buffer",
-          "value": "0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        }
-      ],
-      "debug_attrs": [],
-      "channels": [
-        {
-          "id": "voltage0",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 0,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage1",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 1,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage2",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 2,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage3",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 3,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage4",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 4,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage5",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 5,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage6",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 6,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage7",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 7,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage8",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 8,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage9",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 9,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage10",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 10,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage11",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 11,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage12",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 12,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage13",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 13,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage14",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 14,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        },
-        {
-          "id": "voltage15",
-          "name": null,
-          "output": false,
-          "scan_element": true,
-          "scan_index": 15,
-          "data_format": {
-            "length": 16,
-            "bits": 1,
-            "shift": 0,
-            "repeat": 1,
-            "scale": 1.0,
-            "is_signed": false,
-            "is_be": false,
-            "with_scale": false
-          },
-          "attrs": []
-        }
-      ]
-    },
-    {
-      "id": "iio:device4",
-      "name": "ad9963",
-      "label": "ad9963",
-      "device_attrs": [],
-      "buffer_attrs": [],
-      "debug_attrs": [
-        {
-          "name": "direct_reg_access",
-          "type": "debug",
-          "value": "0x0",
-          "read_error": null,
-          "available_raw": null,
-          "available": null
-        }
-      ],
-      "channels": [
-        {
-          "id": "temp0",
-          "name": null,
-          "output": false,
-          "scan_element": false,
-          "scan_index": null,
-          "data_format": null,
-          "attrs": [
-            {
-              "name": "offset",
-              "type": "channel",
-              "value": "-2732",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "raw",
-              "type": "channel",
-              "value": "31450",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            },
-            {
-              "name": "scale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            }
-          ]
-        },
-        {
-          "id": "voltage0",
-          "name": null,
-          "output": false,
-          "scan_element": false,
-          "scan_index": null,
-          "data_format": null,
-          "attrs": [
-            {
-              "name": "calibscale",
-              "type": "channel",
-              "value": "1.000000",
-              "read_error": null,
-              "available_raw": null,
-              "available": null
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "iio:device5",
-      "name": "m2k-fabric",
-      "label": "m2k-fabric",
+      "name": "ad5625",
+      "label": "ad5625",
       "device_attrs": [],
       "buffer_attrs": [],
       "debug_attrs": [],
@@ -888,25 +576,20 @@
         {
           "id": "voltage0",
           "name": null,
-          "output": false,
+          "output": true,
           "scan_element": false,
-          "scan_index": null,
-          "data_format": null,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
           "attrs": [
-            {
-              "name": "gain",
-              "type": "channel",
-              "value": "high",
-              "read_error": null,
-              "available_raw": "low high",
-              "available": {
-                "kind": "options",
-                "values": [
-                  "low",
-                  "high"
-                ]
-              }
-            },
             {
               "name": "powerdown",
               "type": "channel",
@@ -914,16 +597,266 @@
               "read_error": null,
               "available_raw": null,
               "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
             }
           ]
         },
         {
           "id": "voltage1",
           "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device10",
+      "name": "m2k-fabric",
+      "label": "m2k-fabric",
+      "device_attrs": [
+        {
+          "name": "calibration_mode",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none adc_ref1 adc_ref2 adc_gnd dac",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "adc_ref1",
+              "adc_ref2",
+              "adc_gnd",
+              "dac"
+            ]
+          }
+        },
+        {
+          "name": "clk_powerdown",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "buffer_attrs": [],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
           "output": false,
           "scan_element": false,
-          "scan_index": null,
-          "data_format": null,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
           "attrs": [
             {
               "name": "gain",
@@ -942,6 +875,360 @@
             {
               "name": "powerdown",
               "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "gain",
+              "type": "channel",
+              "value": "low",
+              "read_error": null,
+              "available_raw": "low high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "low",
+                  "high"
+                ]
+              }
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": "user_supply",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "user_supply",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": "user_supply",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "user_supply",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": "done_led_overwrite",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "done_led_overwrite",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device11",
+      "name": "m2k-adc-trigger",
+      "label": "m2k-adc-trigger",
+      "device_attrs": [
+        {
+          "name": "holdoff_raw",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "streaming",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "triggered",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x30000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "edge-rising",
+              "read_error": null,
+              "available_raw": "level-low level-high edge-rising edge-falling",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "level-low",
+                  "level-high",
+                  "edge-rising",
+                  "edge-falling"
+                ]
+              }
+            },
+            {
+              "name": "trigger_hysteresis",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_level",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "edge-rising",
+              "read_error": null,
+              "available_raw": "level-low level-high edge-rising edge-falling",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "level-low",
+                  "level-high",
+                  "edge-rising",
+                  "edge-falling"
+                ]
+              }
+            },
+            {
+              "name": "trigger_hysteresis",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_level",
+              "type": "channel",
               "value": "0",
               "read_error": null,
               "available_raw": null,
@@ -952,10 +1239,773 @@
         {
           "id": "voltage2",
           "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "level-low",
+              "read_error": null,
+              "available_raw": "level-low level-high edge-any edge-rising edge-falling",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "level-low",
+                  "level-high",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "level-low",
+              "read_error": null,
+              "available_raw": "level-low level-high edge-any edge-rising edge-falling",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "level-low",
+                  "level-high",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": "trigger_logic",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "mode",
+              "type": "channel",
+              "value": "always",
+              "read_error": null,
+              "available_raw": "always digital analog digital_OR_analog digital_AND_analog digital_XOR_analog !digital_OR_analog !digital_AND_analog !digital_XOR_analog",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "always",
+                  "digital",
+                  "analog",
+                  "digital_OR_analog",
+                  "digital_AND_analog",
+                  "digital_XOR_analog",
+                  "!digital_OR_analog",
+                  "!digital_AND_analog",
+                  "!digital_XOR_analog"
+                ]
+              }
+            },
+            {
+              "name": "out_direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "out in",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "out",
+                  "in"
+                ]
+              }
+            },
+            {
+              "name": "out_select",
+              "type": "channel",
+              "value": "sw-trigger",
+              "read_error": null,
+              "available_raw": "sw-trigger trigger-i-same-chan trigger-i-swap-chan trigger-adc trigger-in",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "sw-trigger",
+                  "trigger-i-same-chan",
+                  "trigger-i-swap-chan",
+                  "trigger-adc",
+                  "trigger-in"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage5",
+          "name": "trigger_logic",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "mode",
+              "type": "channel",
+              "value": "always",
+              "read_error": null,
+              "available_raw": "always digital analog digital_OR_analog digital_AND_analog digital_XOR_analog !digital_OR_analog !digital_AND_analog !digital_XOR_analog",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "always",
+                  "digital",
+                  "analog",
+                  "digital_OR_analog",
+                  "digital_AND_analog",
+                  "digital_XOR_analog",
+                  "!digital_OR_analog",
+                  "!digital_AND_analog",
+                  "!digital_XOR_analog"
+                ]
+              }
+            },
+            {
+              "name": "out_direction",
+              "type": "channel",
+              "value": "out",
+              "read_error": null,
+              "available_raw": "out in",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "out",
+                  "in"
+                ]
+              }
+            },
+            {
+              "name": "out_select",
+              "type": "channel",
+              "value": "sw-trigger",
+              "read_error": null,
+              "available_raw": "sw-trigger trigger-i-same-chan trigger-i-swap-chan trigger-adc trigger-in",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "sw-trigger",
+                  "trigger-i-same-chan",
+                  "trigger-i-swap-chan",
+                  "trigger-adc",
+                  "trigger-in"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage6",
+          "name": "trigger",
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "embedded",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "logic_mode",
+              "type": "channel",
+              "value": "a",
+              "read_error": null,
+              "available_raw": "a b a_OR_b a_AND_b a_XOR_b trigger_in a_OR_trigger_in b_OR_trigger_in a_OR_b_OR_trigger_in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "a",
+                  "b",
+                  "a_OR_b",
+                  "a_AND_b",
+                  "a_XOR_b",
+                  "trigger_in",
+                  "a_OR_trigger_in",
+                  "b_OR_trigger_in",
+                  "a_OR_b_OR_trigger_in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device12",
+      "name": "ad9963",
+      "label": "ad9963",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x18",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "temp0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "offset",
+              "type": "channel",
+              "value": "-1366",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1495",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "200.000000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "3103",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage0",
+          "name": null,
           "output": true,
           "scan_element": false,
-          "scan_index": null,
-          "data_format": null,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "10",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "941",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1042",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage5",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1790",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.781250000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device13",
+      "name": "m2k-adc",
+      "label": "m2k-adc",
+      "device_attrs": [
+        {
+          "name": "calibrate",
+          "type": "device",
+          "value": "false",
+          "read_error": null,
+          "available_raw": "false true",
+          "available": {
+            "kind": "options",
+            "values": [
+              "false",
+              "true"
+            ]
+          }
+        },
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": "1000 10000 100000 1000000 10000000 100000000",
+          "available": {
+            "kind": "options",
+            "values": [
+              "1000",
+              "10000",
+              "100000",
+              "1000000",
+              "10000000",
+              "100000000"
+            ]
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0xA0300",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibbias",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 1,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "calibbias",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device2",
+      "name": "ad5627",
+      "label": "ad5627",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
           "attrs": [
             {
               "name": "powerdown",
@@ -964,6 +2014,3652 @@
               "read_error": null,
               "available_raw": null,
               "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "powerdown",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "powerdown_mode",
+              "type": "channel",
+              "value": "1kohm_to_gnd",
+              "read_error": null,
+              "available_raw": "1kohm_to_gnd 100kohm_to_gnd three_state",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "1kohm_to_gnd",
+                  "100kohm_to_gnd",
+                  "three_state"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.292968750",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device3",
+      "name": "pll",
+      "label": "pll",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0xFD924",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "altvoltage0",
+          "name": null,
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "frequency",
+              "type": "channel",
+              "value": "100000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "mute_till_lock_detect",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "muxout_mode",
+              "type": "channel",
+              "value": "lock-detect",
+              "read_error": null,
+              "available_raw": "three-state lock-detect ndiv dvdd rdiv od-ld sdo gnd",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "three-state",
+                  "lock-detect",
+                  "ndiv",
+                  "dvdd",
+                  "rdiv",
+                  "od-ld",
+                  "sdo",
+                  "gnd"
+                ]
+              }
+            },
+            {
+              "name": "pfd_frequency",
+              "type": "channel",
+              "value": "5000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "power_down",
+              "type": "channel",
+              "value": "normal",
+              "read_error": null,
+              "available_raw": "normal soft-async ce soft-sync regulator",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "normal",
+                  "soft-async",
+                  "ce",
+                  "soft-sync",
+                  "regulator"
+                ]
+              }
+            },
+            {
+              "name": "power_level",
+              "type": "channel",
+              "value": "5000-uA",
+              "read_error": null,
+              "available_raw": "3500-uA 5000-uA 7500-uA 11000-uA",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "3500-uA",
+                  "5000-uA",
+                  "7500-uA",
+                  "11000-uA"
+                ]
+              }
+            },
+            {
+              "name": "refin_frequency",
+              "type": "channel",
+              "value": "20000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device4",
+      "name": "m2k-dds",
+      "label": "m2k-dds",
+      "device_attrs": [
+        {
+          "name": "sync_start_enable",
+          "type": "device",
+          "value": "arm",
+          "read_error": null,
+          "available_raw": "arm",
+          "available": {
+            "kind": "options",
+            "values": [
+              "arm"
+            ]
+          }
+        }
+      ],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x90262",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "altvoltage0",
+          "name": "1A",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "frequency",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "1A",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "phase",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "altvoltage1",
+          "name": "1B",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "frequency",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "1B",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "phase",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "altvoltage2",
+          "name": "2A",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "frequency",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "2A",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "phase",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "altvoltage3",
+          "name": "2B",
+          "output": true,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "frequency",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "label",
+              "type": "channel",
+              "value": "2B",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "phase",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "sampling_frequency",
+              "type": "channel",
+              "value": "75000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device5",
+      "name": "m2k-dac-a",
+      "label": "m2k-dac-a",
+      "device_attrs": [
+        {
+          "name": "auto_rearm_trigger",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "calibscale",
+          "type": "device",
+          "value": "1.000000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "dma_sync",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "dma_sync_start",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "75000000",
+          "read_error": null,
+          "available_raw": "750 7500 75000 750000 7500000 75000000",
+          "available": {
+            "kind": "options",
+            "values": [
+              "750",
+              "7500",
+              "75000",
+              "750000",
+              "7500000",
+              "75000000"
+            ]
+          }
+        },
+        {
+          "name": "trigger_condition",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none level-low level-high edge-any edge-rising edge-falling",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "level-low",
+              "level-high",
+              "edge-any",
+              "edge-rising",
+              "edge-falling"
+            ]
+          }
+        },
+        {
+          "name": "trigger_src",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none trigger-Ti trigger-adc trigger-la",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "trigger-Ti",
+              "trigger-adc",
+              "trigger-la"
+            ]
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x20500",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 16,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw_enable",
+              "type": "channel",
+              "value": "disabled",
+              "read_error": null,
+              "available_raw": "disabled enabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "disabled",
+                  "enabled"
+                ]
+              }
+            },
+            {
+              "name": "trigger_status",
+              "type": "channel",
+              "value": "disabled",
+              "read_error": null,
+              "available_raw": "disabled start stop",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "disabled",
+                  "start",
+                  "stop"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device6",
+      "name": "m2k-dac-b",
+      "label": "m2k-dac-b",
+      "device_attrs": [
+        {
+          "name": "auto_rearm_trigger",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "calibscale",
+          "type": "device",
+          "value": "1.000000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "dma_sync",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "dma_sync_start",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "oversampling_ratio",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "75000000",
+          "read_error": null,
+          "available_raw": "750 7500 75000 750000 7500000 75000000",
+          "available": {
+            "kind": "options",
+            "values": [
+              "750",
+              "7500",
+              "75000",
+              "750000",
+              "7500000",
+              "75000000"
+            ]
+          }
+        },
+        {
+          "name": "trigger_condition",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none level-low level-high edge-any edge-rising edge-falling",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "level-low",
+              "level-high",
+              "edge-any",
+              "edge-rising",
+              "edge-falling"
+            ]
+          }
+        },
+        {
+          "name": "trigger_src",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none trigger-Ti trigger-adc trigger-la",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "trigger-Ti",
+              "trigger-adc",
+              "trigger-la"
+            ]
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x20500",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 16,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": true,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "raw_enable",
+              "type": "channel",
+              "value": "disabled",
+              "read_error": null,
+              "available_raw": "disabled enabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "disabled",
+                  "enabled"
+                ]
+              }
+            },
+            {
+              "name": "trigger_status",
+              "type": "channel",
+              "value": "disabled",
+              "read_error": null,
+              "available_raw": "disabled start stop",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "disabled",
+                  "start",
+                  "stop"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device7",
+      "name": "m2k-logic-analyzer",
+      "label": "m2k-logic-analyzer",
+      "device_attrs": [
+        {
+          "name": "clocksource",
+          "type": "device",
+          "value": "internal",
+          "read_error": null,
+          "available_raw": "internal external",
+          "available": {
+            "kind": "options",
+            "values": [
+              "internal",
+              "external"
+            ]
+          }
+        },
+        {
+          "name": "powerdown",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "99999999",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "buffer_attrs": [],
+      "debug_attrs": [
+        {
+          "name": "direct_reg_access",
+          "type": "debug",
+          "value": "0x20100",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage10",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage11",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage12",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage13",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage14",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage15",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage5",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage6",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage7",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage8",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage9",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "direction",
+              "type": "channel",
+              "value": "in",
+              "read_error": null,
+              "available_raw": "in out",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "in",
+                  "out"
+                ]
+              }
+            },
+            {
+              "name": "outputmode",
+              "type": "channel",
+              "value": "push-pull",
+              "read_error": null,
+              "available_raw": "push-pull open-drain",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "push-pull",
+                  "open-drain"
+                ]
+              }
+            },
+            {
+              "name": "raw",
+              "type": "channel",
+              "value": "1",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iio:device8",
+      "name": "m2k-logic-analyzer-tx",
+      "label": "m2k-logic-analyzer-tx",
+      "device_attrs": [
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "trigger_condition",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none level-low level-high edge-any edge-rising edge-falling",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "level-low",
+              "level-high",
+              "edge-any",
+              "edge-rising",
+              "edge-falling"
+            ]
+          }
+        },
+        {
+          "name": "trigger_src",
+          "type": "device",
+          "value": "none",
+          "read_error": null,
+          "available_raw": "none trigger-i_0 trigger-i_1 trigger-adc trigger-la",
+          "available": {
+            "kind": "options",
+            "values": [
+              "none",
+              "trigger-i_0",
+              "trigger-i_1",
+              "trigger-adc",
+              "trigger-la"
+            ]
+          }
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 1,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage10",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 10,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage11",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 11,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage12",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 12,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage13",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 13,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage14",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 14,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage15",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 15,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 2,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 3,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage4",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 4,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage5",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 5,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage6",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 6,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage7",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 7,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage8",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 8,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        },
+        {
+          "id": "voltage9",
+          "name": null,
+          "output": true,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 9,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": []
+        }
+      ]
+    },
+    {
+      "id": "iio:device9",
+      "name": "m2k-logic-analyzer-rx",
+      "label": "m2k-logic-analyzer-rx",
+      "device_attrs": [
+        {
+          "name": "data_delay_auto",
+          "type": "device",
+          "value": "auto",
+          "read_error": null,
+          "available_raw": "auto manual",
+          "available": {
+            "kind": "options",
+            "values": [
+              "auto",
+              "manual"
+            ]
+          }
+        },
+        {
+          "name": "data_in_delay",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "rate_mux",
+          "type": "device",
+          "value": "logic_analyzer",
+          "read_error": null,
+          "available_raw": "logic_analyzer oscilloscope",
+          "available": {
+            "kind": "options",
+            "values": [
+              "logic_analyzer",
+              "oscilloscope"
+            ]
+          }
+        },
+        {
+          "name": "sampling_frequency",
+          "type": "device",
+          "value": "100000000",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "streaming",
+          "type": "device",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "triggered",
+          "type": "device",
+          "value": "1",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "buffer_attrs": [
+        {
+          "name": "length_align_bytes",
+          "type": "buffer",
+          "value": "8",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        },
+        {
+          "name": "data_available",
+          "type": "buffer",
+          "value": "0",
+          "read_error": null,
+          "available_raw": null,
+          "available": null
+        }
+      ],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 0,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 1,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage10",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 10,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage11",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 11,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage12",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 12,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage13",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 13,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage14",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 14,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage15",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 15,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage16",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage17",
+          "name": null,
+          "output": false,
+          "scan_element": false,
+          "scan_index": -2,
+          "data_format": {
+            "length": 0,
+            "bits": 0,
+            "shift": 0,
+            "repeat": 0,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage2",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 2,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage3",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 3,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage4",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 4,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage5",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 5,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage6",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 6,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage7",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 7,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage8",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 8,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "voltage9",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 1,
+            "shift": 9,
+            "repeat": 1,
+            "scale": 0.0,
+            "is_signed": false,
+            "is_be": false,
+            "with_scale": false
+          },
+          "attrs": [
+            {
+              "name": "trigger",
+              "type": "channel",
+              "value": "none",
+              "read_error": null,
+              "available_raw": "none edge-any edge-rising edge-falling level-low level-high",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "none",
+                  "edge-any",
+                  "edge-rising",
+                  "edge-falling",
+                  "level-low",
+                  "level-high"
+                ]
+              }
+            },
+            {
+              "name": "trigger_delay",
+              "type": "channel",
+              "value": "0",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "trigger_logic_mode",
+              "type": "channel",
+              "value": "or",
+              "read_error": null,
+              "available_raw": "or and",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "or",
+                  "and"
+                ]
+              }
+            },
+            {
+              "name": "trigger_mux_out",
+              "type": "channel",
+              "value": "trigger-logic",
+              "read_error": null,
+              "available_raw": "trigger-logic trigger-in trigger-logic-and-trigger-in trigger-logic-or-trigger-in trigger-logic-xor-trigger-in disabled",
+              "available": {
+                "kind": "options",
+                "values": [
+                  "trigger-logic",
+                  "trigger-in",
+                  "trigger-logic-and-trigger-in",
+                  "trigger-logic-or-trigger-in",
+                  "trigger-logic-xor-trigger-in",
+                  "disabled"
+                ]
+              }
             }
           ]
         }
