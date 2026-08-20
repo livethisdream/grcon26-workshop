@@ -570,6 +570,11 @@ def describe_data_format(fmt):
 
     bits = fmt.get("bits")
     length = fmt.get("length")
+    # A non-streaming channel can still carry an all-zero data format --
+    # xadc reports bits 0 in a 0-bit container. "le:u0/0>>0" is noise, not
+    # information.
+    if not bits or not length:
+        return None
     shift = fmt.get("shift", 0) or 0
     signed = bool(fmt.get("is_signed"))
     big_endian = bool(fmt.get("is_be"))
@@ -832,10 +837,15 @@ def channel_identity(device, channel, overlays=None):
             "provenance": DRIVER, "confidence": MEASURED})
 
     for attr in (channel or {}).get("attrs", []):
-        if parse_attr_name(attr["name"], channel)["info"] == "label" \
-                and attr.get("value"):
+        if parse_attr_name(attr["name"], channel)["info"] != "label":
+            continue
+        label = attr.get("value")
+        # A driver that sets extend_name usually surfaces the same string
+        # as the label. Reporting it twice looks like corroboration from
+        # two sources when it is one source read two ways.
+        if label and label != name:
             findings.append({
-                "text": "The device reports a label of '%s'." % attr["value"],
+                "text": "The device reports a label of '%s'." % label,
                 "provenance": DRIVER, "confidence": MEASURED})
 
     if overlays:

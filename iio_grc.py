@@ -46,11 +46,26 @@ def find_device(data, wanted):
     return None
 
 
-def find_channel(device, chan_id):
-    for channel in (device or {}).get("channels", []):
-        if chan_id in (channel.get("id"), channel.get("name")):
-            return channel
-    return None
+def find_channel(device, chan_id, output=None):
+    """A channel by id or driver name.
+
+    `output` disambiguates. It has to: on a real M2K both m2k-fabric and
+    ad9963 expose voltage0 AND voltage1 twice, once as an input and once
+    as an output, carrying different attributes. Matching on the id alone
+    silently returns whichever the driver happened to list first, and the
+    two need different sysfs prefixes.
+    """
+    matches = [c for c in (device or {}).get("channels", [])
+               if chan_id in (c.get("id"), c.get("name"))]
+    if output is not None:
+        matches = [c for c in matches if bool(c.get("output")) == bool(output)]
+    return matches[0] if matches else None
+
+
+def channel_is_ambiguous(device, chan_id):
+    """Does this id name more than one channel on this device?"""
+    return len([c for c in (device or {}).get("channels", [])
+                if chan_id in (c.get("id"), c.get("name"))]) > 1
 
 
 def stream_channels(device):
@@ -61,6 +76,17 @@ def stream_channels(device):
     streams = [c for c in (device or {}).get("channels", [])
                if c.get("scan_element")]
     return sorted(streams, key=sem.channel_sort_key)
+
+
+def is_sink_device(device):
+    """Does this device take samples rather than give them?
+
+    Decided by the device's own streaming channels, not by an argument.
+    The M2K's DAC devices only make sense as sinks, and a caller should
+    not have to know that in advance.
+    """
+    streams = stream_channels(device)
+    return bool(streams) and all(c.get("output") for c in streams)
 
 
 def sysfs_name(channel, attr_name):
@@ -179,6 +205,7 @@ def build(data, selection):
                 "warnings": ["No device '%s' in this capture." % device_name]}
 
     label = device.get("name") or device.get("id")
+    is_sink = is_sink_device(device)
 
     channels = []
     for chan_id in selection.get("channels", []):
@@ -192,10 +219,15 @@ def build(data, selection):
                 "a configuration channel -- set its attributes through "
                 "params instead of listing it here." % chan_id)
             continue
-        if channel.get("output"):
+        # Only meaningful on a mixed device. A device whose streaming
+        # channels are all outputs is a sink, and its output channels are
+        # exactly right; is_sink_device() has already decided that.
+        if channel.get("output") and not is_sink:
             warnings.append(
-                "Channel '%s' is an output. A Device Source reads inputs; "
-                "an output channel belongs on a Device Sink." % chan_id)
+                "Channel '%s' is an output, but %s also has input channels "
+                "so it is being built as a source. A Device Source reads "
+                "inputs; this channel belongs on a Device Sink."
+                % (chan_id, label))
         channels.append(channel)
 
     channels.sort(key=sem.channel_sort_key)
@@ -213,6 +245,12 @@ def build(data, selection):
         if attr_name is None or value in (None, ""):
             continue
 
+        if chan_id and channel_is_ambiguous(device, chan_id):
+            warnings.append(
+                "'%s' names more than one channel on %s -- an input and an "
+                "output, with different attributes. Using the first one the "
+                "driver lists; say which you mean if that is wrong."
+                % (chan_id, label))
         channel, attr = find_attr(device, chan_id, attr_name)
         if attr is None:
             where = ("channel %s" % chan_id) if chan_id else "device level"
@@ -227,7 +265,12 @@ def build(data, selection):
         params.append("%s=%s" % (sysfs_name(channel, attr_name), value))
 
     buffer_size = int(selection.get("buffer_size") or DEFAULT_BUFFER_SIZE)
-    decimation = int(selection.get("decimation") or 1)
+    # A sink calls the same knob interpolation. Accept either key so a
+    # caller that does not care which direction it is gets it right anyway.
+    rate_key = "interpolation" if is_sink else "decimation"
+    rate = int(selection.get(rate_key)
+               or selection.get("decimation")
+               or selection.get("interpolation") or 1)
     device_phy = selection.get("device_phy") or ""
 
     fields = {
@@ -236,12 +279,15 @@ def build(data, selection):
         "device_phy": device_phy,
         "channels": channels,
         "buffer_size": buffer_size,
-        "decimation": decimation,
+        rate_key: rate,
         "params": params,
-        "len_tag_key": "packet_len",
+        "len_tag_key": selection.get("len_tag_key") or "packet_len",
+        "is_sink": is_sink,
     }
+    if is_sink:
+        fields["cyclic"] = bool(selection.get("cyclic", False))
     return {"fields": fields, "fields_display": render_fields(fields),
-            "params": params, "warnings": warnings,
+            "params": params, "warnings": warnings, "is_sink": is_sink,
             "make": render_python(fields)}
 
 
@@ -250,24 +296,43 @@ def build(data, selection):
 def render_python(fields):
     """The constructor call GRC generates, for pasting into plain Python.
 
-    gr-iio takes decimation as "samples to drop", which is one less than
-    the decimation factor GRC shows -- hence the subtraction in the GRC
-    template, reproduced here.
+    Both shapes are copied from gr-iio 3.10's own block templates, which
+    are identical on main:
+
+        iio.device_source(uri, device, channels, device_phy, params,
+                          buffer_size, decimation - 1)
+        iio.device_sink(uri, device, channels, device_phy, params,
+                        buffer_size, interpolation - 1, cyclic)
+
+    Two things people miss. The rate argument is "samples to drop", one
+    less than the factor GRC shows -- hence the subtraction. And the
+    length tag key is not a constructor argument at all; GRC emits a
+    second line calling set_len_tag_key(), so a hand-written flowgraph
+    that stops at the constructor is missing it.
     """
-    return ("iio.device_source(%r, %r, %r, %r, %r, %d, %d)"
-            % (fields["uri"], fields["device"], fields["channels"],
-               fields["device_phy"], fields["params"],
-               fields["buffer_size"], fields["decimation"] - 1))
+    if fields.get("is_sink"):
+        call = ("iio.device_sink(%r, %r, %r, %r, %r, %d, %d, %r)"
+                % (fields["uri"], fields["device"], fields["channels"],
+                   fields["device_phy"], fields["params"],
+                   fields["buffer_size"], fields["interpolation"] - 1,
+                   bool(fields.get("cyclic", False))))
+    else:
+        call = ("iio.device_source(%r, %r, %r, %r, %r, %d, %d)"
+                % (fields["uri"], fields["device"], fields["channels"],
+                   fields["device_phy"], fields["params"],
+                   fields["buffer_size"], fields["decimation"] - 1))
+    return "%s\nself.blk.set_len_tag_key(%r)" % (call, fields["len_tag_key"])
 
 
 def render_fields(fields):
     """What to type in each GRC box, in the block's own order.
 
-    `kind` says how GRC reads the box: a string field takes bare text, a
-    raw field takes a Python literal. Typing quotes into a string field
-    is the classic first mistake.
+    `kind` says how GRC reads the box, using the dtype the block itself
+    declares: `string` takes bare text, `int` and `raw` take an
+    expression, `bool` takes True or False. Typing quotes into a string
+    field is the classic first mistake.
     """
-    return [
+    boxes = [
         {"id": "uri", "label": "IIO context URI", "kind": "string",
          "text": fields["uri"]},
         {"id": "device", "label": "Device Name/ID", "kind": "string",
@@ -276,13 +341,22 @@ def render_fields(fields):
          "text": fields["device_phy"]},
         {"id": "channels", "label": "Channels", "kind": "raw",
          "text": repr(fields["channels"])},
-        {"id": "buffer_size", "label": "Buffer size", "kind": "raw",
+        {"id": "buffer_size", "label": "Buffer size", "kind": "int",
          "text": str(fields["buffer_size"])},
-        {"id": "decimation", "label": "Decimation", "kind": "raw",
-         "text": str(fields["decimation"])},
-        {"id": "params", "label": "Parameters", "kind": "raw",
-         "text": repr(fields["params"])},
     ]
+    if fields.get("is_sink"):
+        boxes.append({"id": "interpolation", "label": "Interpolation",
+                      "kind": "int", "text": str(fields["interpolation"])})
+        boxes.append({"id": "cyclic", "label": "Cyclic", "kind": "bool",
+                      "text": str(bool(fields.get("cyclic", False)))})
+    else:
+        boxes.append({"id": "decimation", "label": "Decimation",
+                      "kind": "int", "text": str(fields["decimation"])})
+    boxes.append({"id": "params", "label": "Parameters", "kind": "raw",
+                  "text": repr(fields["params"])})
+    boxes.append({"id": "len_tag_key", "label": "Packet Length Tag",
+                  "kind": "string", "text": fields["len_tag_key"]})
+    return boxes
 
 
 # ------------------------------------------------- generated GRC blocks
@@ -452,7 +526,19 @@ def generate_block(data, device_name, category=CATEGORY):
 
     label = device.get("name") or device.get("id")
     streams = stream_channels(device)
-    is_sink = bool(streams) and all(c.get("output") for c in streams)
+    if not streams:
+        # Five of the M2K's fourteen devices are like this. A block for one
+        # would carry `asserts: len(channels) > 0` that can never be met,
+        # so it would sit in GRC permanently in error. The way to reach
+        # these attributes is another block's device_phy, which is exactly
+        # what gr-iio's set_params(phy, params) applies them to.
+        raise ValueError(
+            "%s has no streaming channels, so it is configuration only and "
+            "cannot be a source or a sink. To set its attributes from a "
+            "flowgraph, put device_phy=%s on the block that does stream, and "
+            "list the attributes in that block's params -- gr-iio applies "
+            "params to device_phy when it is set." % (label, label))
+    is_sink = is_sink_device(device)
     stream_ids = [c.get("id") for c in streams]
     entries = dropdown_attrs(device)
 

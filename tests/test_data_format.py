@@ -33,3 +33,9 @@ def test_full_scale_is_explained_when_padded():
 
 def test_no_format_for_non_streaming_channel():
     assert sem.describe_data_format(None) is None
+
+
+def test_zero_width_format_is_not_a_format():
+    """xadc reports bits 0 in a 0-bit container; le:u0/0>>0 is noise."""
+    assert sem.describe_data_format(
+        fmt(bits=0, length=0, is_signed=False)) is None
