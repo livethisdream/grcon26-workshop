@@ -1,4 +1,8 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.mypy_cache/
 .venv/
+.DS_Store
+*:Zone.Identifier
+.claude/settings.local.json

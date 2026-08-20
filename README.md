@@ -1,11 +1,13 @@
 # IIO discovery and semantics
 
-Workshop tooling for GNU Radio + ADALM2000. Two tools, deliberately split.
+Workshop tooling for GNU Radio + ADALM2000. Three tools, deliberately split.
 
 | | needs libiio | needs hardware | what it answers |
 | --- | --- | --- | --- |
 | `iio_discover.py` | yes | yes | what is here, what is it set to, what values are legal |
 | `iio_explain.py` | no | no | what does it *mean* |
+| `iio_browse.py` | no | no | what do I type into the GNU Radio block |
+| `iio_grc.py` | no | no | the same, as a generated GRC block |
 
 The split matters: capture once on the bench, explain anywhere.
 
@@ -63,11 +65,12 @@ uv run ./iio_explain.py fixtures/m2k-snapshot.json --glossary            # parti
 `uv run` is not required for the explainer — it has no dependencies, so plain
 `./iio_explain.py` works too. Use whichever you prefer.
 
-`fixtures/m2k-snapshot.json` is hand-authored and says so in the file. Replace
-it with a real capture as soon as there is hardware:
+Both `fixtures/m2k-real.json` and `fixtures/m2k-snapshot.json` are now captures
+from a real Rev.D M2K over the network backend, taken at different moments —
+comparing them shows which values are volatile. Take your own with:
 
 ```
-./iio_discover.py --json > fixtures/m2k-snapshot.json
+./iio_discover.py --uri ip:192.168.2.1 --json > fixtures/m2k-real.json
 ```
 
 ## Connecting to an M2K
@@ -89,6 +92,71 @@ ip addr | grep -B2 192.168.2
 ping -c1 192.168.2.1
 ```
 
+The synthetic fixture stays: it keeps the golden output stable and needs no
+regeneration. The real one is what participants should be reading.
+
+## Browsing it, and getting block parameters out
+
+```
+./iio_browse.py fixtures/m2k-real.json      # then open http://127.0.0.1:8737
+```
+
+The same capture, in a browser, with the meaning next to each attribute and
+its provenance tag intact. Tick the channels you want, pick values from the
+dropdowns the hardware itself published, and the right-hand panel gives you
+the fields for GNU Radio's **IIO Device Source** block.
+
+It serves on `127.0.0.1` by default; `--host 0.0.0.0` serves a room from one
+laptop. No dependencies beyond the standard library and no build step, which
+is what makes it usable in a session that installs nothing.
+
+The mapping it does for you is the one that is easy to get wrong by hand:
+gr-iio resolves each `params` key with `iio_device_identify_filename()`, so
+the key has to be the full sysfs filename. libiio reports a channel
+attribute as `scale`; the block needs `in_voltage0_scale`. It also warns when
+a channel has no scan index and therefore cannot stream at all — which is why
+you take logic-analyzer samples from `m2k-logic-analyzer-rx` and not from
+`m2k-logic-analyzer`.
+
+`iio_grc.py` holds that translation and is tested on its own; the browser
+only renders what it returns.
+
+## Blocks with the hardware's own dropdowns
+
+GRC cannot populate a dropdown from live hardware. It does not have to — a
+block definition is a YAML file, and the legal values are already in the
+capture. So generate the block instead of patching GRC:
+
+```
+./iio_grc.py fixtures/m2k-real.json --out grc_blocks
+GRC_BLOCKS_PATH=$PWD/grc_blocks gnuradio-companion
+```
+
+One block per streaming device, source or sink according to the hardware's
+own channel directions. Every attribute that published an `*_available`
+list becomes a real dropdown holding real values — `trigger_mux_out` offers
+exactly the six the M2K reports, and nothing else.
+
+Two details that make the generated blocks usable rather than merely
+correct:
+
+- **Repeats collapse.** `m2k-logic-analyzer-rx` publishes three attributes
+  across eighteen channels. Eighteen identical dropdowns is not a usable
+  block, so they become one parameter applied to all of them, and the
+  per-channel keys go in the block's documentation for anyone who needs to
+  set one pin differently. Fifty-six dropdowns become five.
+- **Every dropdown starts at "leave alone."** A shown value must never mean
+  a value written to the hardware. Open a generated block, close it again,
+  and it writes nothing.
+
+The block's Documentation tab carries the meaning across too: the kernel's
+own words, the board note, and the provenance tag for each, so a
+participant reading a flowgraph never has to leave GRC to find out what
+`rate_mux` does or who said so.
+
+The browser has a **generate .block.yml** button that does the same thing
+for whichever device you are looking at.
+
 ## Where meaning comes from
 
 Every line of output is tagged with its source, so fact, convention and
@@ -103,8 +171,10 @@ guesswork stay distinguishable.
 | `[overlay: UNVERIFIED]` | written from documentation | **do not teach as fact yet** |
 
 `./iio_explain.py FILE --unknown` reports how much is explained and by what.
-On the current fixture that is 95% from the ABI alone, with the remainder
-covered by the board pack.
+On the synthetic fixture that is 95% from the ABI alone. On the real capture
+it is 57%, because real hardware exposes a great deal the synthetic fixture
+never did — mostly logic-analyzer trigger attributes, which the board pack
+does not cover yet.
 
 ## The kernel is the source of truth
 

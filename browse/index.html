@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIO Browser</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+  <h1>IIO Browser</h1>
+  <p id="context">loading&hellip;</p>
+</header>
+
+<main>
+  <section class="pane" id="pane-devices">
+    <h2>Devices</h2>
+    <ul id="devices"></ul>
+  </section>
+
+  <section class="pane" id="pane-contents">
+    <h2 id="device-title">&mdash;</h2>
+    <div id="device-note"></div>
+    <div id="contents"></div>
+  </section>
+
+  <section class="pane" id="pane-detail">
+    <h2>What it means</h2>
+    <div id="detail"><p class="hint">Pick a channel or an attribute.</p></div>
+  </section>
+
+  <section class="pane" id="pane-emit">
+    <h2>IIO Device Source</h2>
+    <p class="hint">Type these into the block in GRC. String fields take
+      bare text &mdash; no quotes. Raw fields take a Python literal.</p>
+    <div id="emit"></div>
+    <div id="warnings"></div>
+    <h3>As Python</h3>
+    <pre id="make" class="make"></pre>
+
+    <h3>Or generate a block</h3>
+    <p class="hint">A GRC block for this device, with these dropdowns
+      filled in from the hardware.</p>
+    <div class="box">
+      <button id="gen">generate .block.yml</button>
+      <button id="gen-copy" hidden>copy</button>
+    </div>
+    <pre id="block" class="make" hidden></pre>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
