@@ -33,6 +33,9 @@ def _e(text, confidence=UNVERIFIED, check=None, source=None):
 LIBM2K = ("libm2k src/analog/m2kanalogin_impl.cpp -- "
           "https://github.com/analogdevicesinc/libm2k")
 
+LIBM2K_TRIG = ("libm2k src/m2khardwaretrigger_impl.cpp -- "
+               "https://github.com/analogdevicesinc/libm2k")
+
 
 # The M2K exposes six IIO devices. Names are matched against the device's
 # `name` first and its `id` second, so this works whether libiio reports
@@ -153,6 +156,199 @@ DEVICE_PACKS["cn0363"] = {
     "channels": {},
     "attrs": {},
 }
+
+
+# ---------------------------------------------------------------------------
+# The trigger subsystem.
+#
+# This is the largest single gap in what the kernel can tell you, and it is
+# not close: of the M2K's trigger, DDS and logic-analyzer attributes, exactly
+# one appears in any kernel ABI file. They come from Analog Devices' FPGA HDL
+# drivers, which ship no ABI documentation at all.
+#
+# So libm2k's source is not a convenience here, it is the only description
+# that exists. Everything below is read out of
+# src/m2khardwaretrigger_impl.cpp -- the value vocabularies are that file's
+# own string tables, quoted exactly.
+# ---------------------------------------------------------------------------
+
+DEVICE_PACKS["m2k-adc-trigger"] = {
+    "device": _e(
+        "The FPGA trigger block for the scope. libm2k opens this device by "
+        "name as its analog trigger, and sorts its channels by which "
+        "attributes they carry: a channel with trigger + trigger_level + "
+        "trigger_hysteresis is an analog trigger, one with trigger alone is "
+        "a digital trigger, and one with mode is a logic channel. The "
+        "attribute set IS the channel's role -- nothing else labels them.",
+        confidence=SOURCED, source=LIBM2K_TRIG),
+    "channels": {},
+    "attrs": {
+        "trigger": _e(
+            "The trigger condition. For an analog channel the choices are "
+            "edge-rising, edge-falling, level-low, level-high; a digital "
+            "channel adds edge-any and none. Note this is NOT the ABI's "
+            "device-level 'current trigger' attribute of the same name -- "
+            "same word, different meaning.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "trigger_level": _e(
+            "The threshold, in RAW ADC COUNTS -- not volts, not millivolts. "
+            "libm2k reads it as a number and casts straight to int. To set "
+            "it from a voltage you have to run the conversion backwards: "
+            "raw = value / scale - offset, using the scale and offset of the "
+            "matching m2k-adc channel. Change the input range and the same "
+            "raw number means a different voltage.",
+            confidence=SOURCED, source=LIBM2K_TRIG,
+            check="Set a level, capture a triggered waveform, and confirm "
+                  "the trigger point sits where (raw + offset) * scale says."),
+        "trigger_hysteresis": _e(
+            "How far the signal must fall back before the trigger will fire "
+            "again, also in raw counts. Stops a noisy edge from triggering "
+            "repeatedly.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "trigger_delay": _e(
+            "How many samples to wait after the trigger fires before the "
+            "capture starts. Negative values give you pre-trigger data.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "logic_mode": _e(
+            "Badly named: this holds the analog trigger SOURCE, not a logic "
+            "mode. Its values are a, b, a_OR_b, a_AND_b, a_XOR_b -- which "
+            "scope channel, or which combination, is allowed to fire the "
+            "trigger. libm2k reads this attribute in getAnalogSource().",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "mode": _e(
+            "How the analog and digital triggers combine: always, analog, "
+            "digital, digital_OR_analog, digital_AND_analog, "
+            "digital_XOR_analog, and the negated forms of the last three. "
+            "'always' means free-running -- no triggering at all.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "streaming": _e(
+            "Continuous capture rather than one buffer per trigger. libm2k "
+            "always writes 0 to reset the trigger before enabling this, "
+            "which suggests turning it on from an already-armed state does "
+            "not behave.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "out_select": _e(
+            "Routes the trigger out to a physical pin. libm2k treats the "
+            "presence of this attribute as the test for whether the board "
+            "supports an external trigger output at all, which is how you "
+            "chain two M2Ks together.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "triggered": _e("Whether the trigger has fired. Read-only status."),
+        "holdoff_raw": _e(
+            "Dead time after a trigger during which it will not re-arm. "
+            "The _raw suffix says counts rather than seconds."),
+        "delay": _e("A second delay control alongside trigger_delay; which "
+                    "one applies has not been worked out."),
+        "embedded": _e("Not yet identified."),
+        "out_direction": _e("Direction of the external trigger pin."),
+    },
+}
+
+DEVICE_PACKS["m2k-logic-analyzer"] = {
+    "device": _e("The 16 DIO pins. The -rx and -tx devices carry the data; "
+                 "this one carries the per-pin configuration."),
+    "channels": {},
+    "attrs": {
+        "direction": _e(
+            "Whether a DIO pin is an input or an output. A pin is one or the "
+            "other, never both, so this is the attribute that decides "
+            "whether the logic analyzer or the pattern generator owns it."),
+        "outputmode": _e("Push-pull or open-drain drive for an output pin."),
+        "clocksource": _e("Which clock the DIO block samples against."),
+    },
+}
+
+DEVICE_PACKS["m2k-logic-analyzer-rx"] = {
+    "device": _e("Digital capture -- the DIO pins read as logic levels. "
+                 "libm2k drives its triggering through the same attribute "
+                 "vocabulary as the analog trigger.",
+                 confidence=SOURCED, source=LIBM2K_TRIG),
+    "channels": {},
+    "attrs": {
+        "trigger_logic_mode": _e(
+            "How the per-pin digital trigger conditions combine: or, and.",
+            confidence=SOURCED, source=LIBM2K_TRIG),
+        "trigger_mux_out": _e("Routing for the digital trigger output."),
+        "data_in_delay": _e("Input sampling delay, for lining the capture "
+                            "clock up against the incoming data."),
+        "data_delay_auto": _e("Let the hardware pick data_in_delay."),
+        "rate_mux": _e("Sample-rate divider selection for the DIO block."),
+    },
+}
+
+DEVICE_PACKS["m2k-logic-analyzer-tx"] = {
+    "device": _e("Digital output -- the same DIO pins driven as a pattern "
+                 "generator."),
+    "channels": {},
+    "attrs": {},
+}
+
+DEVICE_PACKS["m2k-dds"] = {
+    "device": _e("The direct digital synthesis block behind the waveform "
+                 "generators. Its channels are altvoltage rather than "
+                 "voltage, which is the ABI's way of saying you set a "
+                 "frequency and the hardware makes the tone, instead of "
+                 "writing samples yourself."),
+    "channels": {},
+    "attrs": {
+        "sync_start_enable": _e("Start several DDS channels on the same "
+                                "clock edge, so their phase relationship is "
+                                "defined."),
+    },
+}
+
+DEVICE_PACKS["pll"] = {
+    "device": _e("The clock synthesiser. Nothing you measure comes from "
+                 "here, but everything you measure is timed by it. Its "
+                 "attribute names match the ADF435x family.",
+                 check="Confirm the part number against the M2K schematic."),
+    "channels": {},
+    "attrs": {
+        "pfd_frequency": _e("Phase-frequency-detector comparison frequency: "
+                            "the reference divided down, and the step size "
+                            "the loop can tune in."),
+        "power_down": _e("Powers the synthesiser down. Note this one is "
+                         "power_down with an underscore, while the IIO ABI "
+                         "spells the generic attribute powerdown."),
+        "power_level": _e("Output drive level."),
+        "muxout_mode": _e("What the chip's MUXOUT pin reports -- lock "
+                          "detect, a divided clock, or a logic level."),
+        "mute_till_lock_detect": _e("Hold the output muted until the loop "
+                                    "has locked, so nothing downstream sees "
+                                    "an unlocked sweep."),
+    },
+}
+
+# Attributes seen on the DAC devices.
+DEVICE_PACKS["m2k-dac-a"]["attrs"].update({
+    "trigger_src": _e("Which trigger starts playback of the buffer."),
+    "trigger_condition": _e("The condition that trigger_src must meet."),
+    "trigger_status": _e("Whether playback is armed or running. Read-only."),
+    "auto_rearm_trigger": _e("Re-arm automatically after playback finishes, "
+                             "so a triggered waveform repeats."),
+    "dma_sync": _e("Hold the DMA so several channels can be released "
+                   "together."),
+    "dma_sync_start": _e("Release the channels held by dma_sync. This is how "
+                         "W1 and W2 start phase-aligned."),
+    "raw_enable": _e("Switch between buffer playback and a single held "
+                     "value written through _raw."),
+    "calibrate": _e("Runs the calibration routine. An action attribute -- "
+                    "writing to it does something rather than storing a "
+                    "value, which is why reading it may error."),
+})
+DEVICE_PACKS["m2k-dac-b"]["attrs"].update(DEVICE_PACKS["m2k-dac-a"]["attrs"])
+
+DEVICE_PACKS["m2k-adc"]["attrs"]["calibrate"] = _e(
+    "Runs the ADC calibration routine. An action attribute: writing to it "
+    "does something rather than storing a value, so a read may legitimately "
+    "fail. It rewrites calibscale and calibbias.")
+
+DEVICE_PACKS["m2k-fabric"]["attrs"].update({
+    "calibration_mode": _e("Switches the front end to an internal reference "
+                           "so calibration can measure a known input instead "
+                           "of whatever is on the BNC."),
+    "clk_powerdown": _e("Powers down clocking in the fabric."),
+})
 
 
 # ------------------------------------------------------------------ lookup

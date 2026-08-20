@@ -106,6 +106,23 @@ def conversion_for(channel):
         if "input" in by_info:
             return {"note": "This channel exposes _input, which is already "
                             "in the channel's units. Nothing to convert."}
+        # No _raw at all. On a streaming channel that is not a gap -- it is
+        # the whole point, and it is the thing most likely to confuse someone
+        # coming from `cat`-ing sysfs files. Say so, and show the conversion
+        # they will need in the flowgraph instead of here.
+        if channel.get("scan_element"):
+            bits = sem.parse_channel_id(channel.get("id") or "")
+            return {
+                "streaming": True,
+                "note": "There is no _raw attribute here, and that is "
+                        "expected: this is a streaming channel. Values come "
+                        "out of the capture buffer, not from a one-shot "
+                        "attribute read, so there is no single current "
+                        "value to print.",
+                "scale": (by_info.get("scale") or {}).get("value"),
+                "offset": (by_info.get("offset") or {}).get("value"),
+                "chan_type": bits["type"] if bits else None,
+            }
         return None
     if raw.get("value") is None:
         return {"note": "_raw is present but not readable here (%s). On an "
@@ -131,6 +148,28 @@ def conversion_for(channel):
 def print_conversion(result, indent=4):
     pad = " " * indent
     if result is None:
+        return
+    if result.get("streaming"):
+        print(para(result["note"], indent))
+        scale, offset = result.get("scale"), result.get("offset")
+        if scale is None:
+            print(para("No _scale either, so the samples are raw counts and "
+                       "nothing on the device tells you what they are worth. "
+                       "That conversion has to come from the datasheet or "
+                       "from a vendor library.", indent))
+            return
+        print(para("The same contract still applies, one sample at a time. "
+                   "Apply it in your flowgraph:", indent))
+        formula = "(sample + %s) * %s" % (offset, scale) if offset is not None \
+            else "sample * %s" % scale
+        print("%s%s   real = %s" % (" " * indent, "", formula))
+        example = sem.convert_raw("1000", offset, scale,
+                                  result.get("chan_type"))
+        if example:
+            print(para("So a sample of 1000 -- an illustration, not a "
+                       "reading -- would be %s = %g %s."
+                       % (example["expression"], example["value"],
+                          example["symbol"] or ""), indent))
         return
     if "note" in result:
         print(para(result["note"], indent))

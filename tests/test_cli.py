@@ -11,6 +11,15 @@ GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "golden", "channels-m2k-adc.txt")
 
 
+def flat(text):
+    """Collapse wrapping so prose assertions survive textwrap.
+
+    The renderer hard-wraps at 78 columns, so any phrase long enough to be
+    worth asserting on is likely to straddle a newline.
+    """
+    return " ".join(text.split())
+
+
 def run(repo_root, *args):
     result = subprocess.run([sys.executable] + list(args), cwd=repo_root,
                             capture_output=True, text=True)
@@ -112,3 +121,26 @@ def test_scan_hint_names_the_m2k_default_address():
     assert "usb:" in hint
     # The reason matters more than the address -- it is why people give up.
     assert "does not advertise" in hint
+
+
+STREAMING = "fixtures/streaming-channel.json"
+
+
+def test_streaming_channel_explains_the_absent_raw(repo_root):
+    """A buffered ADC has no _raw. That must be explained, not skipped."""
+    out = run(repo_root, "iio_explain.py", STREAMING, "--channels")
+    assert "no _raw attribute here, and that is expected" in flat(out)
+    assert "this is a streaming channel" in flat(out)
+
+
+def test_streaming_channel_still_shows_the_conversion(repo_root):
+    out = run(repo_root, "iio_explain.py", STREAMING, "--channels")
+    assert "real = (sample + -2048) * 0.007000" in flat(out)
+    # The worked number must be flagged as illustrative, never as a reading.
+    assert "an illustration, not a reading" in flat(out)
+
+
+def test_streaming_channel_without_scale_says_so(repo_root):
+    """voltage1 has no attributes at all -- do not silently show nothing."""
+    out = run(repo_root, "iio_explain.py", STREAMING, "--channels")
+    assert "nothing on the device tells you what they are worth" in flat(out)

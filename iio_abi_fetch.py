@@ -47,9 +47,26 @@ RAW_BASE = ("https://raw.githubusercontent.com/torvalds/linux/master/"
 # ADI device is likely to expose.
 SOURCES = [
     "sysfs-bus-iio",
-    "sysfs-bus-iio-adc",
     "sysfs-bus-iio-frequency-ad9523",
+    "sysfs-bus-iio-frequency-adf4350",
+    "sysfs-bus-iio-frequency-adf4371",
+    "sysfs-bus-iio-trigger-sysfs",
     "sysfs-bus-iio-dac",
+]
+
+# The M2K runs Analog Devices' kernel fork, and a good deal of what it
+# exposes comes from drivers that never went upstream. Their fork carries
+# its own ABI documentation, so it answers attributes the mainline files
+# have never heard of. Fetched second so mainline wins any collision.
+ADI_BASE = ("https://raw.githubusercontent.com/analogdevicesinc/linux/main/"
+            "Documentation/ABI/testing/")
+
+ADI_SOURCES = [
+    "sysfs-bus-iio",
+    "sysfs-bus-iio-adc",
+    "sysfs-bus-iio-dds",
+    "sysfs-bus-iio-frequency-adf4350",
+    "sysfs-bus-iio-timer-stm32",
 ]
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -167,7 +184,7 @@ def build_index(blocks):
 
 # --------------------------------------------------------------- fetching
 
-def fetch(sources=None, base=RAW_BASE):
+def fetch(sources=None, base=RAW_BASE, label=""):
     blocks = []
     fetched, missing = [], []
     for name in (sources or SOURCES):
@@ -178,9 +195,9 @@ def fetch(sources=None, base=RAW_BASE):
         except Exception as exc:                  # noqa: BLE001 -- report and move on
             missing.append("%s (%s)" % (name, exc))
             continue
-        found = parse_abi(text, name)
+        found = parse_abi(text, label + name)
         blocks.extend(found)
-        fetched.append("%s: %d documented blocks" % (name, len(found)))
+        fetched.append("%s%s: %d documented blocks" % (label, name, len(found)))
     return blocks, fetched, missing
 
 
@@ -266,6 +283,12 @@ def main():
         return 0 if data else 1
 
     blocks, fetched, missing = fetch()
+    adi_blocks, adi_fetched, adi_missing = fetch(ADI_SOURCES, ADI_BASE, "adi/")
+    # Mainline first: build_index keeps the first block that claims a name,
+    # so an upstream description always beats the fork's copy of it.
+    blocks.extend(adi_blocks)
+    fetched.extend(adi_fetched)
+    missing.extend(adi_missing)
     if not blocks:
         print("Could not fetch any ABI documentation.", file=sys.stderr)
         for line in missing:

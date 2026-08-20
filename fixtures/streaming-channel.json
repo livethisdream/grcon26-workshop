@@ -1,0 +1,84 @@
+{
+  "_synthetic": true,
+  "_synthetic_note": "Minimal stand-in for a buffered ADC channel: streaming, with scale and offset but no _raw. This is the shape a real m2k-adc has, and the case where a one-shot attribute read gives you nothing. Kept separate from the M2K snapshot so it survives being replaced by a real capture.",
+  "uri": "ip:192.168.2.1",
+  "description": "Buffered ADC channel (SYNTHETIC FIXTURE)",
+  "context_attrs": [],
+  "devices": [
+    {
+      "id": "iio:device13",
+      "name": "m2k-adc",
+      "label": "m2k-adc",
+      "device_attrs": [],
+      "buffer_attrs": [],
+      "debug_attrs": [],
+      "channels": [
+        {
+          "id": "voltage0",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 0,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "is_signed": true,
+            "is_be": false
+          },
+          "attrs": [
+            {
+              "name": "calibbias",
+              "type": "channel",
+              "value": "2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "calibscale",
+              "type": "channel",
+              "value": "1.000000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "offset",
+              "type": "channel",
+              "value": "-2048",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            },
+            {
+              "name": "scale",
+              "type": "channel",
+              "value": "0.007000",
+              "read_error": null,
+              "available_raw": null,
+              "available": null
+            }
+          ]
+        },
+        {
+          "id": "voltage1",
+          "name": null,
+          "output": false,
+          "scan_element": true,
+          "scan_index": 1,
+          "data_format": {
+            "length": 16,
+            "bits": 12,
+            "shift": 0,
+            "repeat": 1,
+            "is_signed": true,
+            "is_be": false
+          },
+          "attrs": []
+        }
+      ]
+    }
+  ]
+}
