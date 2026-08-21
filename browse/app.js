@@ -31,36 +31,80 @@ fetch("/api/tree").then((r) => r.json()).then((payload) => {
     payload.source + " — " + (payload.capture.uri || "no uri") +
     " — " + (payload.capture.description || "");
   renderDevices();
-  if (state.capture.devices.length) selectDevice(state.capture.devices[0]);
+  // Device 0 is xadc: the FPGA's own die temperature and supply rails. It
+  // is the least relevant thing on the board and it was the landing page.
+  // Open on something that actually carries samples.
+  const first = state.capture.devices.find((d) => d.streaming) ||
+                state.capture.devices[0];
+  if (first) selectDevice(first);
 });
 
 // ------------------------------------------------------------ devices
 
 function renderDevices() {
-  const list = $("devices");
-  list.replaceChildren();
-  for (const device of state.capture.devices) {
+  // Only 5 of the M2K's 14 devices can carry samples. Listing all 14 flat,
+  // in driver order, buries the ones a flowgraph can actually use.
+  const host = $("devices");
+  host.replaceChildren();
+
+  const streams = state.capture.devices.filter((d) => d.streaming);
+  const rest = state.capture.devices.filter((d) => !d.streaming);
+
+  host.appendChild(deviceList(streams, "Carry samples"));
+  if (rest.length) {
+    const more = el("details");
+    more.appendChild(el("summary", null,
+      "Supporting devices (" + rest.length + ")"));
+    more.appendChild(el("p", "hint",
+      "No streaming channels, so no block of their own. Reach their " +
+      "attributes with device_phy on a device that does stream."));
+    more.appendChild(deviceList(rest, null));
+    // Keep it open if the selection is in here, or choosing one would
+    // slam the drawer on the thing you just picked.
+    more.open = rest.some((d) => state.device && d.label === state.device.label);
+    host.appendChild(more);
+  }
+}
+
+function deviceList(devices, title) {
+  const wrap = el("div", "devgroup");
+  if (title) wrap.appendChild(el("h3", null, title));
+  const list = el("ul");
+  for (const device of devices) {
     const item = el("li");
     if (state.device && state.device.label === device.label) item.className = "on";
     item.appendChild(el("span", "name", device.label));
-    const streaming = device.channels.filter((c) => c.scan_element).length;
-    item.appendChild(el("small",
-      null, device.channels.length + " ch, " + streaming + " streaming"));
+    item.appendChild(el("small", null, device.streaming
+      ? device.streaming + " streaming of " + device.channels.length + " ch"
+      : device.channels.length + " ch"));
     item.onclick = () => selectDevice(device);
     list.appendChild(item);
   }
+  wrap.appendChild(list);
+  return wrap;
 }
 
 function selectDevice(device) {
   // A Device Source targets one device, so the selection cannot outlive
   // a device change.
   state.device = device;
-  state.channels = new Set();
+  // Tick the streaming channels to start with. Opening every device on
+  // "No streaming channels selected. The block will have no outputs."
+  // made the normal case look like an error, which teaches people to read
+  // past warnings.
+  state.channels = new Set(
+    device.channels.filter((c) => c.scan_element).map((c) => c.id));
   state.settings = new Map();
   state.detail = null;
   renderDevices();
   renderContents();
-  showDetail(null);
+  // Land on something worth reading rather than "Pick a channel or an
+  // attribute". For a scope input that first channel is where the whole
+  // counts-to-volts story lives, which is the thing most worth meeting
+  // first.
+  const lead = device.channels.find((c) => c.scan_element) ||
+               device.channels[0];
+  if (lead) showChannel(lead); else showDetail(null);
   $("block").hidden = true;
   $("gen-copy").hidden = true;
   emit();
@@ -82,24 +126,119 @@ function renderContents() {
   const streaming = device.channels.filter((c) => c.scan_element);
   const config = device.channels.filter((c) => !c.scan_element);
 
+  // 1. What becomes an output of the block.
   if (streaming.length) {
     host.appendChild(channelGroup(
       "Streaming channels", streaming, true,
-      "Tick these to make them outputs of the block."));
+      "These become the outputs of the block, in this order."));
   }
+
+  // 2. The knobs. Of 317 attributes on an M2K, 127 have a list of legal
+  // values the hardware published -- those are the only ones that are
+  // really settings. The rest are readings and state. Showing all of them
+  // as identical editable rows said they were equally likely to matter.
+  if (device.settings && device.settings.length) {
+    host.appendChild(settingsGroup(device.settings));
+  }
+
+  // 3. Everything else, one click away. Still editable: this is a
+  // discovery tool, and hiding what the hardware exposes would work
+  // against the point.
+  const rest = el("details", "rest");
+  let count = 0;
+  const inner = el("div");
   if (config.length) {
-    host.appendChild(channelGroup(
+    inner.appendChild(channelGroup(
       "Other channels", config, false,
       "No scan index, so they cannot stream. Their attributes still go " +
       "in Parameters."));
+    count += config.reduce((n, c) => n + c.attrs.length, 0);
+  }
+  for (const channel of streaming) {
+    if (channel.attrs.length) {
+      inner.appendChild(attrGroup(channel.id, channel, channel.attrs));
+      count += channel.attrs.length;
+    }
   }
   for (const [key, title] of [["device_attrs", "Device attributes"],
                               ["buffer_attrs", "Buffer attributes"],
                               ["debug_attrs", "Debug attributes"]]) {
     if (device[key].length) {
-      host.appendChild(attrGroup(title, null, device[key]));
+      inner.appendChild(attrGroup(title, null, device[key]));
+      count += device[key].length;
     }
   }
+  if (count) {
+    rest.appendChild(el("summary", null,
+      "Every attribute on this device (" + count + ")"));
+    rest.appendChild(inner);
+    host.appendChild(rest);
+  }
+}
+
+// A setting the hardware published options for. One control may stand for
+// the same attribute on many channels -- iio_grc.dropdown_attrs() does the
+// collapsing, so the page and a generated block agree about what is one
+// knob and what is eighteen.
+function settingsGroup(settings) {
+  const group = el("div", "group settings");
+  group.appendChild(heading("Settings", settings.length));
+  group.appendChild(el("p", "hint",
+    "The hardware published a list of legal values for these."));
+
+  for (const setting of settings) {
+    const row = el("div", "row");
+    const label = el("span", "label", setting.label);
+    label.onclick = () => showSetting(setting);
+    row.appendChild(label);
+    row.appendChild(el("span", "val", setting.value === null ||
+      setting.value === undefined ? "" : String(setting.value)));
+
+    const select = el("select");
+    const leave = el("option", null, "\u2014 leave alone \u2014");
+    leave.value = "";
+    select.appendChild(leave);
+    for (const option of setting.options) {
+      const node = el("option", null, option);
+      node.value = option;
+      select.appendChild(node);
+    }
+    // One control, but it may write several keys. Each key carries its own
+    // channel so the sysfs prefix comes out right.
+    select.onchange = () => {
+      for (let i = 0; i < setting.keys.length; i++) {
+        const key = setting.keys[i];
+        if (select.value === "") state.settings.delete(key);
+        else state.settings.set(key, {
+          channel: setting.channels[i] || null,
+          attr: setting.attr,
+          value: select.value,
+        });
+      }
+      emit();
+    };
+    row.appendChild(select);
+    group.appendChild(row);
+
+    if (setting.keys.length > 1) {
+      group.appendChild(el("p", "hint",
+        "applies to all " + setting.keys.length + " channels"));
+    }
+  }
+  return group;
+}
+
+// A setting is one attribute wearing a collapsed label; explain the
+// attribute it stands for.
+function showSetting(setting) {
+  const device = state.device;
+  const channelId = setting.channels[0];
+  const channel = channelId
+    ? device.channels.find((c) => c.id === channelId) : null;
+  const pool = channel ? channel.attrs
+    : device.device_attrs.concat(device.buffer_attrs, device.debug_attrs);
+  const attr = pool.find((a) => a.name === setting.attr);
+  if (attr) showAttr(channel, attr);
 }
 
 function channelGroup(title, channels, tickable, hint) {
@@ -336,12 +475,36 @@ function showChannel(channel) {
   }
 
   if (channel.conversion) {
+    const conv = channel.conversion;
     out.push(el("h3", null, "Raw to real"));
-    if (channel.conversion.note) {
-      out.push(el("p", null, channel.conversion.note));
+    if (conv.note) {
+      out.push(el("p", null, conv.note));
     } else {
-      out.push(el("p", "mono", channel.conversion.expression + " = " +
-        channel.conversion.value + " " + (channel.conversion.symbol || "")));
+      out.push(el("p", "mono", conv.expression + " = " +
+        conv.value + " " + (conv.symbol || "")));
+      if (conv.si_value !== null && conv.si_value !== undefined) {
+        out.push(el("p", "mono", "= " + conv.si_value + " " +
+          (conv.si_symbol || "")));
+      }
+    }
+    if (conv.streaming && conv.scale !== null && conv.scale !== undefined) {
+      out.push(el("p", null,
+        "The same contract still applies, one sample at a time:"));
+      out.push(el("p", "mono", conv.offset !== null && conv.offset !== undefined
+        ? "real = (sample + " + conv.offset + ") * " + conv.scale
+        : "real = sample * " + conv.scale));
+    }
+    // The board's own recipe, for a device that publishes no scale at all.
+    // This is the whole counts-to-volts answer for an M2K scope input, so
+    // it must not be the one thing the page leaves out.
+    if (conv.recipe) {
+      const box = el("div", "overlay");
+      box.appendChild(el("pre", "make", conv.recipe.text));
+      box.appendChild(chips(["overlay:" + conv.recipe.confidence]));
+      if (conv.recipe.source) {
+        box.appendChild(el("p", "hint", "source: " + conv.recipe.source));
+      }
+      out.push(box);
     }
   }
 

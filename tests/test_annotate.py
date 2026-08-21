@@ -91,3 +91,55 @@ def test_real_capture_annotates_whole(real_snapshot):
                 + sum(len(c["attrs"]) for c in d["channels"])
                 for d in annotated["devices"])
     assert total == 317
+
+
+# ------------------------------------------------ what the page renders
+
+def device(annotated, label):
+    return [d for d in annotated["devices"] if d["label"] == label][0]
+
+
+def test_settings_are_only_what_the_hardware_offered_choices_for(real_snapshot):
+    """127 of 317 attributes have options; the rest are readings and state."""
+    annotated = iio_explain.annotate(real_snapshot)
+    for dev in annotated["devices"]:
+        for setting in dev["settings"]:
+            assert setting["options"], setting["label"]
+
+
+def test_settings_collapse_one_attribute_across_many_channels(real_snapshot):
+    """m2k-logic-analyzer-rx has 80 attributes and 5 real controls."""
+    rx = device(iio_explain.annotate(real_snapshot), "m2k-logic-analyzer-rx")
+    assert len(rx["settings"]) == 5
+    trigger = [s for s in rx["settings"] if s["attr"] == "trigger"][0]
+    # One control, eighteen keys, each with its own sysfs prefix.
+    assert len(trigger["keys"]) == 18
+    assert "in_voltage0_trigger" in trigger["keys"]
+    assert len(trigger["channels"]) == len(trigger["keys"])
+
+
+def test_a_device_with_no_options_has_no_settings(real_snapshot):
+    xadc = device(iio_explain.annotate(real_snapshot), "xadc")
+    assert xadc["settings"] == []
+    assert xadc["streaming"] == 0
+
+
+def test_streaming_count_is_carried_for_the_device_rail(real_snapshot):
+    annotated = iio_explain.annotate(real_snapshot)
+    streaming = [d["label"] for d in annotated["devices"] if d["streaming"]]
+    assert sorted(streaming) == ["m2k-adc", "m2k-dac-a", "m2k-dac-b",
+                                 "m2k-logic-analyzer-rx",
+                                 "m2k-logic-analyzer-tx"]
+
+
+def test_channel_annotation_keeps_the_board_recipe(real_snapshot):
+    """Regression: conversion_for() needs the device to find the recipe.
+
+    Annotating without it silently dropped the only explanation of what an
+    m2k-adc count is worth -- the terminal had it and the browser did not.
+    """
+    adc = device(iio_explain.annotate(real_snapshot), "m2k-adc")
+    conversion = adc["channels"][0]["conversion"]
+    assert conversion["recipe"] is not None
+    assert "libm2k computes it" in conversion["recipe"]["text"]
+    assert conversion["recipe"]["confidence"] == "sourced"

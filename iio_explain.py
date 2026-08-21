@@ -630,7 +630,10 @@ def annotate_channel(device, channel):
         "description": sem.describe_channel(channel),
         "identity": sem.channel_identity(device, channel, iio_overlays),
         "data_format": sem.describe_data_format(channel.get("data_format")),
-        "conversion": conversion_for(channel),
+        # The device matters: without it the board's scale recipe -- the
+        # only thing that says what an m2k-adc count is worth -- is looked
+        # up against nothing and comes back empty.
+        "conversion": conversion_for(channel, device),
         "attrs": [annotate_attr(device, channel, a)
                   for a in channel.get("attrs", [])],
     }
@@ -658,7 +661,36 @@ def annotate_device(device):
         "device_attrs": groups["device_attrs"],
         "buffer_attrs": groups["buffer_attrs"],
         "debug_attrs": groups["debug_attrs"],
+        # The knobs the hardware itself published a list of legal values
+        # for. Computed by the same function that builds the dropdowns in
+        # a generated GRC block, so the page and the block cannot drift --
+        # including its collapsing of one attribute repeated across many
+        # channels into a single control.
+        "settings": annotate_settings(device),
+        "streaming": sum(1 for c in device.get("channels", [])
+                         if c.get("scan_element")),
     }
+
+
+def annotate_settings(device):
+    """The device's real controls, collapsed the way a block would show them."""
+    import iio_grc
+
+    out = []
+    for entry in iio_grc.dropdown_attrs(device):
+        annotated = annotate_attr(device, entry["channel_dict"],
+                                  entry["attr_dict"])
+        out.append({
+            "attr": entry["attr"],
+            "label": entry["label"],
+            "keys": entry["keys"],
+            "channels": entry["channels"],
+            "options": entry["options"],
+            "value": entry["attr_dict"].get("value"),
+            "summary": annotated["summary"],
+            "understood": annotated["understood"],
+        })
+    return out
 
 
 def annotate(data):
