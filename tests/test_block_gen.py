@@ -169,3 +169,78 @@ def test_per_channel_keys_are_documented_when_collapsed(real_snapshot):
 def test_unknown_device_is_refused(real_snapshot):
     with pytest.raises(ValueError):
         iio_grc.generate_block(real_snapshot, "nonesuch")
+
+
+# ------------------------------------------- telling attributes apart
+
+def test_parameter_ids_are_unique_on_every_real_device(real_snapshot):
+    import collections
+    for dev in real_snapshot["devices"]:
+        if not iio_grc.stream_channels(dev):
+            continue
+        ids = [e["id"] for e in iio_grc.dropdown_attrs(dev)]
+        dupes = [k for k, n in collections.Counter(ids).items() if n > 1]
+        assert not dupes, "%s: %s" % (dev["name"], dupes)
+
+
+def _split_options(device):
+    """Same attribute, different legal values on different channels.
+
+    Nothing in IIO forbids it -- a driver does this whenever its channels
+    are not identical.
+    """
+    import copy
+    device = copy.deepcopy(device)
+    for channel in device["channels"][:2]:
+        for attr in channel["attrs"]:
+            if attr["name"] == "trigger":
+                attr["available"] = {"kind": "options",
+                                     "values": ["none", "edge-rising"]}
+    return device
+
+
+def test_same_name_different_options_gets_separate_ids(real_snapshot):
+    """Grouping is by (name, options), so one name can yield two entries.
+
+    Deriving the GRC id from the name alone gave both the same id. GRC
+    keeps one, and the make template then writes that one dropdown's value
+    to both sets of channels -- a silently wrong block.
+    """
+    import collections
+    rx = [d for d in real_snapshot["devices"]
+          if d["name"] == "m2k-logic-analyzer-rx"][0]
+    entries = iio_grc.dropdown_attrs(_split_options(rx))
+    triggers = [e for e in entries if e["attr"] == "trigger"]
+    assert len(triggers) == 2
+    ids = [e["id"] for e in entries]
+    assert len(set(ids)) == len(ids)
+    # and the two must not read as the same control on screen
+    assert triggers[0]["label"] != triggers[1]["label"]
+
+
+def test_colliding_names_produce_a_valid_block(real_snapshot):
+    import collections
+    import re
+    rx = [d for d in real_snapshot["devices"]
+          if d["name"] == "m2k-logic-analyzer-rx"][0]
+    data = {"uri": "x", "devices": [_split_options(rx)]}
+    text = iio_grc.generate_block(data, "m2k-logic-analyzer-rx")
+    declared = re.findall(r"^-   id: (\S+)", text, re.M)
+    assert not [k for k, n in collections.Counter(declared).items() if n > 1]
+    # Every ${...} must resolve to a declared parameter. GRC expressions
+    # may also call builtins -- multiplicity is ${ len(channels) } -- and
+    # ${id} is GRC's own name for the block instance.
+    builtins = {"len", "id"}
+    used = set(re.findall(r"\$\{\s*([A-Za-z_]\w*)", text))
+    assert used - set(declared) - builtins == set()
+
+
+def test_each_key_keeps_its_own_channel_prefix(real_snapshot):
+    """One control, many keys -- the keys are what tell channels apart."""
+    rx = [d for d in real_snapshot["devices"]
+          if d["name"] == "m2k-logic-analyzer-rx"][0]
+    trigger = [e for e in iio_grc.dropdown_attrs(rx)
+               if e["attr"] == "trigger"][0]
+    assert len(trigger["keys"]) == 18
+    assert len(set(trigger["keys"])) == 18
+    assert "in_voltage0_trigger" in trigger["keys"]

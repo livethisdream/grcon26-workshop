@@ -388,6 +388,45 @@ def _identifier(text):
     return "p_" + "".join(c if c.isalnum() or c == "_" else "_" for c in text)
 
 
+def _assign_ids(entries):
+    """Give each entry a parameter id that is unique within the block.
+
+    The attribute name alone is not enough. Entries are grouped by name
+    AND legal values, so one driver that offers different options for the
+    same attribute on different channels produces two entries with one
+    name -- and two GRC parameters with the same id, which is a broken
+    block: GRC keeps one, and the make template writes that one's value to
+    both sets of channels.
+
+    Where that happens the channel the entry starts at disambiguates,
+    because a channel only appears in one entry for a given attribute.
+    """
+    counts = {}
+    for entry in entries:
+        counts[entry["attr"]] = counts.get(entry["attr"], 0) + 1
+
+    used = set()
+    for entry in entries:
+        base = entry["attr"]
+        if counts[base] > 1 and entry["channels"]:
+            base = "%s_%s" % (base, entry["channels"][0])
+        candidate = _identifier(base)
+        suffix = 2
+        while candidate in used:
+            candidate = _identifier("%s_%d" % (base, suffix))
+            suffix += 1
+        used.add(candidate)
+        entry["id"] = candidate
+        # The label has to separate them on screen too, or two dropdowns
+        # read as the same control.
+        if counts[entry["attr"]] > 1 and entry["channels"]:
+            entry["label"] = "%s (%s)" % (
+                entry["attr"],
+                ", ".join(entry["channels"][:3]) +
+                (", ..." if len(entry["channels"]) > 3 else ""))
+    return entries
+
+
 def _quote(text):
     """Quote a value for verbatim substitution into a make template."""
     return "'%s'" % str(text).replace("\\", "\\\\").replace("'", "\\'")
@@ -464,7 +503,7 @@ def dropdown_attrs(device):
             "channel_dict": members[0][0],
         })
 
-    return entries
+    return _assign_ids(entries)
 
 
 def _documentation(device, entries, streaming, is_sink):
@@ -592,7 +631,7 @@ def generate_block(data, device_name, category=CATEGORY):
         out.append("")
 
     for entry in entries:
-        out.append("-   id: %s" % _identifier(entry["attr"]))
+        out.append("-   id: %s" % entry["id"])
         out.append("    label: %s" % _yaml_scalar(entry["label"]))
         out.append("    dtype: enum")
         # An enum option is substituted verbatim, so it carries its own
@@ -651,7 +690,7 @@ def _make_template(label, entries, is_sink):
     """
     pairs = []
     for entry in entries:
-        variable = "${%s}" % _identifier(entry["attr"])
+        variable = "${%s}" % entry["id"]
         if len(entry["keys"]) == 1:
             pairs.append("(%r, %s)" % (entry["keys"][0], variable))
         else:
