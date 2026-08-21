@@ -34,12 +34,12 @@ body { display: flex; flex-direction: column; height: 100vh; }
 
 main {
   display: grid;
-  grid-template-columns: 14rem 30rem 1fr;
+  grid-template-columns: 14rem minmax(0, 1fr);
   flex: 1;
   min-height: 0;          /* let the panes scroll instead of the page */
 }
-@media (max-width: 1200px) {
-  main { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
 }
 
 .pane {
@@ -248,3 +248,44 @@ button:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 1100px) {
   main { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ---- the explanation, opened in place -------------------------------- */
+
+/* Two widths, because rows and prose want different things. A row is a
+   name, a value and a control -- stretched across a wide screen the eye
+   has to travel between them. Prose wants more, but not the whole width
+   either. */
+#pane-contents > #contents,
+#pane-contents > #device-note,
+#pane-contents > h2 { max-width: 60rem; }
+#contents .row { max-width: 36rem; }
+#contents .group > .hint,
+#contents .group > h3 { max-width: 36rem; }
+
+/* An open row is the lid of its panel, so it has to be the panel's width
+   -- otherwise the explanation overhangs the thing it explains. */
+.row.open {
+  background: #eef4fc;
+  border-radius: 3px 3px 0 0;
+}
+#contents .row.open { max-width: 60rem; }
+.row.open .label { font-weight: 600; }
+
+.inline-detail {
+  max-width: 60rem;
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: 0 0 4px 4px;
+}
+.inline-detail > *:first-child { margin-top: 0; }
+.inline-detail > *:last-child { margin-bottom: 0; }
+.inline-detail h3 { margin-top: 0.8rem; }
+.inline-detail .detail-title { font-size: 0.95rem; }
+
+/* A clickable label should look clickable. */
+#contents .label { cursor: pointer; }
+#contents .label:hover { text-decoration: underline; }

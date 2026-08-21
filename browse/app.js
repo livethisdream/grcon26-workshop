@@ -96,15 +96,13 @@ function selectDevice(device) {
     device.channels.filter((c) => c.scan_element).map((c) => c.id));
   state.settings = new Map();
   state.detail = null;
+  clearDetail();
   renderDevices();
   renderContents();
-  // Land on something worth reading rather than "Pick a channel or an
-  // attribute". For a scope input that first channel is where the whole
-  // counts-to-volts story lives, which is the thing most worth meeting
-  // first.
-  const lead = device.channels.find((c) => c.scan_element) ||
-               device.channels[0];
-  if (lead) showChannel(lead); else showDetail(null);
+  // Deliberately nothing open. While the explanation had a pane of its
+  // own, opening one filled an empty column; inline it would bury the
+  // rest of the device under the first channel's prose, and the shape of
+  // the device is what you want on arrival.
   $("block").hidden = true;
   $("gen-copy").hidden = true;
   emit();
@@ -222,7 +220,9 @@ function settingsGroup(settings) {
   for (const setting of settings) {
     const row = el("div", "row");
     const label = el("span", "label", setting.label);
-    label.onclick = () => showSetting(setting);
+    const key = "s:" + setting.attr + ":" + setting.keys.join(",");
+    row.dataset.key = key;
+    label.onclick = () => toggleDetail(row, key, () => settingDetail(setting));
     row.appendChild(label);
     row.appendChild(el("span", "val", setting.value === null ||
       setting.value === undefined ? "" : String(setting.value)));
@@ -263,7 +263,7 @@ function settingsGroup(settings) {
 
 // A setting is one attribute wearing a collapsed label; explain the
 // attribute it stands for.
-function showSetting(setting) {
+function settingDetail(setting) {
   const device = state.device;
   const channelId = setting.channels[0];
   const channel = channelId
@@ -271,7 +271,7 @@ function showSetting(setting) {
   const pool = channel ? channel.attrs
     : device.device_attrs.concat(device.buffer_attrs, device.debug_attrs);
   const attr = pool.find((a) => a.name === setting.attr);
-  if (attr) showAttr(channel, attr);
+  return attr ? attrDetail(channel, attr) : null;
 }
 
 function channelGroup(title, channels, tickable, hint, promoted) {
@@ -294,7 +294,9 @@ function channelGroup(title, channels, tickable, hint, promoted) {
     }
     const label = el("span", "label", channel.id +
       (channel.name && channel.name !== channel.id ? " (" + channel.name + ")" : ""));
-    label.onclick = () => showChannel(channel);
+    const key = "c:" + channel.id;
+    row.dataset.key = key;
+    label.onclick = () => toggleDetail(row, key, () => channelDetail(channel));
     row.appendChild(label);
     row.appendChild(el("span", "val",
       channel.output ? "output" : "input"));
@@ -328,7 +330,10 @@ function attrRow(channel, attr) {
   const row = el("div", "row");
   const label = el("span", "label", attr.name);
   label.title = attr.sysfs_name;
-  label.onclick = () => showAttr(channel, attr);
+  const key = "a:" + (channel ? channel.id : "") + ":" + attr.name;
+  row.dataset.key = key;
+  label.onclick = () => toggleDetail(row, key,
+    () => attrDetail(channel, attr));
   row.appendChild(label);
 
   row.appendChild(el("span", "val",
@@ -396,18 +401,38 @@ function overlayBlock(overlay) {
   return block;
 }
 
-function showDetail(nodes) {
-  const host = $("detail");
-  host.replaceChildren();
-  host.className = "detail";
-  if (!nodes) {
-    host.appendChild(el("p", "hint", "Pick a channel or an attribute."));
-    return;
+// The list and the explanation of what you clicked were two panes saying
+// one thing. Now the explanation opens under its own row. One at a time,
+// or a device with eighty attributes becomes a page you cannot scan.
+
+let openPanel = null;
+let openKey = null;
+
+function toggleDetail(row, key, build) {
+  if (openPanel) { openPanel.remove(); openPanel = null; }
+  for (const other of document.querySelectorAll(".row.open")) {
+    other.classList.remove("open");
   }
-  for (const node of nodes) host.appendChild(node);
+  if (openKey === key) { openKey = null; return; }
+
+  const nodes = build();
+  openKey = key;
+  if (!nodes || !nodes.length) return;
+
+  const panel = el("div", "inline-detail");
+  panel.className = "detail inline-detail";
+  for (const node of nodes) panel.appendChild(node);
+  row.classList.add("open");
+  row.after(panel);
+  openPanel = panel;
 }
 
-function showAttr(channel, attr) {
+function clearDetail() {
+  if (openPanel) { openPanel.remove(); openPanel = null; }
+  openKey = null;
+}
+
+function attrDetail(channel, attr) {
   const out = [];
   const title = el("p", "detail-title", attr.sysfs_name);
   out.push(title);
@@ -475,11 +500,10 @@ function showAttr(channel, attr) {
     out.push(block);
   }
 
-  showDetail(out);
-  markSelected();
+  return out;
 }
 
-function showChannel(channel) {
+function channelDetail(channel) {
   const out = [];
   out.push(el("p", "detail-title", channel.id));
   out.push(el("p", "detail-where", state.device.label + " — " +
@@ -543,19 +567,13 @@ function showChannel(channel) {
     }
   }
 
-  showDetail(out);
-  markSelected();
+  return out;
 }
 
 function addPair(dl, term, value) {
   if (value === null || value === undefined || value === "") return;
   dl.appendChild(el("dt", null, term));
   dl.appendChild(el("dd", null, String(value)));
-}
-
-function markSelected() {
-  // Re-rendering the whole contents pane on every click would lose focus
-  // in the value controls, so selection highlight is left implicit.
 }
 
 // --------------------------------------------------------------- emit
