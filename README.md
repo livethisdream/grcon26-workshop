@@ -167,6 +167,7 @@ guesswork stay distinguishable.
 | `[abi]` | the Linux IIO ABI, quoted verbatim from the kernel docs | definitive, and true of every IIO device |
 | `[parsed]` | the attribute name itself | certain |
 | `[driver]` | the driver named the channel | rare, and trustworthy when present |
+| `[libm2k]` | the vendor's library drives this attribute | says which instrument it belongs to |
 | `[overlay: sourced]` | traced to vendor source, e.g. libm2k | good, not bench-checked |
 | `[overlay: UNVERIFIED]` | written from documentation | **do not teach as fact yet** |
 
@@ -189,6 +190,36 @@ uv run ./iio_abi_fetch.py --show in_voltage0_raw # what the kernel says
 
 The cache is checked in, so the tools work offline. Re-run the fetch to track
 newer kernels.
+
+## Which attributes actually matter
+
+The kernel says what an attribute *means*. It cannot say whether you will
+ever need it. For this board libm2k can — it is the library Scopy is built
+on, so anything it reads or writes is something operating the M2K as an
+instrument requires, and the method that touches it says which instrument:
+
+```
+gain                -> M2kAnalogIn::setRange                 -> Oscilloscope
+trigger_level       -> M2kHardwareTrigger::setAnalogLevelRaw -> Trigger
+oversampling_ratio  -> M2kAnalogIn::setOversamplingRatio     -> Oscilloscope
+```
+
+That is a translation table from the knobs people already know in Scopy to
+the sysfs names a flowgraph needs — which is the gap the workshop exists to
+close. `iio_libm2k_fetch.py` extracts it from vendor source into
+`iio_libm2k_data.json`; the explainer and the browser both show it.
+
+```
+uv run ./iio_libm2k_fetch.py              # refresh the cache
+uv run ./iio_libm2k_fetch.py --show gain  # what drives one attribute
+```
+
+**Absence is not a verdict.** `scale` and `offset` are not in that table
+because libm2k computes the scope's conversion itself instead of reading it
+back — they remain central to every other IIO device. It means "not part of
+this board's instrument abstraction", not "unimportant". It is also a text
+scan of vendor source, not an API contract: a strong hint about relevance,
+which is what it is.
 
 ## What `voltage0` actually is
 
@@ -213,6 +244,8 @@ iio_explain.py        the explainer CLI
 iio_semantics.py      ABI knowledge: name grammar, units, conversion
 iio_abi_fetch.py      pulls the kernel's own descriptions
 iio_abi_data.json     generated cache of those descriptions
+iio_libm2k_fetch.py   which attributes libm2k drives, and from which call
+iio_libm2k_data.json  generated cache of that
 iio_overlays.py       board-specific knowledge, confidence-tagged
 fixtures/             synthetic M2K snapshot
 docs/                 generated participant handout

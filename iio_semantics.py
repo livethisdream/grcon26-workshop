@@ -870,3 +870,40 @@ def channel_identity(device, channel, overlays=None):
             "fallback": True})
 
     return findings
+
+
+# ------------------------------------------------- the vendor's own view
+#
+# A third question, alongside "what does it mean" and "what is it wired
+# to": will you ever need it? The kernel cannot say. libm2k can, for this
+# board -- an attribute it reads or writes is one that operating the M2K
+# as an instrument requires, and the method that touches it says which
+# instrument. See iio_libm2k_fetch.py.
+
+try:
+    import iio_libm2k_fetch
+except ImportError:                                # pragma: no cover
+    iio_libm2k_fetch = None
+
+_LIBM2K_CACHE = []
+
+
+def libm2k_data():
+    if not _LIBM2K_CACHE:
+        _LIBM2K_CACHE.append(
+            iio_libm2k_fetch.load() if iio_libm2k_fetch else None)
+    return _LIBM2K_CACHE[0]
+
+
+def libm2k_use(info):
+    """How libm2k drives this attribute, or None if it never touches it.
+
+    Absence is not a verdict on importance -- scale and offset are absent
+    because libm2k computes the scope conversion itself instead of reading
+    it back, and they matter on every other IIO device. It means "not part
+    of this board's instrument abstraction".
+    """
+    data = libm2k_data()
+    if not data or not iio_libm2k_fetch:
+        return None
+    return iio_libm2k_fetch.lookup(data, info)

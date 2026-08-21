@@ -289,3 +289,12 @@ button:hover { border-color: var(--accent); color: var(--accent); }
 /* A clickable label should look clickable. */
 #contents .label { cursor: pointer; }
 #contents .label:hover { text-decoration: underline; }
+
+/* Which instrument a knob belongs to, per libm2k. The one label in the
+   whole page a participant already knows before they arrive. */
+.chip.instrument {
+  background: #eef6ee;
+  color: #2f6b3a;
+  border: 1px solid #cfe3d2;
+  flex: 0 0 auto;
+}

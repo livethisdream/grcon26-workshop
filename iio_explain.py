@@ -357,6 +357,17 @@ def show_attr(data, args):
         else:
             print("\n" + para("Not documented in the kernel ABI files.", 2))
 
+        use = sem.libm2k_use(parsed["info"])
+        if use:
+            print("\n  What drives it %s" % tag("libm2k"))
+            if use["instruments"]:
+                print(para("Part of the %s."
+                           % " and ".join(use["instruments"]).lower(), 4))
+            print(para("libm2k reaches it from %s."
+                       % ", ".join(use["methods"][:3]), 4))
+            print(para("So this is a knob you already know from Scopy, "
+                       "under its sysfs name.", 4))
+
         note = iio_overlays.attr_note(device, parsed["info"])
         if note:
             print("\n  On this board %s" % tag("overlay", note["confidence"]))
@@ -580,6 +591,7 @@ def annotate_attr(device, channel, attr):
     chan_type = sem.channel_type_info(parsed["channel_type"])
     reference = sem.abi_reference(parsed["sysfs_name"], attr.get("type"))
     note = iio_overlays.attr_note(device, parsed["info"])
+    use = sem.libm2k_use(parsed["info"])
 
     provenance = ["parsed"]
     if info or chan_type or reference:
@@ -596,6 +608,7 @@ def annotate_attr(device, channel, attr):
         "available": attr.get("available"),
         "info_word": parsed["info"],
         "understood": sem.is_understood(parsed, attr.get("type")),
+        "libm2k": use,
         "parsed": {k: parsed[k] for k in
                    ("direction", "channel_type", "channel_index",
                     "modifier", "differential")},
@@ -689,6 +702,7 @@ def annotate_settings(device):
             "value": entry["attr_dict"].get("value"),
             "summary": annotated["summary"],
             "understood": annotated["understood"],
+            "libm2k": annotated["libm2k"],
         })
     return out
 

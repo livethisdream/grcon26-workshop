@@ -226,6 +226,13 @@ function settingsGroup(settings) {
     row.appendChild(label);
     row.appendChild(el("span", "val", setting.value === null ||
       setting.value === undefined ? "" : String(setting.value)));
+    // Which instrument this knob belongs to, when the vendor's own
+    // library says. This is the difference between "an attribute" and
+    // "the scope's input range".
+    const use = setting.libm2k;
+    if (use && use.instruments.length) {
+      row.appendChild(el("span", "chip instrument", use.instruments[0]));
+    }
 
     const select = el("select");
     const leave = el("option", null, "\u2014 leave alone \u2014");
@@ -492,6 +499,21 @@ function attrDetail(channel, attr) {
       "— Linux ABI " + attr.abi.source + ", since kernel " +
       (attr.abi.kernel_version || "?")));
     out.push(block);
+  }
+
+  // Independent of whether a board pack has anything to say: plenty of
+  // attributes libm2k drives have no overlay note, and those are exactly
+  // the ones where knowing the instrument is the only handle you get.
+  if (attr.libm2k) {
+    out.push(el("h3", null, "What drives it"));
+    if (attr.libm2k.instruments.length) {
+      out.push(el("p", null,
+        "Part of the " + attr.libm2k.instruments.join(" and ").toLowerCase() +
+        ". A knob you already know from Scopy, under its sysfs name."));
+    }
+    out.push(el("p", "hint",
+      "libm2k reaches it from " + attr.libm2k.methods.slice(0, 3).join(", ")));
+    out.push(chips(["libm2k"]));
   }
 
   if (attr.overlay) {
