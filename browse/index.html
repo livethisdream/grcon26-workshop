@@ -16,9 +16,8 @@
 
 <!--
   Three columns, one job each: where you are, what you do, what it means.
-  The block parameters live under the thing that produces them rather than
-  in a column of their own -- they are the result of the middle column, not
-  a fourth place to look.
+  The block parameters are the result of all three, so they run along the
+  bottom at full width instead of being a fourth place to look.
 -->
 <main>
   <section class="pane" id="pane-devices">
@@ -31,26 +30,6 @@
     <div id="device-note"></div>
     <div id="contents"></div>
 
-    <div id="pane-emit">
-      <h3>Your block parameters</h3>
-      <p class="hint">Type these into the IIO Device Source block in GRC.
-        String fields take bare text &mdash; no quotes. Raw fields take a
-        Python literal.</p>
-      <div id="emit"></div>
-      <div id="warnings"></div>
-
-      <details id="more-output">
-        <summary>As Python, or a ready-made GRC block</summary>
-        <pre id="make" class="make"></pre>
-        <p class="hint">A block definition for this device, with these
-          dropdowns filled in from the hardware.</p>
-        <div class="box">
-          <button id="gen">generate .block.yml</button>
-          <button id="gen-copy" hidden>copy</button>
-        </div>
-        <pre id="block" class="make" hidden></pre>
-      </details>
-    </div>
   </section>
 
   <section class="pane" id="pane-detail">
@@ -58,6 +37,37 @@
     <div id="detail"><p class="hint">Pick a channel or an attribute.</p></div>
   </section>
 </main>
+
+<!--
+  The block parameters are the output of everything above, so they get the
+  full width and stay put while the columns scroll. Nothing you change up
+  there can push them off screen.
+-->
+<footer id="pane-emit">
+  <div class="emit-head">
+    <h2 id="emit-title">Your block parameters</h2>
+    <p class="hint" id="emit-hint">Type these into the IIO Device Source
+      block in GRC. String fields take bare text &mdash; no quotes. Raw
+      fields take a Python literal.</p>
+    <div id="warnings"></div>
+  </div>
+  <div id="emit"></div>
+  <details id="more-output">
+    <summary>As Python, or a ready-made GRC block</summary>
+    <div class="more-grid">
+      <pre id="make" class="make"></pre>
+      <div>
+        <p class="hint">A block definition for this device, with these
+          dropdowns filled in from the hardware.</p>
+        <div class="box">
+          <button id="gen">generate .block.yml</button>
+          <button id="gen-copy" hidden>copy</button>
+        </div>
+      </div>
+    </div>
+    <pre id="block" class="make" hidden></pre>
+  </details>
+</footer>
 
 <script src="/app.js"></script>
 </body>

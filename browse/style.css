@@ -30,13 +30,16 @@ header {
 header h1 { font-size: 1rem; margin: 0; letter-spacing: 0.02em; }
 header p { margin: 0; color: var(--dim); font-size: 0.85rem; }
 
+body { display: flex; flex-direction: column; height: 100vh; }
+
 main {
   display: grid;
   grid-template-columns: 14rem 30rem 1fr;
-  height: calc(100vh - 3rem);
+  flex: 1;
+  min-height: 0;          /* let the panes scroll instead of the page */
 }
 @media (max-width: 1200px) {
-  main { grid-template-columns: 1fr 1fr; height: auto; }
+  main { grid-template-columns: 1fr 1fr; }
 }
 
 .pane {
@@ -188,20 +191,55 @@ button:hover { border-color: var(--accent); color: var(--accent); }
 }
 .rest > summary { font-weight: 600; }
 
-/* Block parameters sit under what produces them, not in a column of
-   their own. */
+/* ---- the output panel ------------------------------------------------
+   Full width along the bottom, and it does not scroll with the columns:
+   changing a setting up there must never push its own result off screen. */
 #pane-emit {
-  margin-top: 1.4rem;
-  border-top: 2px solid #e5e7eb;
-  padding-top: 0.8rem;
+  flex: 0 0 auto;
+  max-height: 42vh;
+  overflow-y: auto;
+  border-top: 2px solid var(--line);
+  background: var(--panel);
+  padding: 0.6rem 1rem 0.8rem;
 }
+.emit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.emit-head h2 { margin: 0; }
+.emit-head .hint { margin: 0; }
+#pane-emit #warnings { flex-basis: 100%; }
+
+/* Fields run across instead of stacking. The two that hold Python lists
+   get more room, because those are the ones that actually get long. */
+#emit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  margin-top: 0.5rem;
+}
+#emit > * { flex: 1 1 11rem; min-width: 0; }
+#emit > [data-id="channels"],
+#emit > [data-id="params"] { flex: 2 1 19rem; }
+#emit input { width: 100%; }
+
 #more-output > summary {
   cursor: pointer;
   font-size: 0.8rem;
-  color: #4b5563;
-  padding: 0.4rem 0;
+  color: var(--dim);
+  padding: 0.5rem 0 0.2rem;
 }
-#more-output[open] { margin-bottom: 0.5rem; }
+.more-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .more-grid { grid-template-columns: 1fr; }
+}
 
 /* A value that shares its row with a control still has to be readable --
    "calibrate" was rendering as "f...". */

@@ -126,11 +126,29 @@ function renderContents() {
   const streaming = device.channels.filter((c) => c.scan_element);
   const config = device.channels.filter((c) => !c.scan_element);
 
-  // 1. What becomes an output of the block.
+  // An attribute promoted into Settings must not also render inline under
+  // its channel: two controls writing one key drift apart the moment you
+  // touch either of them.
+  const promoted = new Set();
+  for (const setting of device.settings || []) {
+    if (setting.channels.length) {
+      for (const id of setting.channels) promoted.add(id + "/" + setting.attr);
+    } else {
+      promoted.add("/" + setting.attr);
+    }
+  }
+
+  // 1. What the block's ports will be. A sink consumes them, so calling
+  // them outputs is wrong for half the devices on this board.
+  const sink = device.streaming > 0 &&
+    device.channels.filter((c) => c.scan_element).every((c) => c.output);
   if (streaming.length) {
     host.appendChild(channelGroup(
       "Streaming channels", streaming, true,
-      "These become the outputs of the block, in this order."));
+      sink
+        ? "These become the inputs of the block, in this order."
+        : "These become the outputs of the block, in this order.",
+      promoted));
   }
 
   // 2. The knobs. Of 317 attributes on an M2K, 127 have a list of legal
@@ -141,36 +159,44 @@ function renderContents() {
     host.appendChild(settingsGroup(device.settings));
   }
 
-  // 3. Everything else, one click away. Still editable: this is a
-  // discovery tool, and hiding what the hardware exposes would work
-  // against the point.
+  // 3. Everything the two groups above did not already show, one click
+  // away. Still editable -- this is a discovery tool, and hiding what the
+  // hardware exposes would work against the point. Filtered so that every
+  // attribute has exactly one control on the page: what is in Settings is
+  // not repeated here, and the two together are the complete list.
   const rest = el("details", "rest");
   let count = 0;
   const inner = el("div");
+  const notPromoted = (channelId) => (attr) =>
+    !promoted.has(channelId + "/" + attr.name);
+
   if (config.length) {
     inner.appendChild(channelGroup(
       "Other channels", config, false,
       "No scan index, so they cannot stream. Their attributes still go " +
-      "in Parameters."));
-    count += config.reduce((n, c) => n + c.attrs.length, 0);
+      "in Parameters.", promoted));
+    count += config.reduce(
+      (n, c) => n + c.attrs.filter(notPromoted(c.id)).length, 0);
   }
   for (const channel of streaming) {
-    if (channel.attrs.length) {
-      inner.appendChild(attrGroup(channel.id, channel, channel.attrs));
-      count += channel.attrs.length;
+    const left = channel.attrs.filter(notPromoted(channel.id));
+    if (left.length) {
+      inner.appendChild(attrGroup(channel.id, channel, left));
+      count += left.length;
     }
   }
   for (const [key, title] of [["device_attrs", "Device attributes"],
                               ["buffer_attrs", "Buffer attributes"],
                               ["debug_attrs", "Debug attributes"]]) {
-    if (device[key].length) {
-      inner.appendChild(attrGroup(title, null, device[key]));
-      count += device[key].length;
+    const left = device[key].filter(notPromoted(""));
+    if (left.length) {
+      inner.appendChild(attrGroup(title, null, left));
+      count += left.length;
     }
   }
   if (count) {
     rest.appendChild(el("summary", null,
-      "Every attribute on this device (" + count + ")"));
+      "Other attributes on this device (" + count + ")"));
     rest.appendChild(inner);
     host.appendChild(rest);
   }
@@ -183,8 +209,15 @@ function renderContents() {
 function settingsGroup(settings) {
   const group = el("div", "group settings");
   group.appendChild(heading("Settings", settings.length));
+  // A control can stand for the same attribute on many channels, so the
+  // row count and the attribute count differ. Say so, or someone adding
+  // up the two groups finds attributes missing.
+  const covered = settings.reduce((n, s) => n + s.keys.length, 0);
   group.appendChild(el("p", "hint",
-    "The hardware published a list of legal values for these."));
+    covered === settings.length
+      ? "The hardware published a list of legal values for these."
+      : "The hardware published a list of legal values for these. " +
+        settings.length + " controls covering " + covered + " attributes."));
 
   for (const setting of settings) {
     const row = el("div", "row");
@@ -241,7 +274,7 @@ function showSetting(setting) {
   if (attr) showAttr(channel, attr);
 }
 
-function channelGroup(title, channels, tickable, hint) {
+function channelGroup(title, channels, tickable, hint, promoted) {
   const group = el("div", "group");
   group.appendChild(heading(title, channels.length));
   if (hint) group.appendChild(el("p", "hint", hint));
@@ -267,8 +300,10 @@ function channelGroup(title, channels, tickable, hint) {
       channel.output ? "output" : "input"));
     group.appendChild(row);
 
-    if (channel.attrs.length) {
-      const nested = attrGroup(null, channel, channel.attrs);
+    const inline = (channel.attrs || []).filter(
+      (a) => !(promoted && promoted.has(channel.id + "/" + a.name)));
+    if (inline.length) {
+      const nested = attrGroup(null, channel, inline);
       nested.style.marginLeft = tickable ? "1.4rem" : "0.8rem";
       group.appendChild(nested);
     }
@@ -551,6 +586,9 @@ function renderEmit(result) {
   host.replaceChildren();
   for (const field of result.fields_display || []) {
     const wrap = el("div", "field");
+    // The wide fields -- the ones holding Python lists -- are picked out
+    // by id in the stylesheet so they get more of the row.
+    wrap.dataset.id = field.id;
     const label = el("label", null, field.label + "  ");
     label.appendChild(el("span", "kind", field.kind));
     wrap.appendChild(label);
@@ -573,6 +611,13 @@ function renderEmit(result) {
   }
 
   $("make").textContent = result.make || "";
+  // A sink is a different block with different fields; say which one the
+  // numbers below belong to rather than always claiming Device Source.
+  const block = result.is_sink ? "IIO Device Sink" : "IIO Device Source";
+  $("emit-title").textContent = "Your block parameters — " + block;
+  $("emit-hint").textContent =
+    "Type these into the " + block + " block in GRC. String fields take " +
+    "bare text — no quotes. Raw fields take a Python literal.";
 }
 
 function copy(input, button) {
