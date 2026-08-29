@@ -1,0 +1,113 @@
+options:
+  parameters:
+    author: GRCon26 workshop
+    category: '[GRC Hier Blocks]'
+    comment: 'Wire W1 to 1+, and ground to 1-.
+
+
+      The two conversion blocks are not boilerplate. gr-iio carries SHORT
+      samples, which are raw ADC counts, so Short To Float gets you a number
+      and Multiply Const turns that number into volts.
+
+
+      volts_per_count is the whole counts-to-volts story in one variable. It
+      comes from libm2k''s getScalingFactor() and has NOT been checked against
+      a signal yet -- confirming it is the point of running this.'
+    copyright: ''
+    description: 'The same loopback, built from blocks iio_grc.py generated from a capture.'
+    generate_options: qt_gui
+    id: m2k_loopback_generated
+    title: M2K loopback - W1 to 1+ (generated blocks)
+  states: {coordinate: [8, 8], state: enabled}
+
+blocks:
+- name: uri
+  id: variable
+  parameters: {value: '''ip:192.168.2.1'''}
+  states: {coordinate: [16, 84], state: enabled}
+- name: samp_rate
+  id: variable
+  parameters: {value: '1000000'}
+  states: {coordinate: [112, 84], state: enabled}
+- name: tone_hz
+  id: variable
+  parameters: {value: '10000'}
+  states: {coordinate: [224, 84], state: enabled}
+- name: amplitude_counts
+  id: variable
+  parameters: {value: '1000'}
+  states: {coordinate: [320, 84], state: enabled}
+- name: volts_per_count
+  id: variable
+  parameters: {value: '0.014525'}
+  states: {coordinate: [464, 84], state: enabled}
+
+- name: analog_sig_source_x_0
+  id: analog_sig_source_x
+  parameters:
+    amp: amplitude_counts
+    freq: tone_hz
+    samp_rate: samp_rate
+    type: float
+    waveform: analog.GR_COS_WAVE
+  states: {coordinate: [24, 200], state: enabled}
+
+- name: blocks_float_to_short_0
+  id: blocks_float_to_short
+  parameters: {scale: '1'}
+  states: {coordinate: [248, 216], state: enabled}
+
+- name: iio_device_sink_0
+  id: m2k_m2k_dac_a_sink
+  parameters:
+    buffer_size: '16384'
+    channels: '[''voltage0'']'
+    cyclic: 'False'
+    extra_params: '[''oversampling_ratio=75'']'
+    interpolation: '1'
+    uri: uri
+  states: {coordinate: [424, 192], state: enabled}
+
+- name: iio_device_source_0
+  id: m2k_m2k_adc_source
+  parameters:
+    buffer_size: '16384'
+    channels: '[''voltage0'']'
+    decimation: '1'
+    extra_params: '[''oversampling_ratio=100'']'
+    uri: uri
+  states: {coordinate: [24, 352], state: enabled}
+
+- name: blocks_short_to_float_0
+  id: blocks_short_to_float
+  parameters: {scale: '1'}
+  states: {coordinate: [256, 368], state: enabled}
+
+- name: blocks_multiply_const_vxx_0
+  id: blocks_multiply_const_vxx
+  parameters:
+    const: volts_per_count
+    type: float
+  states: {coordinate: [432, 368], state: enabled}
+
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    autoscale: 'True'
+    grid: 'True'
+    name: '"Scope channel 1 (volts)"'
+    nconnections: '1'
+    samp_rate: samp_rate
+    type: float
+    ylabel: Volts
+  states: {coordinate: [640, 344], state: enabled}
+
+connections:
+- [analog_sig_source_x_0, '0', blocks_float_to_short_0, '0']
+- [blocks_float_to_short_0, '0', iio_device_sink_0, '0']
+- [iio_device_source_0, '0', blocks_short_to_float_0, '0']
+- [blocks_short_to_float_0, '0', blocks_multiply_const_vxx_0, '0']
+- [blocks_multiply_const_vxx_0, '0', qtgui_time_sink_x_0, '0']
+
+metadata:
+  file_format: 1
