@@ -1,0 +1,65 @@
+id: m2k_digital_source
+label: M2K Digital Source
+category: '[ADALM2000]'
+flags: [python, throttle]
+
+parameters:
+-   id: uri
+    label: M2K address
+    dtype: string
+    default: ip:192.168.2.1
+
+-   id: pin_count
+    label: Pins to read
+    dtype: enum
+    default: '1'
+    options: ['1', '2', '4', '8', '16']
+    option_labels: ['DIO0', 'DIO0-1', 'DIO0-3', 'DIO0-7', 'DIO0-15']
+
+-   id: sample_rate
+    label: Sample rate
+    dtype: enum
+    default: '1000000'
+    options: ['100000000', '10000000', '1000000', '100000', '10000', '1000']
+    option_labels: ['100 MS/s', '10 MS/s', '1 MS/s', '100 kS/s', '10 kS/s',
+                    '1 kS/s']
+
+-   id: buffer_size
+    label: Samples per buffer
+    dtype: int
+    default: '16384'
+
+outputs:
+-   domain: stream
+    dtype: short
+    multiplicity: ${ pin_count }
+
+asserts:
+- ${ buffer_size > 0 }
+
+templates:
+    imports: from m2k_blocks.digital import digital_source
+    make: |-
+        digital_source(
+            uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
+            buffer_size=${buffer_size})
+
+documentation: |-
+    Read the M2K's digital pins. One output port per pin, DIO0 first.
+
+    Each port carries one bit per sample, in a short. That is gr-iio's
+    model rather than a choice made here: every DIO pin is its own IIO
+    channel with a one-bit scan element.
+
+    A pin is an input or an output, never both. This block sets the pins
+    it reads to inputs, so do not point a Digital Sink at the same pins in
+    the same flowgraph -- whichever starts last wins.
+
+    Unlike the scope and the generator, the digital side publishes no list
+    of legal sample rates. The rates offered here are the decade divisions
+    of the same 100 MS/s clock and are the obvious candidates, but the
+    hardware has not confirmed them. If one is refused, gr-iio logs it and
+    carries on at whatever rate was already set -- so check the rate is
+    what you asked for before trusting a timing measurement.
+
+file_format: 1

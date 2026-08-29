@@ -101,7 +101,7 @@ blocks:
     grid: 'True'
     name: '"Scope channel 1 (volts)"'
     nconnections: '1'
-    samp_rate: samp_rate
+    srate: samp_rate
     type: float
     ylabel: Volts
   states: {coordinate: [640, 344], state: enabled}

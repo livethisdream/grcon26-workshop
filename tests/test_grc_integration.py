@@ -99,7 +99,7 @@ BUILD = '''
         if "iio." in line or "set_len_tag_key" in line:
             grabbed.extend(l.strip() for l in lines[i:i + 4])
     print(json.dumps({"valid": fg.is_valid(), "errors": errors,
-                      "iio": grabbed}))
+                      "iio": grabbed, "make": source}))
 '''
 
 
@@ -262,3 +262,82 @@ def test_illegal_combinations_are_refused(repo_root):
     for label in cases:
         if label != "ok":
             assert result[label] is False, label
+
+
+@needs_gnuradio
+def test_every_instrument_block_loads(repo_root):
+    loaded = json.loads(run_in_gr(LOAD, os.path.join(repo_root, M2K_GRC)))
+    assert set(loaded) == {"m2k_scope_source", "m2k_waveform_sink",
+                           "m2k_digital_source", "m2k_digital_sink"}
+
+
+@needs_gnuradio
+def test_no_block_exposes_iio_vocabulary(repo_root):
+    """The whole point: a participant should never meet an IIO word."""
+    out = json.loads(run_in_gr('''
+        import json, logging, sys
+        logging.disable(logging.CRITICAL)
+        from gnuradio.grc.core.platform import Platform
+        p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
+        p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+        skip = {"id","alias","affinity","minoutbuf","maxoutbuf","comment"}
+        print(json.dumps({
+            k: [q["label"] for q in b.parameters_data
+                if q.get("label") and q["id"] not in skip]
+            for k, b in p.blocks.items() if k.startswith("m2k_")}))
+    ''', os.path.join(repo_root, M2K_GRC)))
+
+    forbidden = ("iio", "phy", "attr", "context", "uri", "oversampl",
+                 "sysfs", "scan", "voltage")
+    for block, labels in out.items():
+        assert labels, block
+        for label in labels:
+            assert not any(w in label.lower() for w in forbidden), \
+                "%s: %r" % (block, label)
+
+
+@needs_gnuradio
+def test_native_loopback_builds(repo_root):
+    """A loopback with no IIO anywhere on the canvas."""
+    path = os.path.join(repo_root, "flowgraphs", "m2k_loopback_native.grc")
+    result = json.loads(run_in_gr(BUILD, path,
+                                  os.path.join(repo_root, M2K_GRC)))
+    assert result["valid"], result["errors"]
+    # The point of this flowgraph: gr-iio is reached only from inside the
+    # instrument blocks, so the generated code has no iio call of its own.
+    assert result["iio"] == [], result["iio"]
+    assert "scope_source(" in result["make"]
+    assert "waveform_sink(" in result["make"]
+
+
+@needs_gnuradio
+def test_flowgraph_parameter_names_are_real(repo_root):
+    """A key a block does not define is silently ignored by GRC.
+
+    Writing `samp_rate:` on a QT time sink (whose parameter is `srate`)
+    left it on its default, which happened to resolve while a variable of
+    that name existed and broke the moment one was renamed.
+    """
+    import yaml
+    out = json.loads(run_in_gr('''
+        import json, logging, sys
+        logging.disable(logging.CRITICAL)
+        from gnuradio.grc.core.platform import Platform
+        p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
+        p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+        print(json.dumps({k: [q["id"] for q in b.parameters_data]
+                          for k, b in p.blocks.items()}))
+    ''', os.path.join(repo_root, M2K_GRC)))
+
+    for name in os.listdir(os.path.join(repo_root, "flowgraphs")):
+        if not name.endswith(".grc"):
+            continue
+        with open(os.path.join(repo_root, "flowgraphs", name)) as handle:
+            doc = yaml.safe_load(handle)
+        for blk in doc.get("blocks", []):
+            known = out.get(blk["id"])
+            if known is None:                 # a generated block, not loaded here
+                continue
+            for key in blk.get("parameters", {}):
+                assert key in known, "%s: %s has no parameter %r" % (
+                    name, blk["id"], key)

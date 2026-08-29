@@ -75,3 +75,60 @@ def volts_to_raw(volts, range_name):
 def raw_to_volts(counts, range_name):
     """The inverse, for reading a level back."""
     return float(counts) * volts_per_count(range_name)
+
+
+# ---------------------------------------------------------------------
+# The waveform generator.
+#
+# Its numbers are not the ADC's, which is the first thing that catches
+# people: a different base clock, a different rate list, and a conversion
+# that inverts the sign.
+# ---------------------------------------------------------------------
+
+# Published by the hardware in sampling_frequency_available on m2k-dac-a.
+# Note these are NOT the ADC's rates -- the DAC's base clock is 75 MS/s,
+# so a flowgraph that generates and captures at "the same" rate is doing
+# no such thing unless you picked from both lists deliberately.
+DAC_SAMPLE_RATES = [75000000, 7500000, 750000, 75000, 7500, 750]
+
+# Volts per LSB before calibration, from M2kAnalogOut's constructor:
+# 10.0 / (2**12 - 1). Calibration replaces it per channel; this is the
+# fresh-board figure, the DAC's counterpart to calib_gain = 1.0.
+DAC_VLSB = 10.0 / ((1 << 12) - 1)
+
+# The DAC word is 12 bits sitting in the top of a 16-bit container, which
+# is what the shift below is for.
+DAC_SHIFT = 4
+
+# Where the conversion runs out of container, and therefore the largest
+# amplitude worth asking for.
+DAC_FULL_SCALE_V = 5.0
+
+
+def volts_to_dac_raw(volts, vlsb=DAC_VLSB, filter_compensation=1.0):
+    """Volts to the int16 the DAC wants, from M2kAnalogOut::convVoltsToRaw().
+
+        raw = ((volts * -1/vlsb) - 0.5) / filter_comp, then shifted up 4
+
+    The sign inversion is real and is the hardware's, not a slip here:
+    a positive voltage becomes a negative count. Anyone converting by hand
+    and getting an upside-down waveform has just met it.
+    """
+    scaled = ((float(volts) * (-1.0 / vlsb)) - 0.5) / filter_compensation
+    return int(scaled) << DAC_SHIFT
+
+
+def dac_raw_to_volts(raw, vlsb=DAC_VLSB, filter_compensation=1.0):
+    """The inverse, for reading a level back."""
+    return -(((int(raw) >> DAC_SHIFT) * filter_compensation) + 0.5) * vlsb
+
+
+def check_dac_sample_rate(sample_rate):
+    """Reject a rate the DAC will not accept, with the list that it will."""
+    rate = int(sample_rate)
+    if rate not in DAC_SAMPLE_RATES:
+        raise ValueError(
+            "sample rate %s is not one the M2K's generator accepts; choose "
+            "from %s" % (sample_rate,
+                         ", ".join(str(r) for r in DAC_SAMPLE_RATES)))
+    return rate

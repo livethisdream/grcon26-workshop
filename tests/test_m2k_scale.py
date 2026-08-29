@@ -81,3 +81,49 @@ def test_divider_is_explanatory_only_but_correct():
     assert scale.divider_for(100000000) == 1
     assert scale.divider_for(1000000) == 100
     assert scale.divider_for(1000) == 100000
+
+
+# ---------------------------------------------------- the generator
+
+def test_dac_rates_are_the_ones_hardware_publishes():
+    """And they are NOT the ADC's -- a 75 MS/s clock, not 100."""
+    import json
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(here, "fixtures", "m2k-real.json")) as handle:
+        capture = json.load(handle)
+    dac = [d for d in capture["devices"] if d["name"] == "m2k-dac-a"][0]
+    published = [a for a in dac["device_attrs"]
+                 if a["name"] == "sampling_frequency"][0]["available"]["values"]
+    assert sorted(int(v) for v in published) == sorted(scale.DAC_SAMPLE_RATES)
+    # The asymmetry is the point: no rate is valid for both.
+    assert not (set(scale.DAC_SAMPLE_RATES) & set(scale.SAMPLE_RATES))
+
+
+def test_dac_conversion_inverts_the_sign():
+    """The hardware's inversion, not a slip. Positive volts, negative counts."""
+    assert scale.volts_to_dac_raw(1.0) < 0
+    assert scale.volts_to_dac_raw(-1.0) > 0
+
+
+def test_dac_volts_round_trip():
+    for volts in (0.5, -0.5, 2.0, -3.25):
+        raw = scale.volts_to_dac_raw(volts)
+        assert scale.dac_raw_to_volts(raw) == pytest.approx(
+            volts, abs=scale.DAC_VLSB)
+
+
+def test_dac_full_scale_lands_on_the_container_floor():
+    """+/-5 V is where an int16 runs out, which is why that is full scale."""
+    assert scale.volts_to_dac_raw(scale.DAC_FULL_SCALE_V) == -32768
+
+
+def test_dac_word_sits_in_the_top_bits():
+    """12-bit DAC in a 16-bit container: the low 4 bits are always clear."""
+    for volts in (0.1, 1.0, -2.0, 4.0):
+        assert scale.volts_to_dac_raw(volts) % 16 == 0
+
+
+def test_a_dac_rate_the_board_will_not_take_is_refused():
+    with pytest.raises(ValueError) as excinfo:
+        scale.check_dac_sample_rate(1000000)     # an ADC rate, not a DAC one
+    assert "750000" in str(excinfo.value)

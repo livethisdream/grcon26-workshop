@@ -1,0 +1,94 @@
+id: m2k_waveform_sink
+label: M2K Waveform Sink
+category: '[ADALM2000]'
+flags: [python, throttle]
+
+parameters:
+-   id: uri
+    label: M2K address
+    dtype: string
+    default: ip:192.168.2.1
+
+-   id: output
+    label: Output
+    dtype: enum
+    default: "'w1'"
+    options: ["'w1'", "'w2'"]
+    option_labels: ['W1', 'W2']
+
+-   id: sample_rate
+    label: Sample rate
+    dtype: enum
+    default: '750000'
+    options: ['75000000', '7500000', '750000', '75000', '7500', '750']
+    option_labels: ['75 MS/s', '7.5 MS/s', '750 kS/s', '75 kS/s', '7.5 kS/s',
+                    '750 S/s']
+
+-   id: units
+    label: Input
+    dtype: enum
+    default: "'volts'"
+    options: ["'volts'", "'counts'"]
+    option_labels: ['Volts (float)', 'Raw counts (short)']
+    option_attributes:
+        type: [float, short]
+
+-   id: buffer_size
+    label: Samples per buffer
+    dtype: int
+    default: '16384'
+
+-   id: cyclic
+    label: When the buffer ends
+    dtype: enum
+    default: 'False'
+    options: ['False', 'True']
+    option_labels: ['Play once', 'Repeat forever']
+
+inputs:
+-   domain: stream
+    dtype: ${ units.type }
+
+asserts:
+- ${ buffer_size > 0 }
+
+templates:
+    imports: from m2k_blocks.waveform_sink import waveform_sink
+    make: |-
+        waveform_sink(
+            uri=${uri}, output=${output}, sample_rate=${sample_rate},
+            units=${units}, buffer_size=${buffer_size}, cyclic=${cyclic})
+
+documentation: |-
+    The M2K's signal generator. Feed it samples; they come out of W1 or W2.
+
+    Three things differ from the scope, and each of them catches people:
+
+    Sample rate
+      The generator's base clock is 75 MS/s, NOT the scope's 100 MS/s, so
+      these rates and the scope's do not overlap. A flowgraph that
+      generates and captures at "the same rate" is doing no such thing
+      unless you chose from both lists on purpose.
+
+    Input
+      Volts      floats. The conversion inverts the sign, because the
+                 hardware does -- a positive voltage is a negative count.
+                 Convert by hand and your waveform arrives upside down.
+      Raw counts int16, sent exactly as given. Full scale is about
+                 +/-5 V, which is where the container runs out.
+
+    Output
+      W1 and W2 are two separate IIO devices, not two channels of one, so
+      choosing the output chooses the device. Two of these blocks in one
+      flowgraph drive both independently.
+
+    When the buffer ends
+      Play once sends the buffer and stops. Repeat forever loops it in
+      hardware, which is what you want for a steady tone and means the
+      flowgraph does not have to keep feeding it.
+
+    The volts conversion uses libm2k's uncalibrated figure and has not
+    been confirmed against a meter. If the amplitude is wrong, switch
+    Input to raw counts, which are passed through untouched.
+
+file_format: 1

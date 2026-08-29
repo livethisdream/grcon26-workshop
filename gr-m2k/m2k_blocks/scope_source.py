@@ -22,17 +22,9 @@ from gnuradio import blocks
 from gnuradio import gr
 from gnuradio import iio
 
+from .m2k_config import write_channel_attr
 from .m2k_scale import (RANGE_VOLTS, SAMPLE_RATES, check_sample_rate,
                         volts_per_count, volts_to_raw)
-
-# gr-iio's attr_sink takes the attribute category as a number.
-ATTR_CHANNEL = 0
-
-# How often the configuration attributes are re-asserted. gr-iio has no
-# one-shot attribute write, so a slow updater stands in for one. The side
-# effect is benign and mildly useful: a setting changed underneath us (by
-# Scopy, say) gets put back.
-CONFIG_INTERVAL_MS = 1000
 
 # The devices this block reaches into.
 DEV_ADC = "m2k-adc"
@@ -109,16 +101,8 @@ class scope_source(gr.hier_block2):
     # -------------------------------------------------- configuration
 
     def _write(self, uri, device, channel, attr, value):
-        """Set one attribute on any device, using gr-iio's own blocks.
-
-        attr_updater emits {attr: value} on an interval; attr_sink writes
-        whatever it receives. Two blocks to set one string, but it needs
-        no libiio bindings and no libm2k, which is the whole point.
-        """
-        updater = iio.attr_updater(attr, str(value), CONFIG_INTERVAL_MS)
-        sink = iio.attr_sink(uri, device, channel, ATTR_CHANNEL, False)
-        self.msg_connect((updater, "out"), (sink, "attr"))
-        self._config.extend([updater, sink])
+        write_channel_attr(self, self._config, uri, device, channel,
+                           attr, value)
 
     def _apply_ranges(self, uri, ch1_enabled, ch2_enabled, ch1_range, ch2_range):
         """Input range lives on m2k-fabric, not on the ADC."""

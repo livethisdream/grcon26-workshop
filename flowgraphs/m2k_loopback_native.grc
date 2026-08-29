@@ -1,0 +1,96 @@
+options:
+  parameters:
+    author: GRCon26 workshop
+    comment: 'Wire W1 to 1+, and ground to 1-.
+
+
+      The same loopback, with no IIO anywhere on the canvas. No conversion
+      blocks either: the generator takes volts and the scope hands back
+      volts.
+
+
+      Note the two rates are different, and have to be. The generator''s
+      clock is 75 MS/s and the scope''s is 100 MS/s, so their rate lists do
+      not overlap. Picking "the same rate" for both is not possible, which
+      is worth seeing once.'
+    copyright: ''
+    description: 'W1 to 1+ with the M2K as an instrument: no IIO on the canvas.'
+    generate_options: qt_gui
+    id: m2k_loopback_native
+    title: M2K loopback - instrument blocks
+  states: {coordinate: [8, 8], state: enabled}
+
+blocks:
+- name: gen_rate
+  id: variable
+  parameters: {value: '750000'}
+  states: {coordinate: [16, 84], state: enabled}
+- name: scope_rate
+  id: variable
+  parameters: {value: '1000000'}
+  states: {coordinate: [136, 84], state: enabled}
+- name: tone_hz
+  id: variable
+  parameters: {value: '10000'}
+  states: {coordinate: [264, 84], state: enabled}
+- name: amplitude_v
+  id: variable
+  parameters: {value: '1.0'}
+  states: {coordinate: [368, 84], state: enabled}
+
+- name: analog_sig_source_x_0
+  id: analog_sig_source_x
+  parameters:
+    amp: amplitude_v
+    freq: tone_hz
+    samp_rate: gen_rate
+    type: float
+    waveform: analog.GR_COS_WAVE
+  states: {coordinate: [24, 200], state: enabled}
+
+- name: m2k_waveform_sink_0
+  id: m2k_waveform_sink
+  parameters:
+    buffer_size: '16384'
+    cyclic: 'True'
+    output: "'w1'"
+    sample_rate: '750000'
+    units: "'volts'"
+    uri: ip:192.168.2.1
+  states: {coordinate: [320, 192], state: enabled}
+
+- name: m2k_scope_source_0
+  id: m2k_scope_source
+  parameters:
+    buffer_size: '16384'
+    ch1_enabled: 'True'
+    ch1_range: "'low'"
+    ch2_enabled: 'False'
+    sample_rate: '1000000'
+    trigger_edge: "'edge-rising'"
+    trigger_level: '0.0'
+    trigger_source: "'ch1'"
+    units: "'volts'"
+    uri: ip:192.168.2.1
+  states: {coordinate: [24, 360], state: enabled}
+
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    autoscale: 'False'
+    grid: 'True'
+    name: '"Scope channel 1"'
+    nconnections: '1'
+    srate: scope_rate
+    type: float
+    ylabel: Volts
+    ymax: '2'
+    ymin: '-2'
+  states: {coordinate: [344, 344], state: enabled}
+
+connections:
+- [analog_sig_source_x_0, '0', m2k_waveform_sink_0, '0']
+- [m2k_scope_source_0, '0', qtgui_time_sink_x_0, '0']
+
+metadata:
+  file_format: 1
