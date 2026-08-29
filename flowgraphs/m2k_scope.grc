@@ -1,0 +1,53 @@
+options:
+  parameters:
+    author: GRCon26 workshop
+    comment: 'One block, one plot. Wire a signal to 1+ and its return to 1-.
+
+
+      Nothing here mentions IIO. The scope block works out which attribute on
+      which of the M2K''s fourteen devices each setting means.'
+    copyright: ''
+    description: 'The M2K as an instrument: scope in, plot out.'
+    generate_options: qt_gui
+    id: m2k_scope
+    title: M2K scope
+  states: {coordinate: [8, 8], state: enabled}
+
+blocks:
+- name: samp_rate
+  id: variable
+  parameters: {value: '1000000'}
+  states: {coordinate: [16, 84], state: enabled}
+
+- name: m2k_scope_source_0
+  id: m2k_scope_source
+  parameters:
+    buffer_size: '16384'
+    ch1_enabled: 'True'
+    ch1_range: "'low'"
+    ch2_enabled: 'False'
+    sample_rate: '1000000'
+    trigger_edge: "'edge-rising'"
+    trigger_level: '0.5'
+    trigger_source: "'ch1'"
+    units: "'volts'"
+    uri: ip:192.168.2.1
+  states: {coordinate: [40, 220], state: enabled}
+
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    autoscale: 'True'
+    grid: 'True'
+    name: '"Scope channel 1"'
+    nconnections: '1'
+    samp_rate: samp_rate
+    type: float
+    ylabel: Volts
+  states: {coordinate: [400, 208], state: enabled}
+
+connections:
+- [m2k_scope_source_0, '0', qtgui_time_sink_x_0, '0']
+
+metadata:
+  file_format: 1

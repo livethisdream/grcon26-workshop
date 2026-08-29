@@ -140,7 +140,7 @@ def test_an_untouched_dropdown_writes_nothing(repo_root, generated_blocks):
     joined = " ".join(result["iio"])
     assert "if v]" in joined
     assert "('calibrate', '')" in joined      # present, and filtered out
-    assert "'oversampling_ratio=100'" in joined   # the one we did set
+    assert "'sampling_frequency=1000000'" in joined   # the one we did set
 
 
 @needs_gnuradio
@@ -156,3 +156,109 @@ def test_flowgraph_description_stays_single_line(repo_root):
             doc = yaml.safe_load(handle)
         description = doc["options"]["parameters"].get("description", "")
         assert "\n" not in description.strip(), name
+
+
+# ------------------------------------------------ the instrument blocks
+
+M2K_GRC = "gr-m2k/grc"
+
+
+@needs_gnuradio
+def test_scope_block_loads_and_reads_plainly(repo_root):
+    """Every parameter must say what it does and what its values are."""
+    loaded = json.loads(run_in_gr('''
+        import json, logging, sys
+        logging.disable(logging.CRITICAL)
+        from gnuradio.grc.core.platform import Platform
+        p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
+        p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+        b = p.blocks["m2k_scope_source"]
+        print(json.dumps({"label": b.label, "category": list(b.category),
+                          "params": [{"id": q["id"], "label": q.get("label"),
+                                      "options": q.get("option_labels")}
+                                     for q in b.parameters_data
+                                     if q.get("label")]}))
+    ''', os.path.join(repo_root, M2K_GRC)))
+
+    assert loaded["label"] == "M2K Scope Source"
+    assert loaded["category"] == ["ADALM2000"]
+    labels = {q["id"]: q["label"] for q in loaded["params"]}
+
+    # Nothing a participant sees may be IIO vocabulary.
+    forbidden = ("iio", "phy", "attr", "context", "uri", "oversampl", "sysfs")
+    for name in labels.values():
+        assert not any(word in name.lower() for word in forbidden), name
+
+    # And the units belong in the label, not in the documentation.
+    assert labels["trigger_level"] == "Trigger level (V)"
+    assert labels["uri"] == "M2K address"
+
+
+@needs_gnuradio
+def test_option_labels_survived_yaml(repo_root):
+    """YAML 1.1 reads On/Off/Yes/No as booleans.
+
+    `option_labels: [On, Off]` silently becomes True/False on screen.
+    """
+    import yaml
+    for name in os.listdir(os.path.join(repo_root, M2K_GRC)):
+        with open(os.path.join(repo_root, M2K_GRC, name)) as handle:
+            doc = yaml.safe_load(handle)
+        for prm in doc["parameters"]:
+            for label in prm.get("option_labels", []):
+                assert isinstance(label, str), (name, prm["id"], label)
+
+
+@needs_gnuradio
+def test_scope_flowgraph_builds(repo_root):
+    path = os.path.join(repo_root, "flowgraphs", "m2k_scope.grc")
+    result = json.loads(run_in_gr(BUILD, path,
+                                  os.path.join(repo_root, M2K_GRC)))
+    assert result["valid"], result["errors"]
+
+
+ASSERTS = '''
+    import copy, json, logging, os, sys, tempfile, yaml
+    logging.disable(logging.CRITICAL)
+    from gnuradio.grc.core.platform import Platform
+    p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
+    p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+    base = yaml.safe_load(open(sys.argv[2]))
+    out = {}
+    for label, params in json.loads(sys.argv[3]).items():
+        doc = copy.deepcopy(base)
+        for blk in doc["blocks"]:
+            if blk["id"] == "m2k_scope_source":
+                blk["parameters"].update(params)
+        path = tempfile.mktemp(suffix=".grc")
+        yaml.safe_dump(doc, open(path, "w"))
+        fg = p.make_flow_graph(path); fg.rewrite(); fg.validate()
+        out[label] = fg.is_valid()
+        os.unlink(path)
+    print(json.dumps(out))
+'''
+
+
+@needs_gnuradio
+def test_illegal_combinations_are_refused(repo_root):
+    """A wrong setting should be refused in GRC, not discovered at run time.
+
+    The trigger-level check is the one that matters: a level outside the
+    selected input range can never fire, and nothing else would say so.
+    """
+    cases = {
+        "ok": {},
+        "no channels": {"ch1_enabled": "False", "ch2_enabled": "False"},
+        "zero buffer": {"buffer_size": "0"},
+        "40 V level on the 25 V range": {"trigger_level": "40.0"},
+        "4 V level on the 2.5 V range": {"trigger_level": "4.0",
+                                         "ch1_range": "'high'"},
+    }
+    result = json.loads(run_in_gr(
+        ASSERTS, os.path.join(repo_root, M2K_GRC),
+        os.path.join(repo_root, "flowgraphs", "m2k_scope.grc"),
+        json.dumps(cases)))
+    assert result["ok"] is True
+    for label in cases:
+        if label != "ok":
+            assert result[label] is False, label

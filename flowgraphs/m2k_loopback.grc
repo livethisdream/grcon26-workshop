@@ -66,7 +66,7 @@ blocks:
     device: m2k-dac-a
     device_phy: ''
     interpolation: '1'
-    params: '[''oversampling_ratio=75'']'
+    params: '[''sampling_frequency=1000000'']'
     uri: uri
   states: {coordinate: [424, 192], state: enabled}
 
@@ -78,7 +78,7 @@ blocks:
     decimation: '1'
     device: m2k-adc
     device_phy: ''
-    params: '[''oversampling_ratio=100'']'
+    params: '[''sampling_frequency=1000000'']'
     uri: uri
   states: {coordinate: [24, 352], state: enabled}
 

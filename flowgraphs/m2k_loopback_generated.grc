@@ -63,7 +63,7 @@ blocks:
     buffer_size: '16384'
     channels: '[''voltage0'']'
     cyclic: 'False'
-    extra_params: '[''oversampling_ratio=75'']'
+    extra_params: '[''sampling_frequency=1000000'']'
     interpolation: '1'
     uri: uri
   states: {coordinate: [424, 192], state: enabled}
@@ -74,7 +74,7 @@ blocks:
     buffer_size: '16384'
     channels: '[''voltage0'']'
     decimation: '1'
-    extra_params: '[''oversampling_ratio=100'']'
+    extra_params: '[''sampling_frequency=1000000'']'
     uri: uri
   states: {coordinate: [24, 352], state: enabled}
 
