@@ -93,12 +93,13 @@ class scope_source(gr.hier_block2):
         self._config = []
         self._apply_ranges(uri, ch1_enabled, ch2_enabled, ch1_range, ch2_range)
         self._apply_trigger(uri, trigger_source, trigger_edge, trigger_level,
-                            ch1_range, ch2_range)
+                            ch1_range, ch2_range, sample_rate)
 
         for index, (port, range_name) in enumerate(zip(ports, ranges)):
             if as_volts:
                 to_float = blocks.short_to_float(1, 1)
-                to_volts = blocks.multiply_const_ff(volts_per_count(range_name))
+                to_volts = blocks.multiply_const_ff(
+                    volts_per_count(range_name, sample_rate))
                 self.connect((self.source, port), to_float, to_volts,
                              (self, index))
                 # Keep references; a hier block that drops them loses the
@@ -129,7 +130,8 @@ class scope_source(gr.hier_block2):
             self._write(uri, DEV_FABRIC, "voltage1", "powerdown", 0)
             self._write(uri, DEV_FABRIC, "voltage1", "gain", ch2_range)
 
-    def _apply_trigger(self, uri, source, edge, level, ch1_range, ch2_range):
+    def _apply_trigger(self, uri, source, edge, level, ch1_range, ch2_range,
+                       sample_rate):
         """Arm or disarm the analog trigger.
 
         'always' on the logic channels is what free-running means; there
@@ -145,7 +147,7 @@ class scope_source(gr.hier_block2):
 
         self._write(uri, DEV_TRIGGER, TRIG_ANALOG[index], "trigger", edge)
         self._write(uri, DEV_TRIGGER, TRIG_ANALOG[index], "trigger_level",
-                    volts_to_raw(level, range_name))
+                    volts_to_raw(level, range_name, sample_rate))
         self._write(uri, DEV_TRIGGER, TRIG_LOGIC[index], "mode", "analog")
         # logic_mode on the delay channel is the trigger SOURCE, despite
         # the name: 'a' is channel 1, 'b' is channel 2.

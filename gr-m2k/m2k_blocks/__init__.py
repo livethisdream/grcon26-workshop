@@ -20,10 +20,13 @@ That keeps `m2k_blocks.m2k_scale` importable -- and therefore testable --
 on a machine with no GNU Radio at all.
 """
 
-from .m2k_scale import (BASE_RATE, RANGE_GAIN, RANGE_VOLTS, SAMPLE_RATES,
-                        check_sample_rate, divider_for, raw_to_volts,
+from .m2k_scale import (ADC_FILTER_COMP, BASE_RATE, DAC_FILTER_COMP,
+                        RANGE_GAIN, RANGE_VOLTS, SAMPLE_RATES,
+                        adc_filter_compensation, check_sample_rate,
+                        dac_filter_compensation, divider_for, raw_to_volts,
                         volts_per_count, volts_to_raw)
 
-__all__ = ["BASE_RATE", "RANGE_GAIN", "RANGE_VOLTS", "SAMPLE_RATES",
-           "check_sample_rate", "divider_for", "raw_to_volts",
-           "volts_per_count", "volts_to_raw"]
+__all__ = ["ADC_FILTER_COMP", "BASE_RATE", "DAC_FILTER_COMP", "RANGE_GAIN",
+           "RANGE_VOLTS", "SAMPLE_RATES", "adc_filter_compensation",
+           "check_sample_rate", "dac_filter_compensation", "divider_for",
+           "raw_to_volts", "volts_per_count", "volts_to_raw"]

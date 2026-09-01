@@ -5,7 +5,7 @@ else in the block depends on, and they should be testable on a machine
 that has no gnuradio, no libiio and no board.
 
 Every figure here is traceable to libm2k, the library Scopy is built on.
-None of them has yet been confirmed against a signal.
+The ones that have now met a signal say so.
 """
 
 # The rates the ADC will accept, taken from what the hardware itself
@@ -28,23 +28,55 @@ RANGE_GAIN = {"low": 0.02017, "high": 0.21229}
 # What each range is called in volts, for labels and for bounds checking.
 RANGE_VOLTS = {"low": 25.0, "high": 2.5}
 
+# Getting to a rate below 100 MS/s means filtering and decimating, and
+# the filter does not have unity gain. libm2k keeps a correction per rate
+# and multiplies the volts-per-count by it; leave it out and the reading
+# is low by up to 26%. From M2kAnalogInImpl's constructor.
+#
+# This is not calibration. It is a fixed property of the decimation
+# filter, the same on every board, and it belongs in the arithmetic
+# rather than in anything measured. Omitting it is what made our first
+# bench measurements read 17.6% low, and it is also why the same signal
+# read 5% smaller at 100 kS/s than at 1 MS/s -- 1.15 / 1.10.
+ADC_FILTER_COMP = {
+    100000000: 1.00,
+    10000000: 1.05,
+    1000000: 1.10,
+    100000: 1.15,
+    10000: 1.20,
+    1000: 1.26,
+}
 
-def volts_per_count(range_name):
-    """What one ADC count is worth in volts, on a given input range.
+
+def adc_filter_compensation(sample_rate):
+    """The decimation filter's gain correction at a given rate."""
+    return ADC_FILTER_COMP[check_sample_rate(sample_rate)]
+
+
+def volts_per_count(range_name, sample_rate):
+    """What one ADC count is worth in volts, on a range at a rate.
 
     From M2kAnalogIn::getScalingFactor():
 
         0.78 / (2048 * 1.3 * range_gain) * calib_gain * filter_comp
 
-    calib_gain is the channel's calibscale and filter_comp is a
-    per-sample-rate correction; both are 1.0 until calibration runs, so
-    this is the fresh-board figure -- about 14.52 mV per count on the
-    +/-25 V range, 1.380 mV on +/-2.5 V.
+    filter_comp is the decimation filter's gain, above, and depends on
+    the sample rate -- which is why the rate is not optional here. The
+    same input really is worth a different number of volts per count at
+    1 MS/s and at 100 kS/s.
+
+    calib_gain is the channel's calibscale. It is 1.0 on a board that has
+    not been calibrated, which is what this returns. On our board that
+    leaves the reading about 7% low, measured against a meter; see
+    docs/bench-checklist.md. Calibration writes a real value to
+    calibscale, and libm2k applies it in software rather than the driver
+    applying it to the samples -- so reading it back is on us.
     """
     if range_name not in RANGE_GAIN:
         raise ValueError("unknown input range %r; expected one of %s"
                          % (range_name, sorted(RANGE_GAIN)))
-    return 0.78 / (2048 * 1.3 * RANGE_GAIN[range_name])
+    nominal = 0.78 / (2048 * 1.3 * RANGE_GAIN[range_name])
+    return nominal * adc_filter_compensation(sample_rate)
 
 
 def check_sample_rate(sample_rate):
@@ -67,14 +99,14 @@ def divider_for(sample_rate):
     return BASE_RATE // check_sample_rate(sample_rate)
 
 
-def volts_to_raw(volts, range_name):
+def volts_to_raw(volts, range_name, sample_rate):
     """A trigger level in volts, as the raw count the hardware wants."""
-    return int(round(float(volts) / volts_per_count(range_name)))
+    return int(round(float(volts) / volts_per_count(range_name, sample_rate)))
 
 
-def raw_to_volts(counts, range_name):
+def raw_to_volts(counts, range_name, sample_rate):
     """The inverse, for reading a level back."""
-    return float(counts) * volts_per_count(range_name)
+    return float(counts) * volts_per_count(range_name, sample_rate)
 
 
 # ---------------------------------------------------------------------
@@ -90,6 +122,29 @@ def raw_to_volts(counts, range_name):
 # so a flowgraph that generates and captures at "the same" rate is doing
 # no such thing unless you picked from both lists deliberately.
 DAC_SAMPLE_RATES = [75000000, 7500000, 750000, 75000, 7500, 750]
+
+# The generator has an interpolation filter with the same problem as the
+# ADC's decimation filter, and a much less tidy table -- it does not fall
+# off smoothly, so there is no guessing it. From M2kAnalogOutImpl's
+# constructor. Here the correction divides rather than multiplies, so
+# leaving it out makes the output too large.
+#
+# 750 kS/s is the rate the loopback flowgraph uses, and 1.164153 is
+# exactly the 16.7% by which a meter caught the generator overshooting.
+DAC_FILTER_COMP = {
+    75000000: 1.00,
+    7500000: 1.525879,
+    750000: 1.164153,
+    75000: 1.776357,
+    7500: 1.355253,
+    750: 1.033976,
+}
+
+
+def dac_filter_compensation(sample_rate):
+    """The interpolation filter's gain correction at a given rate."""
+    return DAC_FILTER_COMP[check_dac_sample_rate(sample_rate)]
+
 
 # Volts per LSB before calibration, from M2kAnalogOut's constructor:
 # 10.0 / (2**12 - 1). Calibration replaces it per channel; this is the
@@ -113,6 +168,10 @@ def volts_to_dac_raw(volts, vlsb=DAC_VLSB, filter_compensation=1.0):
     The sign inversion is real and is the hardware's, not a slip here:
     a positive voltage becomes a negative count. Anyone converting by hand
     and getting an upside-down waveform has just met it.
+
+    filter_compensation defaults to 1.0 so the bare conversion can be
+    checked on its own. Anything driving real hardware should pass
+    dac_filter_compensation(rate) instead, or the output is too big.
     """
     scaled = ((float(volts) * (-1.0 / vlsb)) - 0.5) / filter_compensation
     return int(scaled) << DAC_SHIFT

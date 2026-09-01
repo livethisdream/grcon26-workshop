@@ -23,7 +23,8 @@ from gnuradio import iio
 
 from .m2k_config import write_channel_attr
 from .m2k_scale import (DAC_FULL_SCALE_V, DAC_SAMPLE_RATES,
-                        check_dac_sample_rate, volts_to_dac_raw)
+                        check_dac_sample_rate, dac_filter_compensation,
+                        volts_to_dac_raw)
 
 # The output you pick is the device you get.
 OUTPUT_DEVICE = {"w1": "m2k-dac-a", "w2": "m2k-dac-b"}
@@ -68,8 +69,14 @@ class waveform_sink(gr.hier_block2):
             # sign inversion. multiply_const then float_to_short would lose
             # the -0.5 term, so the scale and the offset are applied
             # separately and in that order.
-            scale = blocks.multiply_const_ff(-1.0 / _vlsb())
-            offset = blocks.add_const_ff(-0.5)
+            #
+            # The interpolation filter's gain is in here too. Divide the
+            # whole conversion by it, exactly as convVoltsToRaw does --
+            # leave it out and the output is 16.4% too big at 750 kS/s,
+            # which a meter will tell you and a loopback will not.
+            comp = dac_filter_compensation(sample_rate)
+            scale = blocks.multiply_const_ff(-1.0 / (_vlsb() * comp))
+            offset = blocks.add_const_ff(-0.5 / comp)
             to_short = blocks.float_to_short(1, 1 << 4)
             self.connect(self, scale, offset, to_short, self.sink)
             self._config.extend([scale, offset, to_short])

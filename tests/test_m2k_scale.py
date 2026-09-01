@@ -16,9 +16,56 @@ from m2k_blocks import m2k_scale as scale
 
 
 def test_volts_per_count_matches_libm2k():
-    """0.78 / (2048 * 1.3 * range_gain), from getScalingFactor()."""
-    assert scale.volts_per_count("low") == pytest.approx(0.014525, abs=1e-6)
-    assert scale.volts_per_count("high") == pytest.approx(0.001380, abs=1e-6)
+    """0.78 / (2048 * 1.3 * range_gain), from getScalingFactor().
+
+    At 100 MS/s, where the decimation filter is not in the way and its
+    correction is exactly 1.0, so this is the bare formula.
+    """
+    top = 100000000
+    assert scale.volts_per_count("low", top) == pytest.approx(0.014525,
+                                                              abs=1e-6)
+    assert scale.volts_per_count("high", top) == pytest.approx(0.001380,
+                                                               abs=1e-6)
+
+
+def test_the_filter_correction_is_applied_and_grows_as_the_rate_drops():
+    """Reaching a lower rate means more filtering, and more lost gain.
+
+    This is the bug the bench found: without it the scope read 17.6% low
+    at 1 MS/s, and the same signal read 5% smaller at 100 kS/s than at
+    1 MS/s -- which is 1.15 / 1.10.
+    """
+    bare = 0.78 / (2048 * 1.3 * scale.RANGE_GAIN["low"])
+    for rate in scale.SAMPLE_RATES:
+        comp = scale.ADC_FILTER_COMP[rate]
+        assert scale.volts_per_count("low", rate) == pytest.approx(bare * comp)
+    assert (scale.volts_per_count("low", 100000) >
+            scale.volts_per_count("low", 1000000) >
+            scale.volts_per_count("low", 100000000))
+
+
+def test_every_adc_rate_has_a_correction():
+    assert sorted(scale.ADC_FILTER_COMP) == sorted(scale.SAMPLE_RATES)
+
+
+def test_every_dac_rate_has_a_correction():
+    assert sorted(scale.DAC_FILTER_COMP) == sorted(scale.DAC_SAMPLE_RATES)
+
+
+def test_the_dac_correction_at_the_loopback_rate():
+    """750 kS/s is what the loopback flowgraph uses.
+
+    A meter caught the generator running 16.7% high there; this is the
+    number that accounts for it, from M2kAnalogOutImpl's table.
+    """
+    assert scale.dac_filter_compensation(750000) == pytest.approx(1.164153)
+
+
+def test_the_dac_correction_makes_the_output_smaller():
+    """It divides, where the ADC's multiplies. Opposite signs of trouble."""
+    comp = scale.dac_filter_compensation(750000)
+    assert abs(scale.volts_to_dac_raw(1.0, filter_compensation=comp)) < \
+        abs(scale.volts_to_dac_raw(1.0))
 
 
 def test_the_wide_range_gives_more_volts_per_count():
@@ -27,19 +74,20 @@ def test_the_wide_range_gives_more_volts_per_count():
     Whatever the exact figures, the +/-25 V range must be the coarser one.
     'low' naming the WIDE range is the confusing part.
     """
-    assert scale.volts_per_count("low") > scale.volts_per_count("high")
+    assert (scale.volts_per_count("low", 1000000) >
+            scale.volts_per_count("high", 1000000))
 
 
 def test_full_scale_is_about_the_named_range():
     """2048 counts times volts-per-count should land near the label."""
     for name, nominal in scale.RANGE_VOLTS.items():
-        full = 2048 * scale.volts_per_count(name)
+        full = 2048 * scale.volts_per_count(name, 100000000)
         assert nominal <= full <= nominal * 1.25, (name, full)
 
 
 def test_unknown_range_is_refused_with_the_options():
     with pytest.raises(ValueError) as excinfo:
-        scale.volts_per_count("wide")
+        scale.volts_per_count("wide", 1000000)
     assert "high" in str(excinfo.value) and "low" in str(excinfo.value)
 
 
@@ -67,14 +115,14 @@ def test_a_rate_the_board_will_not_take_is_refused():
 
 def test_trigger_level_round_trips_through_counts():
     for volts in (0.0, 0.5, -1.25, 12.0):
-        counts = scale.volts_to_raw(volts, "low")
-        assert scale.raw_to_volts(counts, "low") == pytest.approx(
-            volts, abs=scale.volts_per_count("low"))
+        counts = scale.volts_to_raw(volts, "low", 1000000)
+        assert scale.raw_to_volts(counts, "low", 1000000) == pytest.approx(
+            volts, abs=scale.volts_per_count("low", 1000000))
 
 
 def test_the_same_level_is_more_counts_on_the_sensitive_range():
-    assert (scale.volts_to_raw(1.0, "high") >
-            scale.volts_to_raw(1.0, "low"))
+    assert (scale.volts_to_raw(1.0, "high", 1000000) >
+            scale.volts_to_raw(1.0, "low", 1000000))
 
 
 def test_divider_is_explanatory_only_but_correct():
