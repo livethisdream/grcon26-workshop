@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-08-18
+dateModified: 2026-09-01
 container: cdocker
 ---
 # Overview
@@ -27,6 +27,33 @@ display), and the session material itself.
 - Active working focus is code — tooling and demos. Slides, procurement, and session
   timing are tracked here but are not the current work.
 
+
+# Traps
+
+- **`'low'` is the WIDE +/-25 V range, `'high'` is +/-2.5 V.** The name describes the
+  amplifier gain, not the volts. Backwards from every guess.
+- **gr-iio's `device_phy` must name a real device.** `""` is not "none" -- it goes
+  through `iio_context_find_device` and always fails with `Device not found`.
+- **The M2K ADC always returns both channels, interleaved.** Ask for one and gr-iio
+  splits a two-channel buffer as if it were one: channel 2 lands in channel 1 and the
+  time base is 2x slow. Presents as a tone at exactly Nyquist.
+- **The ADC front end comes up powered down** on a board nothing has initialised, and
+  the result is a plausible flat line, not an error. Clear `powerdown` on `m2k-fabric`.
+- **`set_len_tag_key` on a sink** demands a tagged stream and refuses without one.
+  Harmless on a source.
+- **Cyclic buffers quantise frequency.** A repeating N-sample buffer can only produce
+  multiples of `rate/N`, so 10 kHz comes back as 9979.2 Hz and that is correct.
+- **One `iio_buffer_push` per cyclic buffer.** Later pushes return `-EBUSY`; the
+  `Device or resource busy (16)` warning is expected, not a fault.
+- **Volts-per-count depends on the sample rate**, through the decimation filter's gain.
+  Same for the generator, with a much less regular table.
+- **The scope and generator clocks are 100 MS/s and 75 MS/s** and no rate is legal for
+  both.
+- **`attr_sink` writes nothing for the first `CONFIG_INTERVAL_MS`** (currently 1000).
+  Short captures finish before their own configuration arrives.
+- **A loopback cannot check absolute accuracy.** Errors at the two ends multiply, and
+  two wrong numbers can look right.
+
 # Decisions
 
 - The IIO discovery tool is a standalone Python program, optionally packaged
@@ -50,12 +77,41 @@ display), and the session material itself.
   `[overlay: sourced]`, `[overlay: UNVERIFIED]`. Reason: keeps fact, convention and
   guesswork distinguishable — unverified board-specific claims must not be taught as
   fact.
+- Overlay entries are written from read-only evidence plus libm2k source tracing. The
+  `check` field records how to confirm each claim on the bench later.
+- Overlay confidence policy: `MEASURED` only for what a capture directly proves — an
+  attribute exists on a device, and its legal values as read from the folded
+  `*_available` sibling. `SOURCED` where behaviour traces to libm2k. `UNVERIFIED` for
+  anything inferred from option names alone.
+- The real capture goes in alongside `fixtures/m2k-snapshot.json`, not over it. Reason:
+  the synthetic fixture keeps the goldens stable and needs no regeneration, while
+  participants should be explaining real data — handing them a fiction undercuts the
+  "capture once, explain anywhere" premise the whole tool split exists to serve.
+- `pll` and `ad9963` internals, plus `dma_sync_start` / `raw_enable` / `trigger_status`,
+  are deferred from the board pack. Reason: chip-internal plumbing with low teaching
+  value for a workshop about the IIO path, and they would have to be written from
+  datasheets rather than from evidence.
+
+- **2026-09-01** — Calibration is a standalone script run once per session, not block
+  init. Reason: it seizes the whole analog front end, is a closed loop `attr_sink`
+  cannot express, and its result persists on the device.
+- **2026-09-01** — Blocks read `calibscale`/`calibbias` and apply them. Reason: libm2k
+  applies the gain in software, so the driver does not correct the samples for us.
+- **2026-09-01** — The filter corrections are arithmetic, not calibration, and live in
+  `m2k_scale.py`. Reason: fixed property of the converters, identical on every board.
+- **2026-09-01** — libm2k may be used to check our numbers on the bench, but the
+  workshop ships no libm2k dependency. Reason: the point is that IIO alone does not
+  know what a sample is worth.
+- **2026-09-01** — Writes to the instrument are allowed with per-write approval,
+  superseding the read-only default of 2026-08-18. Reason: the bench work needs them.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Merge the IIO branch to `main`. First real capture is
-done; the open work is closing the 43% explanation gap, which is mostly one board-pack
-section for the logic analyzer.
+**Phase 1 (current) — crawl:** The four M2K blocks now run against real hardware and
+the loopback is accurate to a few percent. Open: the trigger path, the digital blocks,
+and a calibration script to close the last ~7%. Then the 43% explanation gap, by
+writing the logic-analyzer board pack — Tier 1 (96 attributes) + Tier 2 (8), which
+should take coverage to ~90%.
 
 **Phase 2 — walk:** IIO block anatomy, taught through the discover/explain pair. The
 generated handout in `docs/reading-iio-attributes.md` is the participant-facing
@@ -69,58 +125,57 @@ participant station; move acquisition state server-side; slides, procurement, ti
 
 # Status
 
-- **Repo:** scaffolded 2026-08-18 on top of the pre-existing GitHub history
-  (`origin/main` 70c455f, seed file only). `main` = 105539f, one commit ahead of
-  `origin/main`, unpushed.
-- **The tooling is on an unmerged branch** —
-  `claude/m2k-iio-parameter-discovery-12g30y` (80e7c49). `main` does not have it yet.
-- **Two-tool split.** `iio_discover.py` (12 KB) enumerates — needs libiio and
-  hardware. `iio_explain.py` (23 KB) explains meaning — needs neither. Workflow is
-  `./iio_discover.py --json > m2k.json` on the bench, `./iio_explain.py m2k.json`
-  anywhere else.
-- **`iio_semantics.py`** (33 KB) — ABI knowledge: name grammar, units, conversion.
-- **`iio_abi_fetch.py` + `iio_abi_data.json`** — parses the kernel's
-  `Documentation/ABI/testing/sysfs-bus-iio` into a checked-in cache of 826 documented
-  attribute names, so the tools work offline.
-- **`iio_overlays.py`** — board-specific knowledge, confidence-tagged. 20 board notes
-  total: 3 sourced, 17 unverified. M2K entries are traced to libm2k. Unverified
-  entries each carry a `check` field describing how to confirm them.
-- **Channel identity:** four sources consulted in order — driver channel name, `label`
-  attribute, board pack, then the ABI convention that an indexed channel is an
-  externally available input. Output reports which one answered.
-- **`fixtures/m2k-snapshot.json`** — hand-authored synthetic capture, labelled as such
-  in the file. Everything runs with no hardware against it.
-- **Tests:** 73, no hardware or libiio required, per the branch README. Not yet run
-  locally.
-- **Live M2K reachable from WSL over the network backend** at `ip:192.168.2.1`
-  (Rev.D Z7010, fw v0.33). No USB passthrough needed — `lsusb` is empty and `--scan`
-  finds only `local:`, so the URI must be given explicitly.
-- **First real capture, 2026-08-18** (154 KB, not yet committed): 14 devices, 98
-  channels (36 scan elements), 317 attributes = 39 device + 260 channel + 10 buffer +
-  8 debug. 112 channel attributes carry a folded `*_available` sibling — that is the
-  dropdown-populating count, and the number that sizes the GUI work. Against the
-  synthetic fixture's 44 attributes, real hardware is 7.2× larger.
-- **ABI coverage on real hardware is 57%** (181 of 317), not the 95% the README
-  reports from the synthetic fixture — that figure was an artifact of a fixture built
-  mostly from generic attributes. 136 attributes are unexplained, and 86 of them are
-  logic-analyzer trigger/direction attrs (`trigger_delay`, `trigger_logic_mode`,
-  `trigger_mux_out` ×18 each; `direction`, `outputmode` ×16 each). The gap is
-  concentrated, not diffuse.
-- **`standing_wave_view.jsx`** — described in the seed but **not in the repo, not on
-  either branch, and not anywhere on disk.** Treat as lost unless it turns up.
-- **Hardware:** ADALM2000 (possibly one per station), one CN0363 colorimeter, 10×
-  Raspberry Pi Pico, instructor wideband ultrasonic mic board. 40 kHz ultrasonic
-  TX/RX pairs on order.
+- **Branch:** `m2k-discovery-gui`, three commits added 2026-09-01 (2a6e5cf, 5224133,
+  e6f610a) on top of the waveform/digital block work. **Nothing pushed; `main` is still
+  4+ commits ahead of `origin/main`.**
+- **`gr-m2k/` — four GNU Radio blocks** (`scope_source`, `waveform_sink`, `digital`
+  source/sink) plus `m2k_scale.py`, which holds the arithmetic and imports nothing.
+- **All four blocks now run against real hardware.** Bench checklist sections 1, 2, 5
+  and 6 pass; 3 passes except the trigger; 4 passes relative and is ~7% out absolute;
+  7 not started. `docs/bench-checklist.md` is the record.
+- **Scope and generator volts are accurate to a few percent** since the filter
+  corrections went in. The residual is `calibscale`, which is `1.000000` on this board.
+- **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33) over the network backend. No
+  USB passthrough; `--scan` finds only `local:`, so the URI must be given.
+- **Tests:** the scale suite passes. Three failures in `tests/test_grc_integration.py`
+  are a missing `yaml` in `.venv`, pre-existing and unrelated.
+- **Discovery tooling** (`iio_discover.py` / `iio_explain.py` / `iio_semantics.py` /
+  `iio_overlays.py`) is on `main` and unchanged this session. ABI coverage on real
+  hardware is 57%; 58 of 74 overlay entries are still `UNVERIFIED`.
+- **`standing_wave_view.jsx`** is still lost — not in the repo, not on disk.
+- **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
+  40 kHz TX/RX pairs on order.
 
 # ToDo
 
-- [ ] Merge `claude/m2k-iio-parameter-discovery-12g30y` into `main` — expect an add/add
-      conflict on `.gitignore`; resolve to the union.
-- [ ] Push `main` (currently 1 commit ahead of `origin/main`, unpushed).
-- [ ] Run `python3 -m pytest tests -q` locally to confirm the 73 tests pass.
-- [ ] Write board-pack overlay entries for the logic analyzer — `trigger_delay`,
-      `trigger_logic_mode`, `trigger_mux_out`, `direction`, `outputmode`. Closes ~86 of
-      136 unexplained attributes.
+- [ ] Test the trigger path — `m2k-adc-trigger` writes have never executed.
+- [ ] Run bench-checklist section 7 (digital): drive DIO0, read an externally driven
+      pin, confirm `direction` and that a dropdown rate is accepted.
+- [ ] Fix `CONFIG_INTERVAL_MS = 1000` in `m2k_config.py` — no setting is in force for
+      the first second of any flowgraph.
+- [ ] Suppress or explain the cyclic-buffer `Device or resource busy (16)` warning.
+- [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`,
+      checked against libm2k's own `calibrateADC()` / `getAdcGain()`.
+- [ ] Confirm W2 works and is independent of W1.
+- [ ] Add `yaml` to `.venv` — three `test_grc_integration.py` tests cannot run.
+
+- [ ] Push `main` (4 commits ahead of `origin/main`, unpushed).
+- [ ] Confirm the `attr_note()` lookup path actually reaches these attributes before
+      writing prose — channel attrs like `in_voltage0_trigger_delay` must reduce to the
+      info word `trigger_delay`, and device-level attrs must hit the same flat
+      `pack["attrs"]` dict. If they don't, entries get written but never displayed.
+- [ ] Write the Tier 1 board-pack entries (96 attributes): `m2k-logic-analyzer` as a new
+      pack with `direction`, `outputmode`, `clocksource`; `m2k-logic-analyzer-rx` with
+      `trigger_delay`, `trigger_logic_mode`, `trigger_mux_out`, `data_delay_auto`,
+      `data_in_delay`, `rate_mux`; shared `trigger_condition` / `trigger_src` on
+      `m2k-logic-analyzer-tx`, `m2k-dac-a`, `m2k-dac-b`.
+- [ ] Write the Tier 2 entries (8 attributes): `m2k-adc-trigger` as a new pack
+      (`direction`, `holdoff_raw`, `delay`, `embedded`, `logic_mode`), `m2k-fabric`
+      `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`.
+- [ ] Add tests covering the new overlay entries, and re-run the coverage report to
+      confirm the number actually moved (57% → ~90% expected).
+- [ ] Watch `tests/golden/channels-m2k-adc.txt` when adding `calibrate` to `m2k-adc` —
+      review the diff before regenerating rather than blanket-accepting `REGEN_GOLDEN=1`.
 - [ ] Commit the real capture alongside the synthetic fixture (not over it); point
       README demo commands at the real one. Decide whether to scrub `hw_serial` and the
       `cal,*` constants first.
