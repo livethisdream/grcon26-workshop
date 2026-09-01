@@ -37,6 +37,9 @@ TRIG_ANALOG = ["voltage0", "voltage1"]     # condition, level, hysteresis
 TRIG_LOGIC = ["voltage4", "voltage5"]      # mode
 TRIG_DELAY = "voltage6"                    # logic_mode, i.e. the source
 
+# Both are always read, whether or not both are published. See __init__.
+ADC_CHANNELS = ["voltage0", "voltage1"]
+
 
 class scope_source(gr.hier_block2):
     """Scope channels 1 and 2, in volts or in raw counts."""
@@ -51,15 +54,21 @@ class scope_source(gr.hier_block2):
                  trigger_edge="edge-rising",
                  trigger_level=0.5):
 
-        channels = []
+        # The ADC always delivers both channels, interleaved, whatever you
+        # ask for. Request one and gr-iio de-interleaves a two-channel
+        # buffer as if it were one channel -- channel 2's samples land in
+        # channel 1's stream and the time base comes out 2x slow. So take
+        # both and publish only the ones that were asked for, which is
+        # what libm2k's M2kAnalogIn does.
+        ports = []
         ranges = []
         if ch1_enabled:
-            channels.append("voltage0")
+            ports.append(0)
             ranges.append(ch1_range)
         if ch2_enabled:
-            channels.append("voltage1")
+            ports.append(1)
             ranges.append(ch2_range)
-        if not channels:
+        if not ports:
             raise ValueError(
                 "M2K Scope Source: enable at least one channel, or the "
                 "block has no outputs.")
@@ -69,14 +78,14 @@ class scope_source(gr.hier_block2):
         gr.hier_block2.__init__(
             self, "m2k_scope_source",
             gr.io_signature(0, 0, 0),
-            gr.io_signature(len(channels), len(channels), item_size))
+            gr.io_signature(len(ports), len(ports), item_size))
 
         # Sample rate is the one setting that lives on the streaming
         # device itself, so it can ride along in params. Written as
         # sampling_frequency, which is what the ADC publishes a list of
         # legal values for.
         self.source = iio.device_source(
-            uri, DEV_ADC, channels, "",
+            uri, DEV_ADC, ADC_CHANNELS, DEV_ADC,
             ["sampling_frequency=%d" % check_sample_rate(sample_rate)],
             buffer_size, 0)
         self.source.set_len_tag_key("packet_len")
@@ -86,17 +95,17 @@ class scope_source(gr.hier_block2):
         self._apply_trigger(uri, trigger_source, trigger_edge, trigger_level,
                             ch1_range, ch2_range)
 
-        for index, range_name in enumerate(ranges):
+        for index, (port, range_name) in enumerate(zip(ports, ranges)):
             if as_volts:
                 to_float = blocks.short_to_float(1, 1)
                 to_volts = blocks.multiply_const_ff(volts_per_count(range_name))
-                self.connect((self.source, index), to_float, to_volts,
+                self.connect((self.source, port), to_float, to_volts,
                              (self, index))
                 # Keep references; a hier block that drops them loses the
                 # blocks to garbage collection.
                 self._config.extend([to_float, to_volts])
             else:
-                self.connect((self.source, index), (self, index))
+                self.connect((self.source, port), (self, index))
 
     # -------------------------------------------------- configuration
 
@@ -105,10 +114,19 @@ class scope_source(gr.hier_block2):
                            attr, value)
 
     def _apply_ranges(self, uri, ch1_enabled, ch2_enabled, ch1_range, ch2_range):
-        """Input range lives on m2k-fabric, not on the ADC."""
+        """Input range lives on m2k-fabric, not on the ADC.
+
+        So does the front end's power. A board that nothing has
+        initialised comes up with the input stage powered down, and the
+        capture is then a flat line a few counts off zero rather than an
+        obvious failure. libm2k powers it up in M2kImpl::initialize;
+        nothing else here would.
+        """
         if ch1_enabled:
+            self._write(uri, DEV_FABRIC, "voltage0", "powerdown", 0)
             self._write(uri, DEV_FABRIC, "voltage0", "gain", ch1_range)
         if ch2_enabled:
+            self._write(uri, DEV_FABRIC, "voltage1", "powerdown", 0)
             self._write(uri, DEV_FABRIC, "voltage1", "gain", ch2_range)
 
     def _apply_trigger(self, uri, source, edge, level, ch1_range, ch2_range):

@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 *:Zone.Identifier
 .claude/settings.local.json
+
+# grcc / GRC generated flowgraph output
+flowgraphs/*.py

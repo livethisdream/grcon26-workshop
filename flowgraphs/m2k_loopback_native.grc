@@ -1,92 +1,260 @@
 options:
   parameters:
     author: GRCon26 workshop
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
     comment: 'Wire W1 to 1+, and ground to 1-.
 
 
-      The same loopback, with no IIO anywhere on the canvas. No conversion
-      blocks either: the generator takes volts and the scope hands back
-      volts.
+      The same loopback, with no IIO anywhere on the canvas. No conversion blocks
+      either: the generator takes volts and the scope hands back volts.
 
 
-      Note the two rates are different, and have to be. The generator''s
-      clock is 75 MS/s and the scope''s is 100 MS/s, so their rate lists do
-      not overlap. Picking "the same rate" for both is not possible, which
-      is worth seeing once.'
+      Note the two rates are different, and have to be. The generator''s clock is
+      75 MS/s and the scope''s is 100 MS/s, so their rate lists do not overlap. Picking
+      "the same rate" for both is not possible, which is worth seeing once.'
     copyright: ''
     description: 'W1 to 1+ with the M2K as an instrument: no IIO on the canvas.'
+    gen_cmake: 'On'
+    gen_linking: dynamic
     generate_options: qt_gui
+    hier_block_src_path: '.:'
     id: m2k_loopback_native
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
     title: M2K loopback - instrument blocks
-  states: {coordinate: [8, 8], state: enabled}
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
 
 blocks:
-- name: gen_rate
-  id: variable
-  parameters: {value: '750000'}
-  states: {coordinate: [16, 84], state: enabled}
-- name: scope_rate
-  id: variable
-  parameters: {value: '1000000'}
-  states: {coordinate: [136, 84], state: enabled}
-- name: tone_hz
-  id: variable
-  parameters: {value: '10000'}
-  states: {coordinate: [264, 84], state: enabled}
 - name: amplitude_v
   id: variable
-  parameters: {value: '1.0'}
-  states: {coordinate: [368, 84], state: enabled}
-
+  parameters:
+    comment: ''
+    value: '1.0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [552, 24.0]
+    rotation: 0
+    state: enabled
+- name: gen_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '750000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 24.0]
+    rotation: 0
+    state: enabled
+- name: scope_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '1000000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 24.0]
+    rotation: 0
+    state: enabled
+- name: tone_hz
+  id: variable
+  parameters:
+    comment: ''
+    value: '10000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [448, 24.0]
+    rotation: 0
+    state: enabled
 - name: analog_sig_source_x_0
   id: analog_sig_source_x
   parameters:
+    affinity: ''
+    alias: ''
     amp: amplitude_v
+    comment: ''
     freq: tone_hz
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    phase: '0'
     samp_rate: gen_rate
+    showports: 'False'
     type: float
     waveform: analog.GR_COS_WAVE
-  states: {coordinate: [24, 200], state: enabled}
-
-- name: m2k_waveform_sink_0
-  id: m2k_waveform_sink
-  parameters:
-    buffer_size: '16384'
-    cyclic: 'True'
-    output: "'w1'"
-    sample_rate: '750000'
-    units: "'volts'"
-    uri: ip:192.168.2.1
-  states: {coordinate: [320, 192], state: enabled}
-
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [120, 328.0]
+    rotation: 0
+    state: enabled
 - name: m2k_scope_source_0
   id: m2k_scope_source
   parameters:
+    affinity: ''
+    alias: ''
     buffer_size: '16384'
     ch1_enabled: 'True'
-    ch1_range: "'low'"
+    ch1_range: '''low'''
     ch2_enabled: 'False'
+    ch2_range: '''low'''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
     sample_rate: '1000000'
-    trigger_edge: "'edge-rising'"
+    trigger_edge: '''edge-rising'''
     trigger_level: '0.0'
-    trigger_source: "'ch1'"
-    units: "'volts'"
+    trigger_source: '''ch1'''
+    units: '''volts'''
     uri: ip:192.168.2.1
-  states: {coordinate: [24, 360], state: enabled}
-
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [120, 484.0]
+    rotation: 0
+    state: enabled
+- name: m2k_waveform_sink_0
+  id: m2k_waveform_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    buffer_size: '16384'
+    comment: ''
+    cyclic: 'True'
+    output: '''w1'''
+    sample_rate: '750000'
+    units: '''volts'''
+    uri: ip:192.168.2.1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [416, 320.0]
+    rotation: 0
+    state: enabled
 - name: qtgui_time_sink_x_0
   id: qtgui_time_sink_x
   parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
     autoscale: 'False'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: ''
+    ctrlpanel: 'False'
+    entags: 'True'
     grid: 'True'
+    gui_hint: ''
+    label1: Signal 1
+    label10: Signal 10
+    label2: Signal 2
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '-1'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
     name: '"Scope channel 1"'
     nconnections: '1'
+    size: '1024'
     srate: scope_rate
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
     type: float
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
     ylabel: Volts
     ymax: '2'
     ymin: '-2'
-  states: {coordinate: [344, 344], state: enabled}
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 472.0]
+    rotation: 0
+    state: enabled
 
 connections:
 - [analog_sig_source_x_0, '0', m2k_waveform_sink_0, '0']
@@ -94,3 +262,4 @@ connections:
 
 metadata:
   file_format: 1
+  grc_version: 3.10.9.2

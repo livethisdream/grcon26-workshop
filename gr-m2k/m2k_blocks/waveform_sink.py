@@ -53,10 +53,9 @@ class waveform_sink(gr.hier_block2):
 
         device = OUTPUT_DEVICE[output]
         self.sink = iio.device_sink(
-            uri, device, ["voltage0"], "",
+            uri, device, ["voltage0"], device,
             ["sampling_frequency=%d" % check_dac_sample_rate(sample_rate)],
             buffer_size, 0, bool(cyclic))
-        self.sink.set_len_tag_key("packet_len")
 
         self._config = []
         # The output stage is powered down until something says otherwise,

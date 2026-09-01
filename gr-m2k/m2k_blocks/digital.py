@@ -74,7 +74,7 @@ class digital_source(_digital):
         _digital.__init__(self, "m2k_digital_source", uri, pin_count,
                           sample_rate, buffer_size, "in")
         self.source = iio.device_source(
-            uri, DEV_RX, self.pins, "", self.params, self.buffer_size, 0)
+            uri, DEV_RX, self.pins, DEV_RX, self.params, self.buffer_size, 0)
         self.source.set_len_tag_key("packet_len")
         for index in range(len(self.pins)):
             self.connect((self.source, index), (self, index))
@@ -97,9 +97,8 @@ class digital_sink(_digital):
             write_channel_attr(self, self._config, uri, DEV_CONFIG, pin,
                                "outputmode", drive)
         self.sink = iio.device_sink(
-            uri, DEV_TX, self.pins, "", self.params, self.buffer_size, 0,
+            uri, DEV_TX, self.pins, DEV_TX, self.params, self.buffer_size, 0,
             bool(cyclic))
-        self.sink.set_len_tag_key("packet_len")
         for index in range(len(self.pins)):
             self.connect((self, index), (self.sink, index))
 
