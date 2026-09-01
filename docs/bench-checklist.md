@@ -68,7 +68,7 @@ multiple of that: 218 × 750000/16384 = 9979.2 exactly. The buffer holds
 218.45 cycles and the repeat snaps it to 218. It also confirms the DAC
 clock is exactly 750 kS/s.
 
-## 3. Does the configuration actually get written? — MOSTLY
+## 3. Does the configuration actually get written? — PASS
 
 Was the least-tested thing in the project. `attr_updater`/`attr_sink`
 needs a live context to construct, so none of these writes had ever
@@ -83,13 +83,36 @@ executed.
 - [x] changing the block's range and restarting changes it
 - [x] `sampling_frequency` on `m2k-adc` reads back what was asked for
 - [x] `powerdown` is cleared on the channels in use
-- [ ] `m2k-adc-trigger` `voltage0/trigger` matches the trigger edge chosen
-- [ ] `voltage4/mode` is `analog` when triggered, `always` when free running
-- [ ] `voltage6/logic_mode` is `a` for channel 1, `b` for channel 2
+- [x] `m2k-adc-trigger` `voltage0/trigger` matches the trigger edge chosen
+- [x] `voltage4/mode` is `analog` when triggered, `always` when free running
+- [x] `voltage6/logic_mode` is `a` for channel 1, `b` for channel 2
 
-**The trigger is entirely untested.** Everything above ran free-running
-with `trigger_source='off'`. The three unchecked boxes are the next
-bench job.
+**The trigger works, and reading back the attributes is not how you
+know.** A trigger that is silently free-running sets every attribute
+correctly and delivers every sample. Three things separate them, and
+all three were run against a 4989.6 Hz sine at 1.0 V, `high` range,
+1 MS/s, 4096-sample buffers:
+
+| check | free-running | triggered |
+|---|---|---|
+| spread of `buffer[0]` over 36 buffers | 1.8793 V | **0.0288 V** |
+
+0.0288 V is one sample step at this slew rate (2*pi*4990 V/s x 1 us =
+31 mV), so the alignment is as tight as the sample clock allows.
+
+- **A level above the peak must stall.** +2.0 V against a 1.0 V peak
+  produced zero samples in six seconds, and
+  `Unable to refill buffer: Connection timed out (110)`. That warning
+  is the trigger working. A capture that runs anyway means the trigger
+  is not in the path.
+- **`edge-falling` must fall.** At 0 V it starts at the same voltage
+  rising does; only the slope tells them apart. Measured -0.0886 V over
+  the first three samples.
+- **The level is in volts the scope agrees with.** Asked +0.500 V above
+  the 0 V case, got +0.5007 V — 0.14%. The decimation filter's
+  correction belongs on the trigger level too: leave it out and this
+  lands 9% off. (The shared ~15 mV zero offset appears in both cases and
+  is the ADC's, not the trigger's.)
 
 Also found: `set_len_tag_key("packet_len")` on a sink puts it in
 tagged-burst mode against an untagged stream and it refuses with
@@ -98,12 +121,18 @@ the output. The `Unable to refill buffer: Connection timed out (110)`
 that came with it was downstream, not a second bug — the ADC was waiting
 for a signal the failed sink never produced.
 
-**Open bug: `CONFIG_INTERVAL_MS = 1000` in `m2k_config.py`.** `attr_sink`
+**Fixed: `CONFIG_INTERVAL_MS = 1000` in `m2k_config.py`.** `attr_sink`
 republishes on a timer, so for the first second of any flowgraph *no
-setting is in force*. A short capture can finish before its own
-configuration arrives. This produced a nonsense range comparison — 0.3
+setting was in force*. A short capture could finish before its own
+configuration arrived. This produced a nonsense range comparison — 0.3
 counts on one range against 72.3 on the other — until the test scripts
-were changed to skip two seconds of samples. Not fixed.
+were changed to skip two seconds of samples. `m2k_config` now writes
+each attribute directly with libiio at construction time, before
+`start()`, and keeps the updater as a keep-alive. Verified by planting
+`gain=low, powerdown=1`, asking for the high range, and capturing 4096
+samples starting 100 ms in — one tenth of the interval. The planted
+state was gone before `start()` and the capture read +635.19 counts,
+the high-range value. The two-second skip is no longer needed.
 
 **Benign but noisy:** `device_sink: Unable to push buffer: Device or
 resource busy (16)` on every cyclic run. libiio permits exactly one
