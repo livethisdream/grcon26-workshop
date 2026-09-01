@@ -1,15 +1,20 @@
 # What to check on hardware
 
-Everything below has been reasoned about, sourced or tested without a
-board, and none of it has met a signal. Ordered so that each step makes
-the next one meaningful.
+Ordered so that each step makes the next one meaningful.
 
 Nothing here needs the discovery tool. It needs an M2K, a wire, and
 ideally a meter.
 
+**State as of 2026-09-01:** sections 1, 2, 5 and 6 pass. Section 3
+passes except the trigger, which has never run. Section 4 passes on
+everything relative and fails on absolute accuracy, for a reason that is
+now understood. Section 7 has not been started.
+
+Board used: Rev.D (Z7010), fw v0.33, reached at `ip:192.168.2.1`.
+
 ---
 
-## 1. The blocks appear and load
+## 1. The blocks appear and load — PASSES
 
 ```
 export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
@@ -17,101 +22,212 @@ export GRC_BLOCKS_PATH=$PWD/gr-m2k/grc:$GRC_BLOCKS_PATH
 gnuradio-companion flowgraphs/m2k_loopback_native.grc
 ```
 
-- [ ] `[ADALM2000]` is in the block tree with four blocks
-- [ ] the flowgraph opens with no red blocks
+- [x] `[ADALM2000]` is in the block tree with four blocks
+- [x] the flowgraph opens with no red blocks
 
-*Checked here:* GRC's own loader accepts all four; the flowgraph validates
-and generates Python that parses and runs to the point of needing a board.
-*Not checked:* that GRC's UI renders them sensibly.
+Loading is not constructing. All four blocks threw `Device not found`
+the first time they met a board, because `device_phy` was passed as `""`
+and gr-iio resolves that with `iio_context_find_device` exactly like the
+streaming device. An empty string is not "no phy device"; it is a lookup
+that always fails.
 
-## 2. Loopback, raw counts first
+## 2. Loopback, raw counts first — PASSES
 
-Wire **W1 to 1+**, and **ground to 1-**. Set the scope block's Output to
-**Raw counts** so nothing we computed is in the path.
+Wire **W1 to 1+**, and **ground to 1-**. Use
+`flowgraphs/m2k_loopback_raw.grc`, which has none of our arithmetic in
+the path.
 
-- [ ] a waveform appears at all
-- [ ] its frequency matches `tone_hz`
-- [ ] the counts stay inside ±2047
+- [x] a waveform appears at all
+- [x] its frequency matches `tone_hz`
+- [x] the counts stay inside ±2047
 
-If nothing appears, the failure is upstream of every number in this
-document, and the raw path is the one to debug.
+Two things had to be fixed before a waveform appeared, and neither
+looked like what it was:
 
-## 3. Does the configuration actually get written?
+**A flat line at −12.5 counts, not an error.** The ADC's input stage
+comes up powered down on a board nothing has initialised. `scope_source`
+wrote the input range to `m2k-fabric` but not the `powerdown` sitting
+next to it. libm2k does this in `M2kImpl::initialize`; nothing else
+here would. The failure mode is the expensive kind — plausible-looking
+data, no complaint.
 
-**The least-tested thing in the project.** gr-iio's `attr_sink` needs a
-live context to construct, so range, trigger and DIO direction writes have
-never executed. They are built from libm2k's own attribute usage.
+**A strong tone at exactly 500 kHz.** That is Nyquist at 1 MS/s, which
+should have been the tell. The ADC always delivers both channels,
+interleaved, whatever you ask for. Request one and gr-iio de-interleaves
+a two-channel buffer as if it were one, so channel 2's samples land in
+channel 1's stream and the time base comes out 2× slow. First sixteen
+samples were `[18, 41, 18, 41, ...]`; with the generator on, the even
+samples had std 43.49 and the odd ones 0.22. The block now takes both
+channels and publishes only the ports that were asked for, which is what
+`M2kAnalogIn` does.
 
-With the flowgraph running:
+**Read the frequency carefully.** A 10 kHz request comes back as
+9979.2 Hz, and that is correct, not error. A cyclic buffer of 16384
+samples at 750 kS/s repeats at 45.78 Hz, so the tone can only land on a
+multiple of that: 218 × 750000/16384 = 9979.2 exactly. The buffer holds
+218.45 cycles and the repeat snaps it to 218. It also confirms the DAC
+clock is exactly 750 kS/s.
+
+## 3. Does the configuration actually get written? — MOSTLY
+
+Was the least-tested thing in the project. `attr_updater`/`attr_sink`
+needs a live context to construct, so none of these writes had ever
+executed.
 
 ```
 ./iio_discover.py --uri ip:192.168.2.1 --device m2k-fabric
 ./iio_discover.py --uri ip:192.168.2.1 --device m2k-adc-trigger
 ```
 
-- [ ] `m2k-fabric` `gain` matches the input range the block was set to
-- [ ] changing the block's range and restarting changes it
+- [x] `m2k-fabric` `gain` matches the input range the block was set to
+- [x] changing the block's range and restarting changes it
+- [x] `sampling_frequency` on `m2k-adc` reads back what was asked for
+- [x] `powerdown` is cleared on the channels in use
 - [ ] `m2k-adc-trigger` `voltage0/trigger` matches the trigger edge chosen
 - [ ] `voltage4/mode` is `analog` when triggered, `always` when free running
 - [ ] `voltage6/logic_mode` is `a` for channel 1, `b` for channel 2
 
-If these are unset, `attr_updater`/`attr_sink` is not doing the job and
-the fix is probably to write them with libiio's Python bindings instead.
+**The trigger is entirely untested.** Everything above ran free-running
+with `trigger_source='off'`. The three unchecked boxes are the next
+bench job.
 
-## 4. The volts number — the big one
+Also found: `set_len_tag_key("packet_len")` on a sink puts it in
+tagged-burst mode against an untagged stream and it refuses with
+`Input stream not tagged!`. Harmless on a source, where it only labels
+the output. The `Unable to refill buffer: Connection timed out (110)`
+that came with it was downstream, not a second bug — the ADC was waiting
+for a signal the failed sink never produced.
 
-`volts_per_count` = **0.014525 V** on ±25 V, **0.001380 V** on ±2.5 V, from
-libm2k's `getScalingFactor()` with calibration at 1.0.
+**Open bug: `CONFIG_INTERVAL_MS = 1000` in `m2k_config.py`.** `attr_sink`
+republishes on a timer, so for the first second of any flowgraph *no
+setting is in force*. A short capture can finish before its own
+configuration arrives. This produced a nonsense range comparison — 0.3
+counts on one range against 72.3 on the other — until the test scripts
+were changed to skip two seconds of samples. Not fixed.
 
-Feed a known DC level in (a bench supply, measured with a meter) and read
-it with the scope block set to **Volts**.
+**Benign but noisy:** `device_sink: Unable to push buffer: Device or
+resource busy (16)` on every cyclic run. libiio permits exactly one
+`iio_buffer_push` on a cyclic buffer; the hardware repeats it from then
+on and further pushes return `-EBUSY`. Expected, but it reads like a
+failure and should be explained or suppressed.
 
+## 4. The volts number — RELATIVE PASSES, ABSOLUTE FAILS BY ~7%
+
+Method: hold W1 at a DC level, read it with a meter on 1+/1−, capture
+counts, fit a line through three points. Requested 0.0 / 1.0 / 2.0 V,
+meter 0.049 / 1.217 / 2.383 V, counts on ±25 V −10.95 / +57.05 / +125.43.
+One further point on ±2.5 V at +1.0 V requested gave +737.13 counts.
+
+- [x] switching range does not change the reading of the same input
+- [x] the two ranges agree on their correction to 0.34%
 - [ ] ±25 V range: reading matches the meter within a few percent
 - [ ] ±2.5 V range: same
-- [ ] switching range does not change the reading of the same input
 
-The third is the real test — it is what proves the scale is being applied
-per range rather than by luck.
+The third box was called the real test and it passes: the ranges agree
+to 0.01%, and their ratio is 10.53 against a predicted 10.526. The scale
+*is* being applied per range rather than by luck.
 
-If it is wrong, everything downstream inherits it: the GUI, the handout,
-`m2k_scale.volts_per_count`, and the scope block's Volts mode.
+What failed was absolute accuracy, by 17.6%. Two separate causes:
 
-## 5. Sample rate is really the rate
+**Most of it was a missing table, now fixed.** Reaching a rate below
+100 MS/s means decimating, and the decimation filter does not have unity
+gain. libm2k multiplies volts-per-count by a per-rate correction —
+1.00 at 100 MS/s, 1.05, **1.10 at 1 MS/s**, 1.15, 1.20, 1.26 at 1 kS/s —
+and `m2k_scale.py` did not have it. Applying it accounts for 10 of the
+17.6 points.
 
-- [ ] a known tone reads back at the right frequency at 1 MS/s
-- [ ] and at 100 kS/s
-- [ ] `sampling_frequency` on `m2k-adc` reads back what was asked for
+**The rest is calibration, and is real.** The residual is a gain of
+about 1.07, i.e. the ADC reads roughly 7% low. `m2k-adc voltage0` and
+`voltage1` both carry `calibbias = 2048` and `calibscale = 1.000000`,
+the driver's uncalibrated defaults — 2048 is the neutral value that
+turns offset binary into signed, not an offset of 2048 counts. There is
+also a fixed **−13.9 count** offset, the same on both ranges.
 
-We now write `sampling_frequency` directly because the hardware publishes
-a list of six legal values. An earlier version computed it from
-`oversampling_ratio` and got the list wrong, so this is worth confirming
-rather than assuming.
+Measured constants, for checking a calibration routine against:
 
-## 6. The generator
+| | formula says | measured | correction |
+| --- | --- | --- | --- |
+| ADC ±25 V, 1 MS/s | 0.015977 V/count | 0.017114 | ×1.0711 |
+| ADC ±2.5 V, 1 MS/s | 0.001518 V/count | 0.001620 | ×1.0675 |
+| ADC offset | 0 | −13.9 counts | same on both ranges |
 
-Its base clock is 75 MS/s, so its rates and the scope's do not overlap.
+Note the board publishes factory constants as context attributes —
+`cal,gain_pos_adc = 0.99906`, `cal,gain_neg_adc = 0.99581`, and five
+more. They are all within 0.5% of unity, so they are a fine trim and do
+**not** explain the 7%.
 
-- [ ] a 1.0 V amplitude request measures ~1.0 V on a meter
-- [ ] the waveform is not inverted
+**How calibration will work** (decided 2026-09-01, not yet built): a
+standalone `m2k_calibrate.py`, run once per session, not block init. It
+seizes the whole front end via `m2k-fabric calibration_mode`
+(`none adc_ref1 adc_ref2 adc_gnd dac`) and the `ad5625` calibration DAC,
+it is a closed loop that `attr_sink` structurally cannot express, and
+its result persists on the device — so repeating it per run is waste.
+The blocks then *read* `calibscale`/`calibbias` and apply them, because
+libm2k applies the gain in software (`getScalingFactor` multiplies by
+`m_adc_calib_gain`) rather than the driver correcting the samples.
 
-The second matters: the conversion inverts sign deliberately, per
-`M2kAnalogOut::convVoltsToRaw`. If the trace is upside down, that
-inversion is wrong or doubled.
+The `ad5625` publishes `scale = 0.292968750` mV/count, so raw 2048 is
+exactly 600.0 mV and full scale is 1.2 V. That is a genuinely
+independent chain for zero, linearity and range ratio — but not for
+absolute traceability, because the path gain between `adc_ref1` and the
+front end is unknown. A meter is still the only external reference.
 
-- [ ] Repeat forever keeps generating with the flowgraph idle
+## 5. Sample rate is really the rate — PASSES
+
+- [x] a known tone reads back at the right frequency at 1 MS/s
+- [x] and at 100 kS/s
+- [x] `sampling_frequency` on `m2k-adc` reads back what was asked for
+
+Writing `sampling_frequency` directly, from the list of six values the
+hardware publishes, is right. The earlier version that computed it from
+`oversampling_ratio` got the list wrong.
+
+The 5% amplitude difference seen between 1 MS/s and 100 kS/s was
+recorded here as unexplained. It is the filter correction from section
+4: 1.15 / 1.10 = 1.045.
+
+## 6. The generator — SIGN PASSES, AMPLITUDE FIXED
+
+- [x] the waveform is not inverted
+- [x] Repeat forever keeps generating with the flowgraph idle
+- [x] a 1.0 V amplitude request measures ~1.0 V on a meter
 - [ ] W2 works and is independent of W1
 
-## 7. Digital
+The amplitude box failed first: the meter fit gave
+
+```
+actual = 1.1670 x requested + 0.0493 V
+```
+
+16.7% high. That is the generator's own filter correction, which
+`M2kAnalogOut::getScalingFactor` divides by and we did not have. At
+750 kS/s — the loopback's rate — libm2k's table says **1.164153**. The
+meter said 1.1670. Fixed in `m2k_scale.DAC_FILTER_COMP`.
+
+The DAC's table is not a smooth roll-off and cannot be guessed:
+1.00, 1.525879, **1.164153**, 1.776357, 1.355253, 1.033976, from
+75 MS/s down to 750 S/s.
+
+The remaining **+49.3 mV** offset (+17.3 counts) is calibration, like
+the ADC's.
+
+**Why the loopback said everything was fine.** It read 1.0010 V for a
+1.0 V request. The generator was 16.7% high, the scope 15.4% low, and
+the product is 0.9905 against 0.988 measured. Two errors that cancel
+look exactly like no error. This is the argument for the meter, and it
+is worth showing rather than asserting.
+
+## 7. Digital — NOT STARTED
 
 - [ ] Digital Sink drives DIO0, confirmed with a meter or an LED
 - [ ] Digital Source reads a pin driven externally
 - [ ] `m2k-logic-analyzer` `direction` reads `in`/`out` to match the block
 - [ ] a rate from the dropdown is accepted
 
-The digital side publishes no `sampling_frequency_available`, so the rates
-offered are decade divisions of 100 MS/s by assumption. If one is refused,
-gr-iio logs it and carries on at the previous rate — so confirm the rate
-took before trusting any timing measurement.
+The digital side publishes no `sampling_frequency_available`, so the
+rates offered are decade divisions of 100 MS/s by assumption. If one is
+refused, gr-iio logs it and carries on at the previous rate — so confirm
+the rate took before trusting any timing measurement.
 
 ## 8. Promote what passes
 
@@ -131,11 +247,13 @@ settings you understand:
 
 ## Things known to be assumptions
 
-| assumption | where it bites if wrong |
+| assumption | status |
 | --- | --- |
-| `volts_per_count` from libm2k | scope Volts mode, GUI, handout |
-| DAC `vlsb` = 10/4095 | generator Volts mode |
-| the sign inversion on the DAC | waveform appears inverted |
-| digital sample rates | timing measurements silently off |
-| `attr_updater`/`attr_sink` applies config | range and trigger silently ignored |
+| `volts_per_count` from libm2k | **measured** — right to 7%, the rest is calibscale |
+| the filter corrections | **measured** — DAC's confirmed to 0.25% |
+| DAC `vlsb` = 10/4095 | **measured** — right, once the filter term is in |
+| the sign inversion on the DAC | **measured** — real, and correctly applied |
+| `attr_updater`/`attr_sink` applies config | **measured** — yes, after a 1 s delay |
+| `calib_gain` and `calibbias` are 1.0 and 0 | **wrong** — the post-calibration case, not the fresh-board one |
+| digital sample rates | still assumed |
 | `oversampling_ratio` is decimation | only in the overlay text now, not in code |
