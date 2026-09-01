@@ -215,12 +215,12 @@ The 5% amplitude difference seen between 1 MS/s and 100 kS/s was
 recorded here as unexplained. It is the filter correction from section
 4: 1.15 / 1.10 = 1.045.
 
-## 6. The generator — SIGN PASSES, AMPLITUDE FIXED
+## 6. The generator — PASS, WITH A PER-CHANNEL OFFSET
 
 - [x] the waveform is not inverted
 - [x] Repeat forever keeps generating with the flowgraph idle
 - [x] a 1.0 V amplitude request measures ~1.0 V on a meter
-- [ ] W2 works and is independent of W1
+- [x] W2 works and is independent of W1
 
 The amplitude box failed first: the meter fit gave
 
@@ -237,8 +237,31 @@ The DAC's table is not a smooth roll-off and cannot be guessed:
 1.00, 1.525879, **1.164153**, 1.776357, 1.355253, 1.033976, from
 75 MS/s down to 750 S/s.
 
-The remaining **+49.3 mV** offset (+17.3 counts) is calibration, like
-the ADC's.
+The remaining offset is calibration, like the ADC's — and it is
+**per channel**, which W2 is what showed.
+
+**W2 works, and the offsets do not match.** W1 to input 1, W2 to
+input 2, both `high` range at 1 MS/s, three cases: `W1 +1.0 / W2 -0.5`,
+the same swapped, and `W1 0.0 / W2 held`. The swap is the part that
+matters — two outputs that both work but land on the wrong inputs pass
+a single case and fail this one.
+
+| path | gain | offset |
+|---|---|---|
+| W1 to input 1 | 0.9401 | **+25 mV** |
+| W2 to input 2 | 0.9335 | **+169 mV** |
+
+Gains agree to 0.7%, so both paths lose the same ~6.5% and it is one
+shared error. The offsets are 6.8x apart. On the +/-2.5 V range 169 mV
+is 6.8% of full scale, which is not a trim — it is the thing
+`calibbias` exists for, and it has to be measured per channel rather
+than derived once and applied everywhere.
+
+These are composite DAC-times-ADC figures. Splitting them needs the
+meter on each output; only W1 has ever been measured absolutely.
+
+Independence is clean: moving W1 by -939.5 mV moved channel 2 by
+-1.1 mV.
 
 **Why the loopback said everything was fine.** It read 1.0010 V for a
 1.0 V request. The generator was 16.7% high, the scope 15.4% low, and
