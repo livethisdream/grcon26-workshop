@@ -120,6 +120,16 @@ meter reading of W2 at +1.0 V.
 Also installed `pyyaml` in `.venv`; all 184 tests pass, including three that had never
 run. Board left powered down.
 
+## 2026-09-02 — two traps retired from the hot note
+
+Both fail loudly with a clear message, so they cost minutes, not a session. Traps is
+for the ones that return confident wrong numbers.
+
+- **`set_len_tag_key` on a sink** demands a tagged stream and refuses without one.
+  Harmless on a source.
+- **gr-iio's `device_phy` must name a real device.** `""` is not "none" -- it goes
+  through `iio_context_find_device` and always fails with `Device not found`.
+
 # Ruled Out
 
 - **The factory `cal,*` context attributes explain the absolute error.** They do not.

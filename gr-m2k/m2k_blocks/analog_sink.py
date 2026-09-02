@@ -1,4 +1,4 @@
-"""M2K Waveform Sink -- the signal generator, W1 and W2.
+"""M2K Analog Sink -- the signal generator, W1 and W2.
 
 The generator is not the scope with the arrows reversed, and the places
 it differs are the places people get caught:
@@ -35,7 +35,7 @@ DEV_FABRIC = "m2k-fabric"
 FABRIC_OUTPUT = {"w1": "voltage0", "w2": "voltage1"}
 
 
-class waveform_sink(gr.hier_block2):
+class analog_sink(gr.hier_block2):
     """Play samples out of W1 or W2, in volts or in raw counts."""
 
     def __init__(self, uri="ip:192.168.2.1", output="w1",
@@ -48,7 +48,7 @@ class waveform_sink(gr.hier_block2):
         as_volts = (units == "volts")
         item_size = gr.sizeof_float if as_volts else gr.sizeof_short
         gr.hier_block2.__init__(
-            self, "m2k_waveform_sink",
+            self, "m2k_analog_sink",
             gr.io_signature(1, 1, item_size),
             gr.io_signature(0, 0, 0))
 

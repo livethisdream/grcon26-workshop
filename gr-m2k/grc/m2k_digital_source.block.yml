@@ -39,6 +39,33 @@ parameters:
     dtype: int
     default: '16384'
 
+-   id: trigger_pin
+    label: Trigger on
+    dtype: enum
+    default: "'off'"
+    options: ["'off'", "'0'", "'1'", "'2'", "'3'", "'4'", "'5'", "'6'",
+              "'7'", "'8'", "'9'", "'10'", "'11'", "'12'", "'13'", "'14'",
+              "'15'"]
+    option_labels: ['Free running', 'DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4',
+                    'DIO5', 'DIO6', 'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11',
+                    'DIO12', 'DIO13', 'DIO14', 'DIO15']
+
+-   id: trigger_condition
+    label: Trigger condition
+    dtype: enum
+    default: "'edge-rising'"
+    options: ["'edge-rising'", "'edge-falling'", "'edge-any'",
+              "'level-high'", "'level-low'"]
+    option_labels: ['Rising edge', 'Falling edge', 'Either edge',
+                    'While high', 'While low']
+    hide: ${ 'all' if trigger_pin == 'off' else 'none' }
+
+-   id: trigger_delay
+    label: Trigger delay (samples)
+    dtype: int
+    default: '0'
+    hide: ${ 'all' if trigger_pin == 'off' else 'part' }
+
 outputs:
 -   domain: stream
     dtype: short
@@ -47,13 +74,17 @@ outputs:
 asserts:
 - ${ buffer_size > 0 }
 - ${ first_pin + pin_count <= 16 }
+- ${ trigger_pin == 'off' or first_pin <= int(trigger_pin) < first_pin + pin_count }
 
 templates:
     imports: from m2k_blocks.digital import digital_source
     make: |-
         digital_source(
             uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
-            buffer_size=${buffer_size}, first_pin=${first_pin})
+            buffer_size=${buffer_size}, first_pin=${first_pin},
+            trigger_pin=${trigger_pin},
+            trigger_condition=${trigger_condition},
+            trigger_delay=${trigger_delay})
 
 documentation: |-
     Read the M2K's digital pins. One output port per pin, counting up from
@@ -69,11 +100,39 @@ documentation: |-
     share no pin. Where the ranges do overlap, whichever block starts
     last wins and the other one reads nothing.
 
+    Trigger on
+      Which pin decides when a buffer starts. "Free running" captures
+      whenever the buffer is ready, which is the default and is what you
+      want unless you are lining a capture up with something.
+
+      The pin has to be one this block is reading. A trigger pin outside
+      the range is a flowgraph error rather than a capture that silently
+      never fires.
+
+      This is the logic analyzer's own trigger, separate from the scope's.
+      A digital trigger does not start an analog capture.
+
+    Trigger condition
+      Rising, falling or either edge, or a level held high or low.
+
+    Trigger delay
+      Samples between the trigger and the start of the buffer. Negative
+      is pre-trigger -- the buffer starts that many samples BEFORE the
+      edge -- and is exact to the sample.
+
+      Positive delay is not. It moves the buffer the right way but lands
+      tens of samples off, differently each run, on hardware that reads
+      the attribute back correctly. Measured, not explained; see
+      docs/bench-checklist.md section 8.
+
+    A trigger that never fires and a trigger that is not set look exactly
+    the same from the flowgraph -- one hangs, the other floods. If a
+    triggered capture produces nothing, check the pin is actually moving
+    before changing anything here.
+
     Unlike the scope and the generator, the digital side publishes no list
     of legal sample rates. The rates offered here are the decade divisions
-    of the same 100 MS/s clock and are the obvious candidates, but the
-    hardware has not confirmed them. If one is refused, gr-iio logs it and
-    carries on at whatever rate was already set -- so check the rate is
-    what you asked for before trusting a timing measurement.
+    of the same 100 MS/s clock, and all six are confirmed on the bench --
+    timed against the scope, not read back.
 
 file_format: 1

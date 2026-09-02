@@ -27,7 +27,7 @@ Eight parameters, of which about two can be guessed:
 | Parameters | free-text `key=value` with an unguessable naming rule |
 | Packet Length Tag | opaque, and irrelevant to most flowgraphs |
 
-## M2K Scope Source
+## M2K Analog Source
 
 Every parameter says what it does and what its values are:
 

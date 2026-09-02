@@ -90,3 +90,165 @@ def test_a_range_running_off_the_end_is_refused(repo_root):
     message = refused(repo_root, "4, 14")
     assert message is not None
     assert "DIO14" in message and "2 pins" in message
+
+
+# --------------------------------------------------------------- config
+
+# _apply_trigger and _apply_idle are the whole of what the trigger and the
+# idle level do, and both are pure attribute writes. Running them against
+# a stub that records the writes tests the real code without a board --
+# which matters, because on a board a wrong attribute is silent.
+
+CONFIG_PRELUDE = '''
+import json, sys
+sys.path.insert(0, sys.argv[1])
+from m2k_blocks.digital import digital_source, digital_sink, pins_for
+
+
+class Stub(object):
+    """Everything _apply_* touches, without a hier block or a board."""
+
+    def __init__(self, count, first=0):
+        self.pins = pins_for(count, first)
+        self.writes = []
+
+    def _write(self, uri, device, channel, attr, value):
+        self.writes.append([device, channel, attr, str(value)])
+
+    _write_once = _write
+'''
+
+
+def writes(repo_root, body):
+    """The attribute writes `body` makes, as [device, channel, attr, value]."""
+    out = run_in_gr(CONFIG_PRELUDE + body + "\nprint(json.dumps(s.writes))",
+                    os.path.join(repo_root, "gr-m2k"))
+    return json.loads(out)
+
+
+def rejected(repo_root, body):
+    """The ValueError message `body` raises, or None."""
+    script = CONFIG_PRELUDE + '''
+try:
+%s
+except ValueError as exc:
+    print(json.dumps(str(exc)))
+else:
+    print(json.dumps(None))
+''' % "\n".join("    " + line for line in body.strip().splitlines())
+    return json.loads(run_in_gr(script, os.path.join(repo_root, "gr-m2k")))
+
+
+def attr(records, channel, name):
+    """The last value written to one attribute, or None."""
+    found = [value for _, chan, key, value in records
+             if chan == channel and key == name]
+    return found[-1] if found else None
+
+
+@needs_gnuradio
+def test_free_running_disarms_every_pin(repo_root):
+    """'none' on all of them is the only way to say off."""
+    records = writes(repo_root, '''
+s = Stub(4)
+digital_source._apply_trigger(s, "ip:none", "off", "edge-rising", 0)
+''')
+    for pin in ["voltage%d" % i for i in range(4)]:
+        assert attr(records, pin, "trigger") == "none", pin
+
+
+@needs_gnuradio
+def test_arming_touches_one_pin_and_disarms_the_rest(repo_root):
+    records = writes(repo_root, '''
+s = Stub(4)
+digital_source._apply_trigger(s, "ip:none", "2", "edge-falling", 0)
+''')
+    assert attr(records, "voltage2", "trigger") == "edge-falling"
+    for pin in ["voltage0", "voltage1", "voltage3"]:
+        assert attr(records, pin, "trigger") == "none", pin
+
+
+@needs_gnuradio
+def test_the_trigger_pin_is_absolute_not_an_offset(repo_root):
+    """DIO9 means DIO9, whatever the block's range starts at."""
+    records = writes(repo_root, '''
+s = Stub(4, 8)
+digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
+''')
+    assert attr(records, "voltage9", "trigger") == "edge-rising"
+    assert attr(records, "voltage8", "trigger") == "none"
+
+
+@needs_gnuradio
+@pytest.mark.parametrize("pin", ["off", "0"])
+def test_leftover_board_state_is_always_overwritten(repo_root, pin):
+    """A stale 'and', or a mux pointing elsewhere, silently eats the
+    trigger. Both are rewritten whether we are arming or not."""
+    records = writes(repo_root, '''
+s = Stub(2)
+digital_source._apply_trigger(s, "ip:none", "%s", "edge-rising", 7)
+''' % pin)
+    assert attr(records, "voltage0", "trigger_logic_mode") == "or"
+    assert attr(records, "voltage0", "trigger_mux_out") == "trigger-logic"
+    assert attr(records, "voltage0", "trigger_delay") == "7"
+
+
+@needs_gnuradio
+def test_a_trigger_pin_outside_the_range_is_refused(repo_root):
+    """Otherwise it is a capture that never fires, which looks like a hang."""
+    message = rejected(repo_root, '''
+s = Stub(2, 4)
+digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
+''')
+    assert message is not None
+    assert "DIO9" in message and "DIO4" in message and "DIO5" in message
+
+
+@needs_gnuradio
+def test_an_unknown_trigger_condition_is_refused(repo_root):
+    message = rejected(repo_root, '''
+s = Stub(2)
+digital_source._apply_trigger(s, "ip:none", "0", "edge-sideways", 0)
+''')
+    assert message is not None
+    assert "edge-sideways" in message
+
+
+@needs_gnuradio
+def test_the_condition_is_not_checked_when_free_running(repo_root):
+    """Nothing reads it, so nothing should complain about it."""
+    records = writes(repo_root, '''
+s = Stub(1)
+digital_source._apply_trigger(s, "ip:none", "off", "nonsense", 0)
+''')
+    assert attr(records, "voltage0", "trigger") == "none"
+
+
+@needs_gnuradio
+@pytest.mark.parametrize("level,raw", [("low", "0"), ("high", "1")])
+def test_the_idle_level_sets_raw_on_every_pin(repo_root, level, raw):
+    records = writes(repo_root, '''
+s = Stub(3)
+digital_sink._apply_idle(s, "ip:none", "%s")
+''' % level)
+    for pin in ["voltage0", "voltage1", "voltage2"]:
+        assert attr(records, pin, "raw") == raw, pin
+
+
+@needs_gnuradio
+def test_leave_as_found_writes_nothing(repo_root):
+    records = writes(repo_root, '''
+s = Stub(3)
+digital_sink._apply_idle(s, "ip:none", "leave")
+''')
+    assert records == []
+
+
+@needs_gnuradio
+def test_an_unknown_idle_level_is_refused(repo_root):
+    message = rejected(repo_root, '''
+s = Stub(1)
+digital_sink._apply_idle(s, "ip:none", "floating")
+''')
+    assert message is not None
+    assert "floating" in message

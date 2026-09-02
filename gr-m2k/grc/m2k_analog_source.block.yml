@@ -1,5 +1,5 @@
-id: m2k_scope_source
-label: M2K Scope Source
+id: m2k_analog_source
+label: M2K Analog Source
 category: '[ADALM2000]'
 flags: [python, throttle]
 
@@ -99,9 +99,9 @@ asserts:
      abs(trigger_level) <= (25.0 if ch2_range == "'low'" else 2.5) }
 
 templates:
-    imports: from m2k_blocks.scope_source import scope_source
+    imports: from m2k_blocks.analog_source import analog_source
     make: |-
-        scope_source(
+        analog_source(
             uri=${uri}, ch1_enabled=${ch1_enabled}, ch2_enabled=${ch2_enabled},
             sample_rate=${sample_rate}, ch1_range=${ch1_range},
             ch2_range=${ch2_range}, buffer_size=${buffer_size},

@@ -5,9 +5,10 @@ Ordered so that each step makes the next one meaningful.
 Nothing here needs the discovery tool. It needs an M2K, a wire, and
 ideally a meter.
 
-**State as of 2026-09-02:** sections 1, 2, 3, 5, 6 and 7 pass, the
-trigger included. Section 4 passes on everything relative and fails on
-absolute accuracy, for a reason that is now understood.
+**State as of 2026-09-02:** sections 1, 2, 3, 5, 6, 7 and 8 pass, both
+the analog and the digital trigger included. Section 4 passes on
+everything relative and fails on absolute accuracy, for a reason that is
+now understood.
 
 Board used: Rev.D (Z7010), fw v0.33, reached at `ip:192.168.2.1`.
 
@@ -44,7 +45,7 @@ Two things had to be fixed before a waveform appeared, and neither
 looked like what it was:
 
 **A flat line at −12.5 counts, not an error.** The ADC's input stage
-comes up powered down on a board nothing has initialised. `scope_source`
+comes up powered down on a board nothing has initialised. `analog_source`
 wrote the input range to `m2k-fabric` but not the `powerdown` sitting
 next to it. libm2k does this in `M2kImpl::initialize`; nothing else
 here would. The failure mode is the expensive kind — plausible-looking
@@ -334,7 +335,86 @@ the request. That is correct -- two devices, each block writes its own
 -- but a Sink and a Source given different rates in one flowgraph will
 disagree about time and neither will complain.
 
-## 8. Promote what passes
+## 8. Digital idle level and trigger — PASSES
+
+Same jumpers as section 7: `DIO0 -> DIO1`, `DIO0 -> 1+`, `1- -> GND`.
+
+- [x] the idle level really drives the pin
+- [x] "leave as found" really leaves it
+- [x] a trigger that cannot fire stalls the capture
+- [x] the trigger lands the buffer on the edge
+
+### The idle level
+
+An output pin has two sources of truth. The stream drives it while the
+flowgraph runs; `raw` on `m2k-logic-analyzer` drives it the rest of the
+time. Constructing a sink and never starting it is therefore a static
+output — Scopy's Digital IO, with no flowgraph running at all.
+
+Measured on input 1, `high` range, no flowgraph started:
+
+| `idle_level` | `raw` reads | DIO0 measures |
+| --- | --- | --- |
+| `high` | 1 | **+2.8387 V** |
+| `low` | 0 | **-0.0212 V** |
+| `leave` | 1, unchanged | +2.8387 V |
+
+The `leave` row is the one that proves the point: it ran straight after a
+`high`, wrote nothing, and the pin stayed high. So "leave as found" is
+genuinely a no-write, and the resting level of a board nobody has
+configured is whatever the last program left behind.
+
+**This is the opposite of the analog generator.** Section 6 records the
+DAC holding its last cyclic buffer with the flowgraph stopped. The DIO
+pins do not hold theirs — they snap back to `raw` the moment you stop.
+
+### The trigger is real
+
+A trigger you cannot satisfy must hang, or it is not a trigger. Sink
+drives DIO0, source reads DIO1, six seconds each:
+
+| DIO0 driven | trigger | result |
+| --- | --- | --- |
+| low | `level-high` on DIO1 | **STALLED — no samples in 6 s** |
+| low | `level-low` on DIO1 | 512 samples |
+| high | `level-high` on DIO1 | 512 samples |
+| square | off | 512 samples, all zeros |
+
+The last row is worth reading twice. Free-running fills its buffer
+immediately at start, before the generator has begun playing, so it
+captures the idle level and never sees the square at all. Triggered, it
+waits. That contrast is the clearest evidence the trigger works.
+
+### The buffer lands on the edge
+
+200-sample square at 1 MS/s, so a transition every 100 samples:
+
+| trigger | `buffer[0]` | first transition |
+| --- | --- | --- |
+| `edge-rising` | 1 | sample 100 |
+| `edge-falling` | 0 | sample 100 |
+
+Exact, and identical across every repeat.
+
+### Trigger delay: negative is exact, positive is not
+
+`trigger_delay` in samples, same square, `edge-rising`:
+
+| requested | first transition | repeats |
+| --- | --- | --- |
+| 0 | 100 | 100, 100, 100 — **exact** |
+| -50 | 50 | 50, 50, 50 — **exact** |
+| -100 | 100 | pre-trigger, `buffer[0]` = 0 |
+| +20 | 90 | 80, 60, 60 — **jitters** |
+| +40 | 70 | 80, 80, 80 |
+
+Negative delay is real pre-trigger and is repeatable to the sample.
+Positive delay moves the buffer the right way but lands tens of samples
+off, differently each run. The attribute reads back exactly what was
+written in every case, so this is the hardware and not a lost write. Not
+explained; treat positive delay as approximate.
+
+## 9. Promote what passes
 
 Each entry in `iio_overlays.py` carries a `check` field describing how to
 confirm it. 58 of 74 are still `UNVERIFIED`. As they check out, change
@@ -361,4 +441,6 @@ settings you understand:
 | `attr_updater`/`attr_sink` applies config | **measured** — yes, after a 1 s delay |
 | `calib_gain` and `calibbias` are 1.0 and 0 | **wrong** — the post-calibration case, not the fresh-board one |
 | digital sample rates | **measured** — all six, timed against the scope |
+| the digital trigger fires | **measured** — an impossible condition stalls |
+| digital `trigger_delay` in samples | **measured** — exact at 0 and below, approximate above |
 | `oversampling_ratio` is decimation | only in the overlay text now, not in code |

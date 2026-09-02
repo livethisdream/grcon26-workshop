@@ -1,4 +1,4 @@
-"""M2K Scope Source -- the oscilloscope input, as one block.
+"""M2K Analog Source -- the oscilloscope input, as one block.
 
 Everything this block hides, and where it goes:
 
@@ -41,7 +41,7 @@ TRIG_DELAY = "voltage6"                    # logic_mode, i.e. the source
 ADC_CHANNELS = ["voltage0", "voltage1"]
 
 
-class scope_source(gr.hier_block2):
+class analog_source(gr.hier_block2):
     """Scope channels 1 and 2, in volts or in raw counts."""
 
     def __init__(self, uri="ip:192.168.2.1",
@@ -70,13 +70,13 @@ class scope_source(gr.hier_block2):
             ranges.append(ch2_range)
         if not ports:
             raise ValueError(
-                "M2K Scope Source: enable at least one channel, or the "
+                "M2K Analog Source: enable at least one channel, or the "
                 "block has no outputs.")
 
         as_volts = (units == "volts")
         item_size = gr.sizeof_float if as_volts else gr.sizeof_short
         gr.hier_block2.__init__(
-            self, "m2k_scope_source",
+            self, "m2k_analog_source",
             gr.io_signature(0, 0, 0),
             gr.io_signature(len(ports), len(ports), item_size))
 

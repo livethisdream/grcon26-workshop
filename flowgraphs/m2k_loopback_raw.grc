@@ -48,8 +48,8 @@ blocks:
     waveform: analog.GR_COS_WAVE
   states: {coordinate: [24, 200], state: enabled}
 
-- name: m2k_waveform_sink_0
-  id: m2k_waveform_sink
+- name: m2k_analog_sink_0
+  id: m2k_analog_sink
   parameters:
     buffer_size: '16384'
     cyclic: 'True'
@@ -59,8 +59,8 @@ blocks:
     uri: ip:192.168.2.1
   states: {coordinate: [320, 192], state: enabled}
 
-- name: m2k_scope_source_0
-  id: m2k_scope_source
+- name: m2k_analog_source_0
+  id: m2k_analog_source
   parameters:
     buffer_size: '16384'
     ch1_enabled: 'True'
@@ -94,8 +94,8 @@ blocks:
   states: {coordinate: [480, 344], state: enabled}
 
 connections:
-- [analog_sig_source_x_0, '0', m2k_waveform_sink_0, '0']
-- [m2k_scope_source_0, '0', blocks_short_to_float_0, '0']
+- [analog_sig_source_x_0, '0', m2k_analog_sink_0, '0']
+- [m2k_analog_source_0, '0', blocks_short_to_float_0, '0']
 - [blocks_short_to_float_0, '0', qtgui_time_sink_x_0, '0']
 
 metadata:

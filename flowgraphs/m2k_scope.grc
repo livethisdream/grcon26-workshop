@@ -19,8 +19,8 @@ blocks:
   parameters: {value: '1000000'}
   states: {coordinate: [16, 84], state: enabled}
 
-- name: m2k_scope_source_0
-  id: m2k_scope_source
+- name: m2k_analog_source_0
+  id: m2k_analog_source
   parameters:
     buffer_size: '16384'
     ch1_enabled: 'True'
@@ -47,7 +47,7 @@ blocks:
   states: {coordinate: [400, 208], state: enabled}
 
 connections:
-- [m2k_scope_source_0, '0', qtgui_time_sink_x_0, '0']
+- [m2k_analog_source_0, '0', qtgui_time_sink_x_0, '0']
 
 metadata:
   file_format: 1

@@ -46,6 +46,13 @@ parameters:
     options: ["'push-pull'", "'open-drain'"]
     option_labels: ['Push-pull', 'Open-drain']
 
+-   id: idle_level
+    label: Level when stopped
+    dtype: enum
+    default: "'low'"
+    options: ["'low'", "'high'", "'leave'"]
+    option_labels: ['Low', 'High', 'Leave as found']
+
 -   id: cyclic
     label: When the buffer ends
     dtype: enum
@@ -68,7 +75,7 @@ templates:
         digital_sink(
             uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
             buffer_size=${buffer_size}, drive=${drive}, cyclic=${cyclic},
-            first_pin=${first_pin})
+            first_pin=${first_pin}, idle_level=${idle_level})
 
 documentation: |-
     Drive the M2K's digital pins. One input port per pin, counting up from
@@ -89,11 +96,24 @@ documentation: |-
       Push-pull drives both high and low. Open-drain only pulls low and
       needs a pull-up resistor, which is what a shared bus wants.
 
+    Level when stopped
+      An output pin has two sources of truth. The samples arriving here
+      drive it while the flowgraph runs, and a separate register drives it
+      the rest of the time -- so the pin snaps to this level the moment
+      you hit stop, and holds it until you start again. Note that this is
+      the opposite of the analog generator, which keeps playing its last
+      cyclic buffer with the flowgraph stopped.
+
+      This is also how you set a pin and leave it: a level here with the
+      flowgraph never started is a static output, which is what Scopy
+      calls Digital IO.
+
+      "Leave as found" writes nothing, and the resting level is then
+      whatever the last program to touch the board happened to set.
+
     Unlike the scope and the generator, the digital side publishes no list
     of legal sample rates. The rates offered here are the decade divisions
-    of the same 100 MS/s clock and are the obvious candidates, but the
-    hardware has not confirmed them. If one is refused, gr-iio logs it and
-    carries on at whatever rate was already set -- so check the rate is
-    what you asked for before trusting a timing measurement.
+    of the same 100 MS/s clock, and all six are confirmed on the bench --
+    timed against the scope, not read back.
 
 file_format: 1

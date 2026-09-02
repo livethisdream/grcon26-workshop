@@ -29,6 +29,13 @@ So each attribute is written twice, deliberately:
 
 The direct write is what makes the configuration true. The updater is a
 keep-alive, which is what it was always good at.
+
+One consequence, and it looks exactly like a hung board: the updater
+never finishes, so a flowgraph holding one of these never finishes
+either. `tb.run()` on a graph terminated by a `head` block will sit
+there forever after the head has all its samples, because run() waits
+for every block. Use `tb.start()`, wait, `tb.stop()`, `tb.wait()`
+instead. The board is fine; the graph is just never done.
 """
 
 import sys
@@ -64,7 +71,7 @@ def _context(uri):
 
 
 def write_now(uri, device, channel, attr, value, output=False,
-              kind=ATTR_CHANNEL):
+              kind=ATTR_CHANNEL, keepalive=True):
     """Write one attribute straight away, returning whether it landed.
 
     Never raises. A board that is unreachable, or bindings that are not
@@ -72,6 +79,13 @@ def write_now(uri, device, channel, attr, value, output=False,
     -- worse, but not broken. The warning says which happened, because a
     silent fallback here is exactly the failure this module exists to
     stop.
+
+    `keepalive` only changes that warning. It says whether the caller is
+    going to follow this up with an updater/sink pair, so the message can
+    say "a second late" or "not at all" and be telling the truth. Some
+    attributes must NOT be kept alive -- see the digital sink's idle
+    level, where a keep-alive would spend the whole run rewriting a
+    register the stream is deliberately overriding.
     """
     try:
         dev = _context(uri).find_device(device)
@@ -92,12 +106,14 @@ def write_now(uri, device, channel, attr, value, output=False,
         # Drop the cached context; if it went stale, the next call rebuilds.
         _CONTEXTS.pop(uri, None)
         where = device if kind == ATTR_DEVICE else "%s/%s" % (device, channel)
-        print("m2k_config: could not set %s %s=%s immediately (%s); "
-              "falling back to the %d ms updater, so it will not be in "
-              "force for the first %.1f s"
-              % (where, attr, value, exc, CONFIG_INTERVAL_MS,
-                 CONFIG_INTERVAL_MS / 1000.0),
-              file=sys.stderr)
+        if keepalive:
+            after = ("falling back to the %d ms updater, so it will not be "
+                     "in force for the first %.1f s"
+                     % (CONFIG_INTERVAL_MS, CONFIG_INTERVAL_MS / 1000.0))
+        else:
+            after = "and nothing else will set it, so it is not in force"
+        print("m2k_config: could not set %s %s=%s immediately (%s); %s"
+              % (where, attr, value, exc, after), file=sys.stderr)
         return False
 
 

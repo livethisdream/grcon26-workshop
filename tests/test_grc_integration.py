@@ -172,7 +172,7 @@ def test_scope_block_loads_and_reads_plainly(repo_root):
         from gnuradio.grc.core.platform import Platform
         p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
         p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
-        b = p.blocks["m2k_scope_source"]
+        b = p.blocks["m2k_analog_source"]
         print(json.dumps({"label": b.label, "category": list(b.category),
                           "params": [{"id": q["id"], "label": q.get("label"),
                                       "options": q.get("option_labels")}
@@ -180,7 +180,7 @@ def test_scope_block_loads_and_reads_plainly(repo_root):
                                      if q.get("label")]}))
     ''', os.path.join(repo_root, M2K_GRC)))
 
-    assert loaded["label"] == "M2K Scope Source"
+    assert loaded["label"] == "M2K Analog Source"
     assert loaded["category"] == ["ADALM2000"]
     labels = {q["id"]: q["label"] for q in loaded["params"]}
 
@@ -228,7 +228,7 @@ ASSERTS = '''
     for label, params in json.loads(sys.argv[3]).items():
         doc = copy.deepcopy(base)
         for blk in doc["blocks"]:
-            if blk["id"] == "m2k_scope_source":
+            if blk["id"] == "m2k_analog_source":
                 blk["parameters"].update(params)
         path = tempfile.mktemp(suffix=".grc")
         yaml.safe_dump(doc, open(path, "w"))
@@ -267,7 +267,7 @@ def test_illegal_combinations_are_refused(repo_root):
 @needs_gnuradio
 def test_every_instrument_block_loads(repo_root):
     loaded = json.loads(run_in_gr(LOAD, os.path.join(repo_root, M2K_GRC)))
-    assert set(loaded) == {"m2k_scope_source", "m2k_waveform_sink",
+    assert set(loaded) == {"m2k_analog_source", "m2k_analog_sink",
                            "m2k_digital_source", "m2k_digital_sink"}
 
 
@@ -306,8 +306,8 @@ def test_native_loopback_builds(repo_root):
     # The point of this flowgraph: gr-iio is reached only from inside the
     # instrument blocks, so the generated code has no iio call of its own.
     assert result["iio"] == [], result["iio"]
-    assert "scope_source(" in result["make"]
-    assert "waveform_sink(" in result["make"]
+    assert "analog_source(" in result["make"]
+    assert "analog_sink(" in result["make"]
 
 
 @needs_gnuradio

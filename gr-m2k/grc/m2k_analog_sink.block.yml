@@ -1,5 +1,5 @@
-id: m2k_waveform_sink
-label: M2K Waveform Sink
+id: m2k_analog_sink
+label: M2K Analog Sink
 category: '[ADALM2000]'
 flags: [python, throttle]
 
@@ -53,9 +53,9 @@ asserts:
 - ${ buffer_size > 0 }
 
 templates:
-    imports: from m2k_blocks.waveform_sink import waveform_sink
+    imports: from m2k_blocks.analog_sink import analog_sink
     make: |-
-        waveform_sink(
+        analog_sink(
             uri=${uri}, output=${output}, sample_rate=${sample_rate},
             units=${units}, buffer_size=${buffer_size}, cyclic=${cyclic})
 

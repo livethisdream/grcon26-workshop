@@ -113,8 +113,8 @@ blocks:
     coordinate: [120, 328.0]
     rotation: 0
     state: enabled
-- name: m2k_scope_source_0
-  id: m2k_scope_source
+- name: m2k_analog_source_0
+  id: m2k_analog_source
   parameters:
     affinity: ''
     alias: ''
@@ -139,8 +139,8 @@ blocks:
     coordinate: [120, 484.0]
     rotation: 0
     state: enabled
-- name: m2k_waveform_sink_0
-  id: m2k_waveform_sink
+- name: m2k_analog_sink_0
+  id: m2k_analog_sink
   parameters:
     affinity: ''
     alias: ''
@@ -257,8 +257,8 @@ blocks:
     state: enabled
 
 connections:
-- [analog_sig_source_x_0, '0', m2k_waveform_sink_0, '0']
-- [m2k_scope_source_0, '0', qtgui_time_sink_x_0, '0']
+- [analog_sig_source_x_0, '0', m2k_analog_sink_0, '0']
+- [m2k_analog_source_0, '0', qtgui_time_sink_x_0, '0']
 
 metadata:
   file_format: 1

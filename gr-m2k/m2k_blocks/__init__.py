@@ -14,7 +14,7 @@ the streaming one is applied with gr-iio's own attribute blocks.
 Only the arithmetic is re-exported here. The blocks themselves import
 gnuradio, so they live in submodules and are imported directly:
 
-    from m2k_blocks.scope_source import scope_source
+    from m2k_blocks.analog_source import analog_source
 
 That keeps `m2k_blocks.m2k_scale` importable -- and therefore testable --
 on a machine with no GNU Radio at all.
