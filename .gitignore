@@ -9,3 +9,6 @@ __pycache__/
 
 # grcc / GRC generated flowgraph output
 flowgraphs/*.py
+
+# 25 MB deck, larger than the whole tracked repo
+tools_for_precision_wideband_instrumentation_workshop (1).pptx
