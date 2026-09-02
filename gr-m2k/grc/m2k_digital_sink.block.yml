@@ -9,12 +9,22 @@ parameters:
     dtype: string
     default: ip:192.168.2.1
 
+-   id: first_pin
+    label: First pin
+    dtype: enum
+    default: '0'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7',
+              '8', '9', '10', '11', '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12',
+                    'DIO13', 'DIO14', 'DIO15']
+
 -   id: pin_count
     label: Pins to drive
     dtype: enum
     default: '1'
     options: ['1', '2', '4', '8', '16']
-    option_labels: ['DIO0', 'DIO0-1', 'DIO0-3', 'DIO0-7', 'DIO0-15']
+    option_labels: ['1 pin', '2 pins', '4 pins', '8 pins', '16 pins']
 
 -   id: sample_rate
     label: Sample rate
@@ -50,16 +60,19 @@ inputs:
 
 asserts:
 - ${ buffer_size > 0 }
+- ${ first_pin + pin_count <= 16 }
 
 templates:
     imports: from m2k_blocks.digital import digital_sink
     make: |-
         digital_sink(
             uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
-            buffer_size=${buffer_size}, drive=${drive}, cyclic=${cyclic})
+            buffer_size=${buffer_size}, drive=${drive}, cyclic=${cyclic},
+            first_pin=${first_pin})
 
 documentation: |-
-    Drive the M2K's digital pins. One input port per pin, DIO0 first.
+    Drive the M2K's digital pins. One input port per pin, counting up from
+    the first pin you choose.
 
     Each port carries one bit per sample, in a short: send 0 or 1, not a
     packed 16-bit word. That is gr-iio's model rather than a choice made
@@ -67,8 +80,10 @@ documentation: |-
     element.
 
     A pin is an input or an output, never both. This block sets the pins
-    it drives to outputs, so do not point a Digital Source at the same
-    pins in the same flowgraph -- whichever starts last wins.
+    it drives to outputs, so give a Digital Source in the same flowgraph a
+    range that does not overlap -- this block at DIO0 and a source at DIO1
+    share no pin. Where the ranges do overlap, whichever block starts last
+    wins and the other one drives nothing.
 
     Pin drive
       Push-pull drives both high and low. Open-drain only pulls low and

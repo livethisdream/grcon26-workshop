@@ -9,12 +9,22 @@ parameters:
     dtype: string
     default: ip:192.168.2.1
 
+-   id: first_pin
+    label: First pin
+    dtype: enum
+    default: '0'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7',
+              '8', '9', '10', '11', '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12',
+                    'DIO13', 'DIO14', 'DIO15']
+
 -   id: pin_count
     label: Pins to read
     dtype: enum
     default: '1'
     options: ['1', '2', '4', '8', '16']
-    option_labels: ['DIO0', 'DIO0-1', 'DIO0-3', 'DIO0-7', 'DIO0-15']
+    option_labels: ['1 pin', '2 pins', '4 pins', '8 pins', '16 pins']
 
 -   id: sample_rate
     label: Sample rate
@@ -36,24 +46,28 @@ outputs:
 
 asserts:
 - ${ buffer_size > 0 }
+- ${ first_pin + pin_count <= 16 }
 
 templates:
     imports: from m2k_blocks.digital import digital_source
     make: |-
         digital_source(
             uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
-            buffer_size=${buffer_size})
+            buffer_size=${buffer_size}, first_pin=${first_pin})
 
 documentation: |-
-    Read the M2K's digital pins. One output port per pin, DIO0 first.
+    Read the M2K's digital pins. One output port per pin, counting up from
+    the first pin you choose.
 
     Each port carries one bit per sample, in a short. That is gr-iio's
     model rather than a choice made here: every DIO pin is its own IIO
     channel with a one-bit scan element.
 
     A pin is an input or an output, never both. This block sets the pins
-    it reads to inputs, so do not point a Digital Sink at the same pins in
-    the same flowgraph -- whichever starts last wins.
+    it reads to inputs, so give a Digital Sink in the same flowgraph a
+    range that does not overlap -- a sink at DIO0 and this block at DIO1
+    share no pin. Where the ranges do overlap, whichever block starts
+    last wins and the other one reads nothing.
 
     Unlike the scope and the generator, the digital side publishes no list
     of legal sample rates. The rates offered here are the decade divisions

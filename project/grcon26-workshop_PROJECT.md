@@ -56,6 +56,9 @@ display), and the session material itself.
   alignment, a stall above the peak, and the edge's slope tell them apart.
 - **The decimation filter's correction applies to the trigger level too.** Leave it out
   and the trigger sits 9% away from where the scope says it is.
+- **`-tx` and `-rx` hold separate `sampling_frequency`.** Each digital block
+  writes only its own device, so a Sink and a Source given different rates in
+  one flowgraph disagree about time and neither complains.
 - **Offsets are per channel; gain is not.** Both signal paths share one gain error to
   0.7%, but their offsets differ 6.8x. Deriving offset once and applying it everywhere
   is wrong by most of it.
@@ -98,13 +101,16 @@ display), and the session material itself.
   the board unconfigured for the first second of every flowgraph.
 - **2026-09-01** — Calibration offsets are measured per channel, never derived once and
   applied. Reason: the two paths' offsets differ 6.8x while their gains agree to 0.7%.
+- **2026-09-02** — Both digital blocks take `first_pin`, and a sink and source
+  in one flowgraph get disjoint ranges. Reason: `pins_for` counted from DIO0
+  only, so any pair fought over `direction` and the loser did nothing silently.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Block-building is close to done. The scope and
-generator are verified against hardware and a meter; the trigger passes. Open: the
-digital pair (never run on hardware), a calibration script to close the last ~6.5%,
-and a decision on whether the programmable supply gets a block. Then the 43%
+**Phase 1 (current) — crawl:** Block-building is done. Scope, generator,
+trigger and the digital pair are all verified against hardware. Open: a
+calibration script to close the last ~6.5%, and a decision on whether the
+programmable supply gets a block. Then the 43%
 explanation gap, by writing the logic-analyzer board pack — Tier 1 (96 attributes) +
 Tier 2 (8), which should take coverage to ~90%.
 
@@ -127,37 +133,44 @@ participant station; move acquisition state server-side; slides, procurement, ti
 
 # Status
 
-- **Repo:** `main` = `c24304d`, pushed and in sync with `origin`. The
-  `m2k-discovery-gui` branch is stale at `93de0e8`, fully merged, and can be deleted.
-- **`gr-m2k/` — four blocks** (`scope_source`, `waveform_sink`, `digital` source/sink),
-  each with a GRC definition, plus `m2k_scale.py` (arithmetic, imports nothing) and
-  `m2k_config.py` (attributes on non-streaming devices).
-- **Bench checklist sections 1-6 pass.** Section 7 (digital) is not started, so the
-  digital pair has never run against hardware. `docs/bench-checklist.md` is the record.
-- **Scope, generator and trigger are verified against hardware and a meter.** The
-  trigger aligns to one sample step, stalls above the peak, and honours the edge.
-- **The residual absolute error is ~6.5% and it is one shared gain error**, consistent
-  with `calibscale` (which reads `1.000000` on this board). Offsets are per channel:
-  W1 output +49.4 mV, W2 output +114.5 mV, input 1 -21.4 mV, input 2 not yet split.
-- **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
-  passthrough — `--scan` finds only `local:`, so the URI must be given. Currently
-  powered down: both stages, calibration mode clear, trigger free-running.
-- **Tests:** 184 pass. `pyyaml` is now in `.venv`.
-- **Discovery tooling** is unchanged for two sessions. ABI coverage on real hardware is
-  57%; 58 of 74 overlay entries are still `UNVERIFIED`.
+- **Repo:** `main` = `9762c44`, **one commit ahead of `origin`**, with this
+  session's digital work uncommitted on top. `m2k-discovery-gui` is stale at
+  `93de0e8`, fully merged, deletable.
+- **`gr-m2k/` — four blocks** (`scope_source`, `waveform_sink`, `digital`
+  source/sink) with GRC definitions, plus `m2k_scale.py` (arithmetic, imports
+  nothing) and `m2k_config.py`. Both digital blocks take `first_pin`.
+- **Bench checklist sections 1-7 all pass**, section 4's absolute accuracy
+  aside. `docs/bench-checklist.md` is the record.
+- **The digital pair is verified against hardware.** Sink drives DIO0 at a real
+  3.3 V, source reads it on DIO1, `direction` matches, and all six dropdown
+  rates were timed against the scope — `DIGITAL_SAMPLE_RATES` is measured now.
+- **Scope, generator and trigger are verified** against hardware and a meter.
+- **Residual absolute error is ~6.5%, one shared gain error**, consistent with
+  `calibscale` (`1.000000` here). Offsets are per channel: W1 out +49.4 mV, W2
+  out +114.5 mV, input 1 -21.4 mV, input 2 not yet split. The digital run hints
+  the input offset is a fixed *count* error scaling with range.
+- **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no
+  USB passthrough — `--scan` finds only `local:`. DIO0/DIO1 left as inputs,
+  analog stages powered down.
+- **Tests:** 193 pass. `tests/test_digital.py` is new; the digital blocks had no
+  unit coverage before.
+- **Discovery tooling** unchanged for three sessions. Real-hardware ABI coverage
+  57%; 58 of 74 overlay entries still `UNVERIFIED`.
 - **`standing_wave_view.jsx`** is still lost — not in the repo, not on disk.
-- **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
-  40 kHz TX/RX pairs on order.
+- **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic
+  board. 40 kHz TX/RX pairs on order.
 
 # ToDo
 
 - [ ] Meter W2 at +1.0 V requested — one reading closes the input-2 offset split.
-- [ ] Run bench-checklist section 7 (digital): drive DIO0, read an externally driven
-      pin, confirm `direction` and that a dropdown rate is accepted.
 - [ ] Decide whether the programmable supply (`ad5627`) gets a block. Only
       unrepresented instrument; no planned demo needs it.
 - [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`,
       checked against libm2k's `calibrateADC()`. Must write per-channel offsets.
+      Confirm on the way whether the input offset is a fixed count error that
+      scales with range, as the digital run suggests.
+- [ ] Add `flowgraphs/m2k_digital_loopback.grc` alongside the analog one — now
+      buildable, with the sink at DIO0 and the source at DIO1.
 - [ ] Suppress or explain the cyclic-buffer `Device or resource busy` warning.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 

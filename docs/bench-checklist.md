@@ -5,10 +5,9 @@ Ordered so that each step makes the next one meaningful.
 Nothing here needs the discovery tool. It needs an M2K, a wire, and
 ideally a meter.
 
-**State as of 2026-09-01:** sections 1, 2, 5 and 6 pass. Section 3
-passes except the trigger, which has never run. Section 4 passes on
-everything relative and fails on absolute accuracy, for a reason that is
-now understood. Section 7 has not been started.
+**State as of 2026-09-02:** sections 1, 2, 3, 5, 6 and 7 pass, the
+trigger included. Section 4 passes on everything relative and fails on
+absolute accuracy, for a reason that is now understood.
 
 Board used: Rev.D (Z7010), fw v0.33, reached at `ip:192.168.2.1`.
 
@@ -269,17 +268,71 @@ the product is 0.9905 against 0.988 measured. Two errors that cancel
 look exactly like no error. This is the argument for the meter, and it
 is worth showing rather than asserting.
 
-## 7. Digital — NOT STARTED
+## 7. Digital — PASSES
 
-- [ ] Digital Sink drives DIO0, confirmed with a meter or an LED
-- [ ] Digital Source reads a pin driven externally
-- [ ] `m2k-logic-analyzer` `direction` reads `in`/`out` to match the block
-- [ ] a rate from the dropdown is accepted
+Wire **DIO0 to DIO1** and **DIO0 to 1+**, with **1- to ground**. The
+scope leg is what makes the digital result trustworthy: it reads the
+same pin in volts, on a clock section 5 already verified.
 
-The digital side publishes no `sampling_frequency_available`, so the
-rates offered are decade divisions of 100 MS/s by assumption. If one is
-refused, gr-iio logs it and carries on at the previous rate — so confirm
-the rate took before trusting any timing measurement.
+Use the **`'low'`** range for the scope. 3.3 V logic clips flat on
+`'high'`, which is the +/-2.5 V one.
+
+- [x] Digital Sink drives DIO0, confirmed with a meter or an LED
+- [x] Digital Source reads a pin driven externally
+- [x] `m2k-logic-analyzer` `direction` reads `in`/`out` to match the block
+- [x] a rate from the dropdown is accepted
+
+**A loopback needed `first_pin` before it could exist.** `pins_for`
+counted from DIO0 upward with no offset, so a sink and a source in one
+flowgraph always claimed the same pins and fought over `direction` --
+whichever was built last won and the other silently did nothing. Both
+blocks now take a first pin, and the sink at DIO0 with the source at
+DIO1 share nothing. `direction` afterwards read `out` on DIO0, `in` on
+DIO1, and `in` on the untouched DIO2.
+
+**The pin drives a real 3.3 V.** A 16384-sample square at 1 MS/s --
+61.04 Hz, one buffer per cycle -- measured on the scope:
+
+| | measured | corrected |
+|---|---|---|
+| swing | 3.1100 V | **3.33 V** at the known -6.5% |
+| high | 2.9028 V | |
+| low | **-0.2073 V** | |
+| duty | 49.9% | |
+| period | 16384.0 samples | 61.04 Hz, exact |
+
+The low rail is the interesting number. Input 1's offset is -21.4 mV on
+the `'high'` range, and -0.2073 V is 9.7x that -- near enough the 10x
+between the ranges to say the offset is a fixed *count* error that
+scales with range, which is what `calibbias` being a raw attribute
+predicts. Worth confirming deliberately when `m2k_calibrate.py` gets
+written.
+
+Reading DIO1 back through the Digital Source gave values `{0, 1}`, duty
+49.9%, and a period of exactly 16384 samples.
+
+**All six dropdown rates are real.** Not read back -- measured. Each
+drove a 1024-sample square, whose frequency is rate/1024, timed against
+the scope:
+
+| requested | expected | measured | error |
+|---|---|---|---|
+| 100 MS/s | 97656.25 Hz | 97796.89 Hz | +0.14% |
+| 10 MS/s | 9765.62 Hz | 9765.63 Hz | +0.00% |
+| 1 MS/s | 976.56 Hz | 976.56 Hz | -0.00% |
+| 100 kS/s | 97.66 Hz | 97.66 Hz | +0.00% |
+| 10 kS/s | 9.77 Hz | 9.77 Hz | +0.00% |
+| 1 kS/s | 0.98 Hz | 0.98 Hz | +0.00% |
+
+The 100 MS/s error is edge quantisation -- the scope had 102 samples per
+period -- not a rate error. `DIGITAL_SAMPLE_RATES` is now measured
+rather than assumed.
+
+**`-tx` and `-rx` hold separate `sampling_frequency` attributes.** Every
+run above left `m2k-logic-analyzer-rx` at 1 MS/s while `-tx` followed
+the request. That is correct -- two devices, each block writes its own
+-- but a Sink and a Source given different rates in one flowgraph will
+disagree about time and neither will complain.
 
 ## 8. Promote what passes
 
@@ -307,5 +360,5 @@ settings you understand:
 | the sign inversion on the DAC | **measured** — real, and correctly applied |
 | `attr_updater`/`attr_sink` applies config | **measured** — yes, after a 1 s delay |
 | `calib_gain` and `calibbias` are 1.0 and 0 | **wrong** — the post-calibration case, not the fresh-board one |
-| digital sample rates | still assumed |
+| digital sample rates | **measured** — all six, timed against the scope |
 | `oversampling_ratio` is decimation | only in the overlay text now, not in code |

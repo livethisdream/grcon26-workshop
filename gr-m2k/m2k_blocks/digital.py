@@ -8,10 +8,12 @@ Three IIO devices are involved and none of them is optional:
     m2k-logic-analyzer-rx   the samples coming in.
     m2k-logic-analyzer-tx   the samples going out.
 
-A pin is an input or an output, never both, so these two blocks must not
-be pointed at the same pins in one flowgraph. Each block sets `direction`
-for the pins it uses, so whichever starts last wins -- which is worth
-knowing before it happens to you.
+A pin is an input or an output, never both, so a source and a sink in
+the same flowgraph need ranges that do not overlap. `first_pin` is what
+keeps them apart: a sink at DIO0 and a source at DIO1 share no pin and
+do not interfere. Each block writes `direction` for its own pins at
+construction, so where the ranges DO overlap, whichever is built last
+wins and the other block silently reads or drives nothing.
 
 One output port per pin, carrying one bit per sample in a short. That is
 gr-iio's model, not a choice made here: each DIO pin is its own IIO
@@ -37,21 +39,28 @@ PIN_COUNT = 16
 DIGITAL_SAMPLE_RATES = [100000000, 10000000, 1000000, 100000, 10000, 1000]
 
 
-def pins_for(count):
-    """Pin ids for the first `count` DIO pins, DIO0 upward."""
+def pins_for(count, first=0):
+    """Pin ids for `count` DIO pins, counting up from DIO`first`."""
     count = int(count)
+    first = int(first)
     if count < 1 or count > PIN_COUNT:
         raise ValueError("pin count must be between 1 and %d, got %r"
                          % (PIN_COUNT, count))
-    return ["voltage%d" % index for index in range(count)]
+    if first < 0 or first >= PIN_COUNT:
+        raise ValueError("first pin must be between 0 and %d, got %r"
+                         % (PIN_COUNT - 1, first))
+    if first + count > PIN_COUNT:
+        raise ValueError("DIO%d upward is only %d pins, so %d will not fit"
+                         % (first, PIN_COUNT - first, count))
+    return ["voltage%d" % index for index in range(first, first + count)]
 
 
 class _digital(gr.hier_block2):
     """Shared plumbing: pick the pins, set their direction, stream."""
 
     def __init__(self, name, uri, pin_count, sample_rate, buffer_size,
-                 direction):
-        self.pins = pins_for(pin_count)
+                 direction, first_pin=0):
+        self.pins = pins_for(pin_count, first_pin)
         self._config = []
         self._make_signature(name, len(self.pins))
 
@@ -67,12 +76,12 @@ class _digital(gr.hier_block2):
 
 
 class digital_source(_digital):
-    """Read the DIO pins. One output port per pin, DIO0 first."""
+    """Read the DIO pins. One output port per pin, lowest pin first."""
 
     def __init__(self, uri="ip:192.168.2.1", pin_count=1,
-                 sample_rate=1000000, buffer_size=16384):
+                 sample_rate=1000000, buffer_size=16384, first_pin=0):
         _digital.__init__(self, "m2k_digital_source", uri, pin_count,
-                          sample_rate, buffer_size, "in")
+                          sample_rate, buffer_size, "in", first_pin)
         self.source = iio.device_source(
             uri, DEV_RX, self.pins, DEV_RX, self.params, self.buffer_size, 0)
         self.source.set_len_tag_key("packet_len")
@@ -86,13 +95,13 @@ class digital_source(_digital):
 
 
 class digital_sink(_digital):
-    """Drive the DIO pins. One input port per pin, DIO0 first."""
+    """Drive the DIO pins. One input port per pin, lowest pin first."""
 
     def __init__(self, uri="ip:192.168.2.1", pin_count=1,
                  sample_rate=1000000, buffer_size=16384,
-                 drive="push-pull", cyclic=False):
+                 drive="push-pull", cyclic=False, first_pin=0):
         _digital.__init__(self, "m2k_digital_sink", uri, pin_count,
-                          sample_rate, buffer_size, "out")
+                          sample_rate, buffer_size, "out", first_pin)
         for pin in self.pins:
             write_channel_attr(self, self._config, uri, DEV_CONFIG, pin,
                                "outputmode", drive)
