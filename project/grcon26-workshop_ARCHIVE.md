@@ -4,6 +4,38 @@ dateModified: 2026-09-03
 ---
 # Superseded Decisions
 
+**Rotated 2026-09-03 — settled, still binding.** The three board-pack authoring rules
+that had governed the Decisions section since August. Nothing here has changed; they
+are out of the hot note because they are no longer under review, and the first is now
+enforced by the overlay schema and its tests. The hot note keeps a one-line stub.
+
+- Overlay entries come from read-only evidence plus libm2k source tracing, each with a
+  `check` field. Confidence is `MEASURED` only for what a capture proves, `SOURCED`
+  where behaviour traces to libm2k, `UNVERIFIED` for anything inferred from a name.
+- The real capture goes in alongside `fixtures/m2k-snapshot.json`, not over it.
+  Reason: the fixture keeps goldens stable; participants should explain real data.
+- `pll` / `ad9963` internals, `dma_sync_start`, `raw_enable` and `trigger_status` are
+  deferred from the board pack. Reason: chip plumbing, no evidence to write from.
+
+**Rotated 2026-09-03 — closed, from Plan.** "Scope check: no Phase 3 demo needs a new
+M2K block, and the four cover every Scopy instrument except the supply (`ad5627`),
+which is deferred and unneeded." The question it answered — whether block-building was
+finished — is answered, and Phase 1 says so.
+
+**Rotated 2026-09-03 — corrected by the board itself.** "**2026-09-01** — Blocks read
+`calibscale`/`calibbias` and apply them. Reason: libm2k applies the gain in software,
+so the driver does not correct the samples for us." Both halves are wrong. `--probe`
+set `calibscale` to 2.0 and the same input came back at twice the counts, so the driver
+does apply it and a block applying it again double-counts. `calibbias` moved nothing at
+1948, 2048 or 2148 — it is stored and ignored, and the ADC's real offset trim is the
+`ad5625`. Replaced by the 2026-09-03 entry.
+
+**Rotated 2026-09-03 — retired from Traps.** "Offset AND gain are per channel on the
+ADC; neither is on the DAC. Two-point meter runs put both generator gains within 0.25%
+of unity, but the two input gains differ 0.52% and their offsets differ in sign."
+Still true, but now stated as the 2026-09-03 Decision it produced and implemented in
+`gr-m2k/m2k_calibrate.py`, which trims all four paths per channel.
+
 **Rotated 2026-09-03 — retired from Traps.** Both still true; neither returns a
 confident wrong number any more, which is what that section is for.
 

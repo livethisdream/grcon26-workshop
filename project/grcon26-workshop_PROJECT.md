@@ -40,12 +40,11 @@ display), and the session material itself.
 - **Cyclic buffers quantise frequency.** A repeating N-sample buffer only produces
   multiples of `rate/N`, so 10 kHz comes back as 9979.2 Hz and that is correct.
 - **Volts-per-count depends on the sample rate**, through the decimation filter's gain
-  -- same for the generator, with a much less regular table.
+  -- and the same correction applies to the trigger level, which otherwise sits 9% from
+  where the scope says it is. The generator has the same problem, less regularly.
 - **Reading trigger attributes back proves nothing.** A silently free-running trigger
   sets every one correctly and delivers every sample. Only alignment, a stall above the
   peak, and the edge's slope tell them apart.
-- **The decimation filter's correction applies to the trigger level too.** Leave it out
-  and the trigger sits 9% from where the scope says it is.
 - **`-tx` and `-rx` hold separate `sampling_frequency`.** Each digital block writes
   only its own device, so a Sink and a Source given different rates disagree about time
   and neither complains.
@@ -56,10 +55,14 @@ display), and the session material itself.
   `start`/`stop`/`wait`.
 - **Positive digital `trigger_delay` is approximate.** Zero and negative are exact and
   repeat; positive lands tens of samples off, differently each run, reading back right.
-- **Offset AND gain are per channel on the ADC; neither is on the DAC.** Two-point
-  meter runs put both generator gains within 0.25% of unity, but the two input gains
-  differ 0.52% and their offsets differ in sign. Deriving either once and applying it
-  everywhere is wrong.
+- **`calibbias` is storage; `calibscale` is not.** Write `calibbias`, read it back, and
+  it holds the value while changing nothing in the samples -- the ADC's offset trim is
+  really `ad5625` channels 2 and 3. `calibscale` is the opposite: the driver applies it
+  before you see the sample, so a block that reads it back and multiplies again is
+  wrong by exactly that factor.
+- **Calibration mode reads the same counts on both ranges.** Its references and the
+  generator loopback arrive past the input amplifier, so `volts_per_count()` mis-scales
+  them by 4.7x. Convert at a fixed 0.29297 mV/count instead.
 - **A disconnected input reads as a clean, stable, plausible number** -- its own
   offset. Input 1 sat at -13.9 counts through a full-volt swing on a generator wired
   to the wrong socket, three runs, and -13.9 was a genuinely correct prior
@@ -73,19 +76,13 @@ display), and the session material itself.
 
 # Decisions
 
-- Overlay entries come from read-only evidence plus libm2k source tracing, each with a
-  `check` field. Confidence is `MEASURED` only for what a capture proves, `SOURCED`
-  where behaviour traces to libm2k, `UNVERIFIED` for anything inferred from a name.
-- The real capture goes in alongside `fixtures/m2k-snapshot.json`, not over it.
-  Reason: the fixture keeps goldens stable; participants should explain real data.
-- `pll` / `ad9963` internals, `dma_sync_start`, `raw_enable` and `trigger_status` are
-  deferred from the board pack. Reason: chip plumbing, no evidence to write from.
+- Board-pack authoring rules — evidence tiers and the `check` field, the real capture
+  alongside the fixture rather than over it, chip plumbing deferred — are settled and
+  still binding; the archive has them in full.
 
 - **2026-09-01** — Calibration is a standalone script run once per session, not block
   init. Reason: it seizes the whole analog front end, is a closed loop `attr_sink`
   cannot express, and its result persists on the device.
-- **2026-09-01** — Blocks read `calibscale`/`calibbias` and apply them. Reason: libm2k
-  applies the gain in software, so the driver does not correct the samples for us.
 - **2026-09-01** — The filter corrections are arithmetic, not calibration, and live in
   `m2k_scale.py`. Reason: fixed property of the converters, same on every board.
 - **2026-09-01** — libm2k may check our numbers on the bench, but the workshop ships no
@@ -108,15 +105,21 @@ display), and the session material itself.
 - **2026-09-03** — `m2k_calibrate.py` trims DAC offset only, and ADC gain *and* offset,
   both per channel. Reason: two-point meter runs put both DAC gains within 0.25% of
   unity while the two ADC gains differ 0.52%.
+- **2026-09-03** — Calibration lands on the `ad5625` trim DAC and `m2k-adc calibscale`;
+  blocks apply neither. Reason: `calibbias` is inert and the driver applies `calibscale`
+  itself, so a block re-applying it double-counts the gain.
+- **2026-09-03** — Calibration-mode captures convert at a fixed 0.29297 mV/count, not
+  `volts_per_count()`. Reason: the internal references bypass the input range amplifier,
+  which is why libm2k forces `hw_gain` to 1 there.
+- **2026-09-03** — Generator offset comes from a five-point sweep's zero crossing, not
+  libm2k's single capture through a 9.06 divider. Reason: a crossing needs no scale
+  factor at all, and this board's loopback measures 8.34.
 
 # Plan
 
 **Phase 1 (current) — crawl:** Block-building is done and hardware-verified, both
-triggers and a real SPI bus included. Open: a calibration script for the last ~6.5%,
-then the board pack (Tier 1 + Tier 2, 104 attributes, ~90% coverage expected).
-
-**Scope check:** no Phase 3 demo needs a new M2K block, and the four cover every Scopy
-instrument except the supply (`ad5627`), which is deferred and unneeded.
+triggers and a real SPI bus included, and calibration has closed the absolute error.
+Open: the board pack (Tier 1 + Tier 2, 104 attributes, ~90% coverage expected).
 
 **Timing:** GRCon26 is this month, Phases 2 and 3 have not started, slides are gated
 behind working demos, and setup instructions are due two weeks prior.
@@ -131,9 +134,9 @@ move acquisition state server-side; slides, procurement, timing.
 
 # Status
 
-- **Repo:** `main` at `3970a04` — the packed sink, both digital ymls, the SPI
-  flowgraph, `bench/` and three docs are all committed. `bench/dc_point.py` is
-  untracked. `m2k-discovery-gui` is merged and deletable.
+- **Repo:** `main` at `b5a3b67`. `gr-m2k/m2k_calibrate.py`, `tests/test_calibrate.py`
+  and a corrected `m2k_scale.py` docstring are new and uncommitted.
+  `m2k-discovery-gui` is merged and deletable.
 - **`gr-m2k/` — four blocks**: `analog_source`, `analog_sink`, `digital_source`,
   `digital_sink`, plus `m2k_scale.py` (arithmetic, imports nothing) and
   `m2k_config.py`.
@@ -142,16 +145,16 @@ move acquisition state server-side; slides, procurement, timing.
   three DIO pins, verified over all 256 byte values with zero errors.
 - **Everything the four blocks do is hardware-verified.** `raw` both drives and
   reads a pin with no flowgraph — that is Scopy's Digital IO, in both directions.
-- **Absolute error is fully characterised, per channel.** W1 gain 1.00250 / offset
-  +48.5 mV; W2 0.99990 / +112.1 mV; input 1 0.93686 / -20.9 mV (-13.8 counts);
-  input 2 0.93199 / +61.9 mV (+40.8 counts). Both DAC gains are within 0.25% of
-  unity, so the generator needs offset trim only; the two ADC gains differ 0.52%,
-  ~4x the meter's resolution, so the ADC needs gain and offset per channel.
-  Evidence: `bench/dc_point.py`, checklist section 10.
+- **Absolute error is closed and meter-verified.** `gr-m2k/m2k_calibrate.py --apply`
+  moved input 1 from gain 0.93686 / offset -20.9 mV to 1.00080 / -1.0 mV, input 2 from
+  0.93199 / +61.9 mV to 1.00310 / -0.35 mV, W1's offset from +48.5 mV to +10.0 mV and
+  W2's from +112.1 mV to +17.0 mV. A 1.0 V input read 0.916 V before and reads 0.9998 V
+  now. Internal references only -- the meter was the independent check, not an input.
+  The generators keep ~10 and ~17 mV because the internal loopback never sees a DMM's
+  load. Evidence: `bench/dc_point.py`, checklist section 10.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
-  passthrough — `--scan` finds only `local:`. All 16 DIO pins restored to inputs,
-  triggers off, board safe to unplug.
-- **Tests:** 212 pass, 7 new around the packed digital sink.
+  passthrough. Calibrated and held; all 16 DIO pins are inputs, triggers off.
+- **Tests:** 252 pass, 40 new around the calibration arithmetic.
 - **Discovery tooling** unchanged for four sessions. Real-hardware ABI coverage 57%;
   58 of 74 overlay entries still `UNVERIFIED`.
 - **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
@@ -159,34 +162,27 @@ move acquisition state server-side; slides, procurement, timing.
 
 # ToDo
 
-- [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`:
-      DAC offset only, ADC gain and offset, all per channel. Targets are in Status.
-- [ ] Confirm `calibbias`'s sign convention around its 2048 neutral against libm2k's
-      `calibrateADC()` before the script writes anything.
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
 - [ ] Non-cyclic digital streaming underruns at 1 MS/s (half the runs) — find the rate
       where it stops.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 
-- [ ] Confirm `attr_note()` reaches these attributes before writing prose — channel
-      attrs like `in_voltage0_trigger_delay` must reduce to `trigger_delay`, and
-      device attrs must hit the same flat `pack["attrs"]` dict. Otherwise entries get
-      written and never displayed.
-- [ ] Write the Tier 1 board-pack entries (96 attributes) — new packs for
-      `m2k-logic-analyzer` and `-rx`, plus the shared trigger attributes on `-tx` and
-      both DACs. Section 8 of the bench checklist now measures most of the `-rx`
-      trigger set, so those go in as `MEASURED`.
-- [ ] Write the Tier 2 entries (8 attributes) — `m2k-adc-trigger` as a new pack,
-      `m2k-fabric` `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`.
-- [ ] Add tests covering the new overlay entries, and re-run the coverage report to
-      confirm the number actually moved (57% → ~90% expected).
-- [ ] Review the `tests/golden/channels-m2k-adc.txt` diff by hand when adding
-      `calibrate`, rather than blanket-accepting `REGEN_GOLDEN=1`.
+- [ ] Confirm `attr_note()` reaches these attributes first — `in_voltage0_trigger_delay`
+      must reduce to `trigger_delay`, device attrs must hit the same flat `pack["attrs"]`.
+      Otherwise entries get written and never displayed.
+- [ ] Tier 1 (96 attributes) — new packs for `m2k-logic-analyzer` and `-rx`, plus the
+      shared trigger attributes on `-tx` and both DACs. Checklist section 8 measures
+      most of the `-rx` trigger set, so those go in as `MEASURED`.
+- [ ] Tier 2 (8 attributes) — `m2k-adc-trigger` as a new pack, `m2k-fabric`
+      `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`. The existing
+      `calibrate` entry is wrong: it is `setCalibrateHDL`, FPGA interface training,
+      not a rewrite of `calibscale`/`calibbias`.
+- [ ] Then the bookkeeping: tests for the new entries; re-run coverage (57% → ~90%
+      expected); read the `channels-m2k-adc.txt` golden diff by hand rather than
+      `REGEN_GOLDEN=1`; correct the README's "95%" claim to report synthetic and real
+      separately; sweep the remaining `[overlay: UNVERIFIED]` entries via each `check`.
 - [ ] Commit the real capture alongside the synthetic fixture (not over it) and point
       README demos at it. Decide whether to scrub `hw_serial` and `cal,*` first.
-- [ ] Correct the README's "95%" coverage claim — report synthetic and real separately.
-- [ ] Verify every `[overlay: UNVERIFIED]` entry in `iio_overlays.py` using its `check`
-      field; promote to `MEASURED`.
 - [ ] Confirm whether `ctx.attrs` returns strings or objects on the installed libiio —
       `iio_discover._read()` handles both, neither observed.
 - [ ] Recover or rebuild `standing_wave_view.jsx`.
