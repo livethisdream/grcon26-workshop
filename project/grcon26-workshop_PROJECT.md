@@ -12,8 +12,8 @@ on its input side as a signal source. libiio / gr-iio is the interface layer for
 flowgraph in the workshop. Audience is ~20 participants with basic GNU Radio
 familiarity, in a 90–120 minute session structured crawl (IIO intro, loopback) → walk
 (IIO block anatomy, discovery tool) → run (application demos). Scope spans tooling (a
-standalone Python IIO discovery program), three demo applications (SPI loopback,
-ultrasonic detection, CN0363 colorimeter), and the session material itself.
+standalone Python IIO discovery program), four demo applications (SPI loopback,
+ultrasonic detection, CN0363 colorimeter, supply blinky), and the session material itself.
 
 # Special Instructions
 
@@ -116,6 +116,10 @@ ultrasonic detection, CN0363 colorimeter), and the session material itself.
 - **2026-09-03** — Hardware scarcity is no longer a design constraint. Many M2Ks, 40
   ultrasonic transducers and several CN0363 boards are in hand, so the one-instructor
   unit / receive-only station architecture is no longer required.
+- **2026-09-03** — A fourth demo: blink an LED from the user supply. Reason: the supply is
+  an attribute path (`ad5627 raw`, `m2k-fabric` `user_supply` `powerdown`), not a buffer,
+  so Scopy can only set it and GNU Radio can put it on a timer. This reverses the
+  2026-09-02 decision that the supply gets no block.
 - **2026-09-03** — Ultrasonic is CW at 40 kHz, driven straight from W1. Reason: the
   cheap transducers are narrowband, so sweep encoding is moot, and CW is the smallest
   thing that detects.
@@ -128,7 +132,7 @@ demo list needs a new block.
 | when | what |
 | --- | --- |
 | 2026-09-04 | Calibration: build `m2k_calibrate.py`, settle the ~6.5% gain and the per-channel offsets |
-| 2026-09-05 | SPI loopback demo, details knocked out |
+| 2026-09-05 | SPI loopback demo, details knocked out; supply blinky if time allows |
 | week of 2026-09-08 | Ultrasonic detection, CW at 40 kHz |
 | week of 2026-09-15 | CN0363 colorimeter |
 
@@ -186,6 +190,17 @@ path.
 - [ ] Trigger the source on CS falling so the capture starts at the frame.
 - [ ] Add `flowgraphs/m2k_spi_loopback.grc`. Same rate on `-tx` and `-rx` — the trap.
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` as the one-pin crawl step.
+
+**Supply blinky (fits anywhere, half a day)**
+
+- [ ] Fifth block, `supply`: V+ and V- in volts, on/off, and a message port so a
+      Message Strobe toggles it. `attr_updater`/`attr_sink` via `m2k_config` is the
+      whole write path; no buffer exists for this device.
+- [ ] Trace `ad5627 raw` to the V+/V- pins with the meter: published scale is
+      0.293 mV/count, so a gain stage follows and the volts mapping needs the
+      `cal,*` supply constants. Promotes the `ad5627` overlay entry to `MEASURED`.
+- [ ] Measure the toggle rate over the network backend. Expect tens of Hz, one libiio
+      round trip per write; that number is the lesson next to DIO at 100 MS/s.
 
 **Ultrasonic (week of 2026-09-08)**
 
