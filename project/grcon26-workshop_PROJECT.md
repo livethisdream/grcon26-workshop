@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-02
+dateModified: 2026-09-03
 container: cdocker
 ---
 # Overview
@@ -39,8 +39,6 @@ display), and the session material itself.
   plausible flat line rather than an error. Clear `powerdown` on `m2k-fabric`.
 - **Cyclic buffers quantise frequency.** A repeating N-sample buffer only produces
   multiples of `rate/N`, so 10 kHz comes back as 9979.2 Hz and that is correct.
-- **One `iio_buffer_push` per cyclic buffer.** Later pushes return `-EBUSY`; the
-  `Device or resource busy (16)` warning is expected.
 - **Volts-per-count depends on the sample rate**, through the decimation filter's gain
   -- same for the generator, with a much less regular table.
 - **The scope and generator clocks are 100 and 75 MS/s**; no rate is legal for both.
@@ -61,9 +59,15 @@ display), and the session material itself.
   `start`/`stop`/`wait`.
 - **Positive digital `trigger_delay` is approximate.** Zero and negative are exact and
   repeat; positive lands tens of samples off, differently each run, reading back right.
-- **Offsets are per channel; gain is not.** Both signal paths share one gain error to
-  0.7%, but their offsets differ 6.8x. Deriving offset once and applying it everywhere
-  is wrong by most of it.
+- **Offset AND gain are per channel on the ADC; neither is on the DAC.** Two-point
+  meter runs put both generator gains within 0.25% of unity, but the two input gains
+  differ 0.52% and their offsets differ in sign. Deriving either once and applying it
+  everywhere is wrong.
+- **A disconnected input reads as a clean, stable, plausible number** -- its own
+  offset. Input 1 sat at -13.9 counts through a full-volt swing on a generator wired
+  to the wrong socket, three runs, and -13.9 was a genuinely correct prior
+  measurement. Only sweeping the source and watching for *no* response tells a dead
+  wire from a real reading.
 - **gr-iio's `device_sink` drives ONE DIO pin, silently.** Sixteen 1-bit fields share
   one 16-bit word; each channel's write is a full-width store that erases the last, so
   only the highest pin survives. No error. `docs/gr-iio-multipin-sink.md`.
@@ -111,6 +115,9 @@ display), and the session material itself.
 - **2026-09-02** — `digital_sink` packs the 16-bit output word itself with pylibiio
   instead of using `iio.device_sink`. Reason: device_sink can only drive one pin;
   patching gr-iio upstream is deferred.
+- **2026-09-03** — `m2k_calibrate.py` trims DAC offset only, and ADC gain *and* offset,
+  both per channel. Reason: two-point meter runs put both DAC gains within 0.25% of
+  unity while the two ADC gains differ 0.52%.
 
 # Plan
 
@@ -134,8 +141,9 @@ move acquisition state server-side; slides, procurement, timing.
 
 # Status
 
-- **Repo:** `main`. Uncommitted: the packed sink, both digital ymls, the SPI
-  flowgraph, `bench/`, and three docs. `m2k-discovery-gui` is merged and deletable.
+- **Repo:** `main` at `3970a04` — the packed sink, both digital ymls, the SPI
+  flowgraph, `bench/` and three docs are all committed. `bench/dc_point.py` is
+  untracked. `m2k-discovery-gui` is merged and deletable.
 - **`gr-m2k/` — four blocks**: `analog_source`, `analog_sink`, `digital_source`,
   `digital_sink`, plus `m2k_scale.py` (arithmetic, imports nothing) and
   `m2k_config.py`.
@@ -144,9 +152,13 @@ move acquisition state server-side; slides, procurement, timing.
   three DIO pins, verified over all 256 byte values with zero errors.
 - **Everything the four blocks do is hardware-verified.** `raw` both drives and
   reads a pin with no flowgraph — that is Scopy's Digital IO, in both directions.
-- **Residual absolute error is ~6.5%, one shared gain error**, consistent with
-  `calibscale` (`1.000000` here). Offsets are per channel: W1 +49.4 mV, W2
-  +114.5 mV, input 1 -21.4 mV, input 2 not yet split.
+- **Absolute error is fully characterised, per channel.** W1 gain 1.00250 / offset
+  +48.5 mV; W2 0.99990 / +112.1 mV; input 1 0.93686 / -20.9 mV (-13.8 counts);
+  input 2 0.93199 / +61.9 mV (+40.8 counts). Both DAC gains sit within 0.25% of
+  unity, so `DAC_FILTER_COMP` needs no gain trim and the generator's error is pure
+  per-channel offset. The two ADC gains differ 0.52%, ~4x the meter's resolution,
+  so the ADC needs gain and offset per channel. Method and evidence:
+  `bench/dc_point.py`, two metered points per path.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
   passthrough — `--scan` finds only `local:`. All 16 DIO pins restored to inputs,
   triggers off, board safe to unplug.
@@ -158,10 +170,10 @@ move acquisition state server-side; slides, procurement, timing.
 
 # ToDo
 
-- [ ] Meter W2 at +1.0 V — one reading closes the input-2 offset split.
-- [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`,
-      checked against libm2k's `calibrateADC()`. Per-channel offsets. Confirm on the
-      way whether the input offset is a fixed count error scaling with range.
+- [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`:
+      DAC offset only, ADC gain and offset, all per channel. Targets are in Status.
+- [ ] Confirm `calibbias`'s sign convention around its 2048 neutral against libm2k's
+      `calibrateADC()` before the script writes anything.
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
 - [ ] Non-cyclic digital streaming underruns at 1 MS/s (half the runs) — find the rate
       where it stops.

@@ -1,8 +1,22 @@
 ---
 name: "#grcon26-workshop"
-dateModified: 2026-09-02
+dateModified: 2026-09-03
 ---
 # Superseded Decisions
+
+**Rotated 2026-09-03 — corrected by measurement.** The residual absolute error was
+recorded as "~6.5%, one shared gain error", on the strength of the two loopback paths
+agreeing on gain to 0.7%. Two-point meter runs on 2026-09-03 show that framing was
+wrong in both halves: the generators contribute no gain error at all (W1 1.00250,
+W2 0.99990, both within 0.25% of unity after `DAC_FILTER_COMP`), and the two ADC gains
+differ 0.52% — about 4x the meter's resolution, so per channel rather than shared. The
+composite figures were right; attributing them was not. Current numbers are in Status.
+
+**Rotated 2026-09-03 — retired from Traps.** "One `iio_buffer_push` per cyclic buffer;
+later pushes return `-EBUSY` and the `Device or resource busy (16)` warning is
+expected." Still true, still seen on every cyclic run, but it announces itself in
+plain text and costs a moment's reading. Traps is for the ones that return confident
+wrong numbers.
 
 **Rotated 2026-09-02 — closed, not reversed.** All three are now permanent
 implementation rather than open choices; the code and its docstrings carry them.
@@ -142,6 +156,41 @@ for the ones that return confident wrong numbers.
   Harmless on a source.
 - **gr-iio's `device_phy` must name a real device.** `""` is not "none" -- it goes
   through `iio_context_find_device` and always fails with `Device not found`.
+
+## 2026-09-03 — the calibration set, closed per channel
+
+Two metered points per signal path, driven by `bench/dc_point.py`: hold a DC level
+through `analog_sink` at 750 kS/s, capture in counts at 1 MS/s on the `high` range,
+convert in the script so the raw number and our volts both print. The generator holds
+its last cyclic buffer after the graph stops, so the meter reading never races the
+capture.
+
+| | gain | offset | counts |
+|---|---|---|---|
+| W1 | 1.00250 | +48.5 mV | — |
+| W2 | 0.99990 | +112.1 mV | — |
+| input 1 | 0.93686 | -20.9 mV | -13.8 |
+| input 2 | 0.93199 | +61.9 mV | +40.8 |
+
+Every number cross-checks. The composite implied for W1 to input 1 is gain 0.93920,
+offset +24.5 mV, against 2026-09-01's independent fit of 0.9401 / +25 mV. W2's zero
+metered 112.1 mV against 114.5 mV last session, W1's 48.5 against 49.4. Both ADC
+offsets came out twice by different routes — solved from the fit, and read directly
+off a disconnected input — agreeing to 0.2 and 0.3 mV. Input 1's -13.8 counts is the
+third independent arrival at the -13.9 counts section 4 measured.
+
+**A jumper in the wrong socket cost the middle of the session, and paid for itself.**
+Metering W1 while the old jumper still ran W1 into `2+`, input 1 read a clean, stable
+-13.9 counts across a full-volt swing. That is a real number — input 1's own offset,
+and one a previous session had correctly measured — so nothing looked broken. What
+gave it away was arithmetic: W1 metered +48.5 mV, and input 1 was reporting as though
+its input were 0 V. Sweeping the source and watching for no response confirmed it.
+The accident then served as an independent test of input 2, whose freshly derived
+calibration predicted its readings to 0.3 mV at the low end and 1.6 mV at the high.
+Now a Trap.
+
+Board parked cold afterwards: both DAC registers at 0, all four fabric powerdowns set,
+triggers back to `always`.
 
 # Ruled Out
 

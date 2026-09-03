@@ -5,10 +5,10 @@ Ordered so that each step makes the next one meaningful.
 Nothing here needs the discovery tool. It needs an M2K, a wire, and
 ideally a meter.
 
-**State as of 2026-09-02:** sections 1, 2, 3, 5, 6, 7, 8 and 9 pass,
-both the analog and the digital trigger included, and a real SPI bus
-decoded off three DIO pins. Section 4 passes on everything relative and
-fails on absolute accuracy, for a reason that is now understood.
+**State as of 2026-09-03:** every section passes. Section 4 was the last
+open one -- it passed on everything relative and failed on absolute
+accuracy -- and section 10 closes it with a metered gain and offset for
+all four signal paths.
 
 Section 9 is where the multi-pin digital sink got fixed. gr-iio's
 `device_sink` can only drive one DIO pin -- silently -- so `digital_sink`
@@ -145,7 +145,7 @@ resource busy (16)` on every cyclic run. libiio permits exactly one
 on and further pushes return `-EBUSY`. Expected, but it reads like a
 failure and should be explained or suppressed.
 
-## 4. The volts number — RELATIVE PASSES, ABSOLUTE FAILS BY ~7%
+## 4. The volts number — RELATIVE PASSES, ABSOLUTE CLOSED IN SECTION 10
 
 Method: hold W1 at a DC level, read it with a meter on 1+/1−, capture
 counts, fit a line through three points. Requested 0.0 / 1.0 / 2.0 V,
@@ -171,7 +171,10 @@ and `m2k_scale.py` did not have it. Applying it accounts for 10 of the
 17.6 points.
 
 **The rest is calibration, and is real.** The residual is a gain of
-about 1.07, i.e. the ADC reads roughly 7% low. `m2k-adc voltage0` and
+about 1.07, i.e. the ADC reads roughly 7% low. Section 10 measures it
+per channel: x1.0674 on input 1, x1.0730 on input 2. The x1.0675 in the
+table below was taken on channel 1, which is why it matches input 1
+rather than splitting the difference. `m2k-adc voltage0` and
 `voltage1` both carry `calibbias = 2048` and `calibscale = 1.000000`,
 the driver's uncalibrated defaults — 2048 is the neutral value that
 turns offset binary into signed, not an offset of 2048 counts. There is
@@ -256,14 +259,17 @@ a single case and fail this one.
 | W1 to input 1 | 0.9401 | **+25 mV** |
 | W2 to input 2 | 0.9335 | **+169 mV** |
 
-Gains agree to 0.7%, so both paths lose the same ~6.5% and it is one
-shared error. The offsets are 6.8x apart. On the +/-2.5 V range 169 mV
+Gains agree to 0.7% here, which read at the time as one shared error.
+Section 10 shows it is not: metering each generator separately puts both
+DAC gains at unity and leaves the two ADC gains 0.52% apart, which is
+per channel. The composite numbers below are right; the attribution was
+not. The offsets are 6.8x apart. On the +/-2.5 V range 169 mV
 is 6.8% of full scale, which is not a trim — it is the thing
 `calibbias` exists for, and it has to be measured per channel rather
 than derived once and applied everywhere.
 
 These are composite DAC-times-ADC figures. Splitting them needs the
-meter on each output; only W1 has ever been measured absolutely.
+meter on each output, which is section 10.
 
 Independence is clean: moving W1 by -939.5 mV moved channel 2 by
 -1.1 mV.
@@ -500,7 +506,73 @@ thing a participant can change and immediately see.
 
 The flowgraph is `flowgraphs/m2k_spi_loopback.grc`.
 
-## 10. Promote what passes
+## 10. Splitting the composite, per channel — PASSES
+
+Every figure up to here is a composite: a generator and an input in
+series, and a product cannot say which factor is wrong. Two metered
+points on each signal path separates them.
+
+Wire one path at a time, meter in parallel with the input:
+
+```
+W2 -> 2+, 2- -> GND, meter across W2 and GND     --output w2
+W1 -> 1+, 1- -> GND, meter across W1 and GND     --output w1
+```
+
+Then, per path, capture at a requested 0.0 V and 1.0 V and read the
+meter at each:
+
+```
+python3 bench/dc_point.py 0.0 --output w2
+python3 bench/dc_point.py 1.0 --output w2
+```
+
+Conditions have to match the data this joins: generator 750 kS/s
+(`DAC_FILTER_COMP` 1.164153), scope 1 MS/s (1.10), both inputs `'high'`,
+which is the +/-2.5 V range. The generator holds its last cyclic buffer
+after the graph stops, so the meter reading never races the capture.
+
+- [x] each generator's own gain and offset, against a meter
+- [x] each input's own gain and offset
+- [x] the composite reconstructs the section 6 fit
+
+| | gain | offset | counts | correction |
+|---|---|---|---|---|
+| W1 | **1.00250** | +48.5 mV | — | offset only |
+| W2 | **0.99990** | +112.1 mV | — | offset only |
+| input 1 | 0.93686 | -20.9 mV | -13.8 | x1.0674 |
+| input 2 | 0.93199 | +61.9 mV | +40.8 | x1.0730 |
+
+**The generators need no gain correction.** Both land within 0.25% of
+unity once `DAC_FILTER_COMP` is applied, so the whole ~6.5% belongs to
+the ADC. What the DAC needs is an offset trim, and the two differ 2.3x.
+
+**The ADC needs gain per channel, not once.** 0.93686 against 0.93199 is
+0.52% apart. The meter reads to about 1 mV at the top of the range, so
+each gain is good to ~0.1% and the difference is roughly 4x that. This
+is the finding that corrects section 6.
+
+**Everything cross-checks.** The composite implied for W1 to input 1 is
+gain 0.93920 / offset +24.5 mV against section 6's independent fit of
+0.9401 / +25 mV. W2's zero metered 112.1 mV against 114.5 mV a session
+earlier, W1's 48.5 against 49.4. Both ADC offsets arrived twice by
+different routes -- solved from the two-point fit, and read straight off
+a disconnected input -- agreeing to 0.2 and 0.3 mV. Input 1's -13.8
+counts is a third independent arrival at section 4's -13.9.
+
+**A disconnected input does not look disconnected.** Metering W1 with
+the old jumper still feeding `2+`, input 1 read a clean and stable -13.9
+counts through a full-volt sweep. That is a real number -- its own
+offset, and one section 4 had correctly measured -- so nothing looked
+wrong. The tell was arithmetic: W1 metered +48.5 mV while input 1
+reported as though its input were at zero. Sweep the source and watch
+for no response; a dead wire and a real reading are otherwise identical.
+
+**What is still open.** `calibbias`'s sign convention around its 2048
+neutral is not established, and `m2k_calibrate.py` must not write until
+it is checked against libm2k's `calibrateADC()`.
+
+## 11. Promote what passes
 
 Each entry in `iio_overlays.py` carries a `check` field describing how to
 confirm it. 58 of 74 are still `UNVERIFIED`. As they check out, change
@@ -538,12 +610,14 @@ settings you understand:
 
 ## Scripts
 
-The hardware runs in section 9 are reproducible:
+The hardware runs in sections 9 and 10 are reproducible:
 
 ```
 python3 bench/digital_coherence.py cyclic       # 9a
 python3 bench/spi_loopback.py 0xA5              # 9b
 python3 bench/spi_loopback.py $(seq 0 255)      # every byte
+python3 bench/dc_point.py 0.0 --output w1       # 10, one point
+python3 bench/dc_point.py 1.0 --output w1 --meter 1.051
 ```
 
 Both want a gnuradio interpreter. The project `.venv` does not have one,
