@@ -154,7 +154,7 @@ move acquisition state server-side; slides, procurement, timing.
   load. Evidence: `bench/dc_point.py`, checklist section 10.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
   passthrough. Calibrated and held; all 16 DIO pins are inputs, triggers off.
-- **Tests:** 252 pass, 40 new around the calibration arithmetic.
+- **Tests:** 253 pass, 41 new around the calibration arithmetic.
 - **Discovery tooling** unchanged for four sessions. Real-hardware ABI coverage 57%;
   58 of 74 overlay entries still `UNVERIFIED`.
 - **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
