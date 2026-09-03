@@ -4,6 +4,16 @@ dateModified: 2026-09-03
 ---
 # Superseded Decisions
 
+**Rotated 2026-09-03 — retired from Traps.** Both still true; neither returns a
+confident wrong number any more, which is what that section is for.
+
+- "The scope and generator clocks are 100 and 75 MS/s; no rate is legal for both." A
+  fact rather than a trap, and `analog_sink`'s docstring leads with it.
+- "A loopback cannot check absolute accuracy -- errors at the two ends multiply and two
+  wrong numbers can look right." This was the argument for putting a meter on the
+  bench. Section 10 has now done that and measured every path separately, so the
+  warning has been acted on rather than merely noted.
+
 **Rotated 2026-09-03 — founding premises, not open choices.** These four have governed
 the project since it started and are not under review; they are here so the hot note
 does not carry them every session. They are still in force.

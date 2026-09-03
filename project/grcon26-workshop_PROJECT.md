@@ -41,9 +41,6 @@ display), and the session material itself.
   multiples of `rate/N`, so 10 kHz comes back as 9979.2 Hz and that is correct.
 - **Volts-per-count depends on the sample rate**, through the decimation filter's gain
   -- same for the generator, with a much less regular table.
-- **The scope and generator clocks are 100 and 75 MS/s**; no rate is legal for both.
-- **A loopback cannot check absolute accuracy.** Errors at the two ends multiply and
-  two wrong numbers can look right.
 - **Reading trigger attributes back proves nothing.** A silently free-running trigger
   sets every one correctly and delivers every sample. Only alignment, a stall above the
   peak, and the edge's slope tell them apart.
@@ -147,11 +144,10 @@ move acquisition state server-side; slides, procurement, timing.
   reads a pin with no flowgraph — that is Scopy's Digital IO, in both directions.
 - **Absolute error is fully characterised, per channel.** W1 gain 1.00250 / offset
   +48.5 mV; W2 0.99990 / +112.1 mV; input 1 0.93686 / -20.9 mV (-13.8 counts);
-  input 2 0.93199 / +61.9 mV (+40.8 counts). Both DAC gains sit within 0.25% of
-  unity, so `DAC_FILTER_COMP` needs no gain trim and the generator's error is pure
-  per-channel offset. The two ADC gains differ 0.52%, ~4x the meter's resolution,
-  so the ADC needs gain and offset per channel. Method and evidence:
-  `bench/dc_point.py`, two metered points per path.
+  input 2 0.93199 / +61.9 mV (+40.8 counts). Both DAC gains are within 0.25% of
+  unity, so the generator needs offset trim only; the two ADC gains differ 0.52%,
+  ~4x the meter's resolution, so the ADC needs gain and offset per channel.
+  Evidence: `bench/dc_point.py`, checklist section 10.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
   passthrough — `--scan` finds only `local:`. All 16 DIO pins restored to inputs,
   triggers off, board safe to unplug.
