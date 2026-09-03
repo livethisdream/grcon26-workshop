@@ -65,12 +65,17 @@ def volts_per_count(range_name, sample_rate):
     same input really is worth a different number of volts per count at
     1 MS/s and at 100 kS/s.
 
-    calib_gain is the channel's calibscale. It is 1.0 on a board that has
-    not been calibrated, which is what this returns. On our board that
-    leaves the reading about 7% low, measured against a meter; see
-    docs/bench-checklist.md. Calibration writes a real value to
-    calibscale, and libm2k applies it in software rather than the driver
-    applying it to the samples -- so reading it back is on us.
+    calib_gain is the channel's calibscale, and this deliberately leaves
+    it at 1.0 -- because the driver has already applied it by the time a
+    sample reaches us. Setting calibscale to 2.0 and re-reading the same
+    input doubles the counts; m2k_calibrate.py --probe measured exactly
+    that. So a block that reads calibscale back and multiplies by it
+    again is wrong by precisely that factor. Do not.
+
+    On an uncalibrated board calibscale is 1.0 and the reading sits
+    about 7% low, measured against a meter; see docs/bench-checklist.md.
+    Running m2k_calibrate.py --apply fixes that in the driver, with no
+    change needed here.
     """
     if range_name not in RANGE_GAIN:
         raise ValueError("unknown input range %r; expected one of %s"
