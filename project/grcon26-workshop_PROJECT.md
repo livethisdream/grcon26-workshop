@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-02
+dateModified: 2026-09-03
 container: cdocker
 ---
 # Overview
@@ -12,8 +12,8 @@ on its input side as a signal source. libiio / gr-iio is the interface layer for
 flowgraph in the workshop. Audience is ~20 participants with basic GNU Radio
 familiarity, in a 90–120 minute session structured crawl (IIO intro, loopback) → walk
 (IIO block anatomy, discovery tool) → run (application demos). Scope spans tooling (a
-standalone Python IIO discovery program), demo applications (a React standing-wave
-display), and the session material itself.
+standalone Python IIO discovery program), three demo applications (SPI loopback,
+ultrasonic detection, CN0363 colorimeter), and the session material itself.
 
 # Special Instructions
 
@@ -72,8 +72,6 @@ display), and the session material itself.
 - No live software installs during the session. Reason: setup instructions go out two
   weeks prior instead.
 - Demos must run before any slides get written.
-- Hardware scarcity is solved by architecture — one instructor unit, many receive-only
-  stations. Reason: works for ultrasonic and standing-wave, not CN0363.
 - Attribute meaning is quoted verbatim from the kernel IIO ABI, every line tagged
   `[abi]`/`[parsed]`/`[driver]`/`[overlay: ...]`. Reason: no guesswork taught as fact.
 - Overlay entries come from read-only evidence plus libm2k source tracing, each with a
@@ -109,27 +107,38 @@ display), and the session material itself.
 - **2026-09-02** — `digital_sink` defaults `idle_level` to `'low'` rather than leaving
   `raw` alone. Reason: the resting level was otherwise leftover state from whatever
   last touched the board.
+- **2026-09-03** — The workshop happens; work continues to the last minute. Every
+  earlier "due two weeks prior" style deadline is stale and not a reason to cut scope.
+- **2026-09-03** — Standing wave is dropped. `standing_wave_view.jsx` is not recovered
+  or rebuilt.
+- **2026-09-03** — Three demos, in build order: SPI loopback, ultrasonic detection,
+  CN0363 colorimeter. Reason: each reuses the blocks that exist; none needs a new one.
+- **2026-09-03** — Hardware scarcity is no longer a design constraint. Many M2Ks, 40
+  ultrasonic transducers and several CN0363 boards are in hand, so the one-instructor
+  unit / receive-only station architecture is no longer required.
+- **2026-09-03** — Ultrasonic is CW at 40 kHz, driven straight from W1. Reason: the
+  cheap transducers are narrowband, so sweep encoding is moot, and CW is the smallest
+  thing that detects.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Block-building is done. All four blocks are verified
-against hardware, both triggers included. Open: a calibration script to close the last
-~6.5%, then the 43% explanation gap via the logic-analyzer board pack (Tier 1 + Tier 2,
-104 attributes, ~90% coverage expected).
+**Gating work is done.** All four blocks exist and are hardware-verified. Nothing on the
+demo list needs a new block.
 
-**Scope check:** no Phase 3 demo needs a new M2K block, and the four cover every Scopy
-instrument except the supply (`ad5627`), which is deferred and unneeded.
-
-**Timing:** GRCon26 is this month, Phases 2 and 3 have not started, slides are gated
-behind working demos, and setup instructions are due two weeks prior.
+| when | what |
+| --- | --- |
+| 2026-09-04 | Calibration: build `m2k_calibrate.py`, settle the ~6.5% gain and the per-channel offsets |
+| 2026-09-05 | SPI loopback demo, details knocked out |
+| week of 2026-09-08 | Ultrasonic detection, CW at 40 kHz |
+| week of 2026-09-15 | CN0363 colorimeter |
 
 **Phase 2 — walk:** IIO block anatomy through the discover/explain pair; the handout in
-`docs/reading-iio-attributes.md` is the participant-facing artifact.
+`docs/reading-iio-attributes.md` is the participant-facing artifact. Fits around the
+demos rather than before them.
 
-**Phase 3 — run:** standing-wave / VSWR, ultrasonic, CN0363 colorimeter.
-
-**Later:** rebuild the standing-wave display; pick the hands-on participant station;
-move acquisition state server-side; slides, procurement, timing.
+**Later, still:** setup instructions, slides, session timing. Slides remain gated behind
+running demos. The overlay explanation gap and the board packs are not on the critical
+path.
 
 # Status
 
@@ -154,47 +163,61 @@ move acquisition state server-side; slides, procurement, timing.
 - **Tests:** 205 pass, 12 new around the trigger and idle level.
 - **Discovery tooling** unchanged for four sessions. Real-hardware ABI coverage 57%;
   58 of 74 overlay entries still `UNVERIFIED`.
-- **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
-  40 kHz TX/RX pairs on order.
+- **Hardware:** many ADALM2000s, several CN0363 boards, 40x cheap 40 kHz ultrasonic
+  transducers, 10x Pico, instructor ultrasonic mic board. All in hand.
 
 # ToDo
+
+**Calibration (2026-09-04)**
 
 - [ ] Meter W2 at +1.0 V — one reading closes the input-2 offset split.
 - [ ] Build `m2k_calibrate.py` against `m2k-fabric calibration_mode` and the `ad5625`,
       checked against libm2k's `calibrateADC()`. Per-channel offsets. Confirm on the
       way whether the input offset is a fixed count error scaling with range.
-- [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
-- [ ] SPI loopback over the DIO pins — tests whether four ports at one bit per sample
-      is a workable way to teach a real bus.
+- [ ] Re-run bench checklist section 4 with `calibscale`/`calibbias` applied; it should
+      pass absolute.
+
+**SPI loopback (2026-09-05)**
+
+- [ ] Pick the four pins and the rate. Sink drives SCLK/MOSI/CS at one bit per sample;
+      source reads MISO. Loopback is MOSI wired to MISO.
+- [ ] A small packer: bytes in, bit-per-sample vectors out, and the reverse. Python
+      block or plain Python — the bus as a waveform is the lesson.
+- [ ] Trigger the source on CS falling so the capture starts at the frame.
+- [ ] Add `flowgraphs/m2k_spi_loopback.grc`. Same rate on `-tx` and `-rx` — the trap.
+- [ ] Add `flowgraphs/m2k_digital_loopback.grc` as the one-pin crawl step.
+
+**Ultrasonic (week of 2026-09-08)**
+
+- [ ] Bench: drive one transducer CW from W1 at 40 kHz, read a second on 1+. Does the
+      M2K input resolve it with no gain stage, and at what range?
+- [ ] Pick a cyclic buffer length that makes 40 kHz exact at 750 kS/s (18.75 samples
+      per cycle, so a multiple of 75 samples).
+- [ ] Detection: envelope or a narrow bandpass on the receive channel; decide what the
+      participant sees change when something crosses the beam.
+
+**Colorimeter (week of 2026-09-15)**
+
+- [ ] Settle how the CN0363 meets the M2K: its ADC over SPI on the DIO pins (the SPI
+      demo grown up), or its analog path read directly on the scope. Decide before
+      building.
+
+**Housekeeping**
+
 - [ ] Suppress or explain the cyclic-buffer `Device or resource busy` warning.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
+- [ ] Write participant setup instructions; slides after the demos run.
+
+**Off the critical path**
 
 - [ ] Confirm `attr_note()` reaches these attributes before writing prose — channel
       attrs like `in_voltage0_trigger_delay` must reduce to `trigger_delay`, and
-      device attrs must hit the same flat `pack["attrs"]` dict. Otherwise entries get
-      written and never displayed.
-- [ ] Write the Tier 1 board-pack entries (96 attributes) — new packs for
-      `m2k-logic-analyzer` and `-rx`, plus the shared trigger attributes on `-tx` and
-      both DACs. Section 8 of the bench checklist now measures most of the `-rx`
-      trigger set, so those go in as `MEASURED`.
-- [ ] Write the Tier 2 entries (8 attributes) — `m2k-adc-trigger` as a new pack,
-      `m2k-fabric` `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`.
-- [ ] Add tests covering the new overlay entries, and re-run the coverage report to
-      confirm the number actually moved (57% → ~90% expected).
+      device attrs must hit the same flat `pack["attrs"]` dict.
+- [ ] Tier 1 board-pack entries (96 attributes) and Tier 2 (8 attributes), with tests,
+      and re-run the coverage report (57% → ~90% expected).
 - [ ] Review the `tests/golden/channels-m2k-adc.txt` diff by hand when adding
       `calibrate`, rather than blanket-accepting `REGEN_GOLDEN=1`.
-- [ ] Commit the real capture alongside the synthetic fixture (not over it) and point
-      README demos at it. Decide whether to scrub `hw_serial` and `cal,*` first.
 - [ ] Correct the README's "95%" coverage claim — report synthetic and real separately.
 - [ ] Verify every `[overlay: UNVERIFIED]` entry in `iio_overlays.py` using its `check`
       field; promote to `MEASURED`.
-- [ ] Confirm whether `ctx.attrs` returns strings or objects on the installed libiio —
-      `iio_discover._read()` handles both, neither observed.
-- [ ] Recover or rebuild `standing_wave_view.jsx`.
-- [ ] Bench-measure whether 40 kHz transducers have the bandwidth for sweep-direction
-      encoding or must use two-tone FSK, and whether the M2K input resolves the mic
-      signal without a gain stage.
-- [ ] Decide which demo becomes the hands-on participant station.
-- [ ] Move standing-wave acquisition state server-side for late joiners.
-- [ ] Write participant setup instructions; send two weeks before the session.
-- [ ] Slides — after demos run.
+- [ ] Confirm whether `ctx.attrs` returns strings or objects on the installed libiio.

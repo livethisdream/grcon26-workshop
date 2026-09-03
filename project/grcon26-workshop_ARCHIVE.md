@@ -1,8 +1,16 @@
 ---
 name: "#grcon26-workshop"
-dateModified: 2026-09-02
+dateModified: 2026-09-03
 ---
 # Superseded Decisions
+
+- **2026-09-03** — Standing wave / VSWR demo dropped, and with it "recover or rebuild
+  `standing_wave_view.jsx`" and "move acquisition state server-side for late joiners."
+- **2026-09-03** — "Hardware scarcity is solved by architecture — one instructor unit,
+  many receive-only stations." Superseded: many M2Ks, 40 transducers and several CN0363
+  boards are in hand.
+- **2026-09-03** — "Setup instructions go out two weeks prior" as a hard date. The
+  decision to avoid live installs stands; the deadline is stale.
 
 - **2026-08-18** — "Overlay entries are written from read-only evidence; the instrument
   is not written to." Superseded 2026-09-01: bench work required writes, taken with
