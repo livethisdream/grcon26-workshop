@@ -61,3 +61,58 @@ Keep the flowgraph `description` to a single line. GRC comments out only its
 first line when generating Python and drops the rest in as bare code, which
 does not parse. Multi-line notes belong in `comment`. There is a test pinning
 this.
+
+---
+
+# SPI loopback
+
+`m2k_spi_loopback.grc` — a real SPI bus bit-banged out of three DIO pins
+and read back on three more. **Three jumpers:**
+
+```
+DIO0 -> DIO4      SCLK
+DIO1 -> DIO5      MOSI
+DIO2 -> DIO6      CS
+```
+
+```
+export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
+gnuradio-companion flowgraphs/m2k_spi_loopback.grc
+```
+
+Three vector sources hold one 256-sample frame each, repeating. The
+Digital Sink plays them as one cyclic buffer at 1 MS/s; with 8 samples
+per half-clock that is a 62.5 kHz bus in SPI mode 0. The Digital Source
+triggers on **CS falling** on DIO6, so the time sink starts every capture
+at a frame boundary rather than wherever the buffer happened to land.
+
+## The frame is a variable, which is the point
+
+```python
+spi_bits = [(spi_byte >> (7 - i)) & 1 for i in range(8)]
+spi_sclk = [0]*72 + ([0]*half + [1]*half)*8 + [0]*56
+spi_mosi = [0]*64 + [spi_bits[0]]*8 + \
+           [b for bit in spi_bits for b in [bit]*(2*half)] + [0]*56
+spi_cs   = [1]*64 + [0]*144 + [1]*48
+```
+
+Change `spi_byte` and the waveform changes. Change `half` and the bus
+speed changes. A participant can see mode 0's rule — MOSI settles while
+the clock is low, the receiver samples on the rising edge — directly in
+the list, which is harder to get from a datasheet timing diagram.
+
+The three lists are all 256 long, and they have to be: they are one
+buffer, and a short one would shift the others.
+
+## What has been checked
+
+On hardware, 2026-09-02: 0xA5 first try, then eight edge-case bytes,
+then all 256 byte values in a single 65536-sample capture, three repeat
+runs, 768 frames, zero errors. Section 9 of `docs/bench-checklist.md` has
+the detail.
+
+Use **Repeat forever** (cyclic). Non-cyclic underruns at 1 MS/s and loses
+about half its runs.
+
+One Digital Sink per flowgraph — all sixteen pins share one output word
+and one DMA buffer.

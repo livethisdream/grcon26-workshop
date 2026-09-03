@@ -1,0 +1,476 @@
+options:
+  parameters:
+    author: GRCon26 workshop
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: 'Three jumpers: DIO0-DIO4, DIO1-DIO5, DIO2-DIO6.
+
+
+      SPI mode 0, bit-banged one bit per sample. Change spi_byte and watch the
+
+      MOSI trace change; the decoded byte is whatever MOSI holds at each rising
+
+      SCLK edge while CS is low.
+
+
+      The buffer must be cyclic. Non-cyclic streaming underruns about half the
+
+      time at 1 MS/s and drops samples in the middle of a frame.'
+    copyright: ''
+    description: Bit-banged SPI mode 0 out of DIO0-2 and back in on DIO4-6.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: m2k_spi_loopback
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: M2K SPI loopback - three DIO pins
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 8
+    - 8
+    rotation: 0
+    state: enabled
+blocks:
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '1000000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 200
+    - 12
+    rotation: 0
+    state: enabled
+- name: half
+  id: variable
+  parameters:
+    comment: Samples per half clock. 8 at 1 MS/s is a 62.5 kHz SCLK.
+    value: '8'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 328
+    - 12
+    rotation: 0
+    state: enabled
+- name: spi_byte
+  id: variable
+  parameters:
+    comment: The byte on the wire. Change me.
+    value: '0xA5'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 424
+    - 12
+    rotation: 0
+    state: enabled
+- name: frame
+  id: variable
+  parameters:
+    comment: Frame length. The buffer must be a whole number of these.
+    value: '256'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 536
+    - 12
+    rotation: 0
+    state: enabled
+- name: spi_bits
+  id: variable
+  parameters:
+    comment: MSB first, the way SPI sends it.
+    value: '[(spi_byte >> (7 - i)) & 1 for i in range(8)]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 640
+    - 12
+    rotation: 0
+    state: enabled
+- name: spi_sclk
+  id: variable
+  parameters:
+    comment: Idle low, eight pulses, idle low.
+    value: '[0] * 72 + ([0] * half + [1] * half) * 8 + [0] * 56'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 200
+    - 100
+    rotation: 0
+    state: enabled
+- name: spi_mosi
+  id: variable
+  parameters:
+    comment: Each bit is presented while SCLK is low, so it is already settled at the rising
+      edge.
+    value: '[0] * 64 + [spi_bits[0]] * 8 + [b for bit in spi_bits for b in [bit] * (2 * half)]
+      + [0] * 56'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 424
+    - 100
+    rotation: 0
+    state: enabled
+- name: spi_cs
+  id: variable
+  parameters:
+    comment: Asserted low, one frame at a time.
+    value: '[1] * 64 + [0] * 144 + [1] * 48'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 800
+    - 100
+    rotation: 0
+    state: enabled
+- name: sclk_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SCLK -> DIO0
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_sclk
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 96
+    - 236
+    rotation: 0
+    state: enabled
+- name: mosi_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: MOSI -> DIO1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_mosi
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 96
+    - 332
+    rotation: 0
+    state: enabled
+- name: cs_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: CS -> DIO2
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_cs
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 96
+    - 428
+    rotation: 0
+    state: enabled
+- name: m2k_digital_sink_0
+  id: m2k_digital_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    buffer_size: '16384'
+    comment: '64 frames per buffer, pushed once and
+
+      repeated by the hardware.'
+    cyclic: 'True'
+    drive: '''push-pull'''
+    first_pin: '0'
+    idle_level: '''low'''
+    pin_count: '3'
+    sample_rate: samp_rate
+    uri: ip:192.168.2.1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 376
+    - 316
+    rotation: 0
+    state: enabled
+- name: m2k_digital_source_0
+  id: m2k_digital_source
+  parameters:
+    affinity: ''
+    alias: ''
+    buffer_size: '16384'
+    comment: 'Triggered on CS falling, so every capture
+
+      starts at the head of a frame.'
+    first_pin: '4'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    pin_count: '3'
+    sample_rate: samp_rate
+    trigger_condition: '''edge-falling'''
+    trigger_delay: '0'
+    trigger_pin: '6'
+    uri: ip:192.168.2.1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 376
+    - 556
+    rotation: 0
+    state: enabled
+- name: sclk_f
+  id: blocks_short_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 664
+    - 556
+    rotation: 0
+    state: enabled
+- name: mosi_f
+  id: blocks_short_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 664
+    - 636
+    rotation: 0
+    state: enabled
+- name: cs_f
+  id: blocks_short_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 664
+    - 716
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: One frame is 256 samples, so 512 shows two.
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'True'
+    gui_hint: ''
+    label1: SCLK
+    label10: Signal 10
+    label2: MOSI
+    label3: CS
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '-1'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: '"SPI mode 0 - captured on DIO4-6"'
+    nconnections: '3'
+    size: '512'
+    srate: samp_rate
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Volts
+    ymax: '1.5'
+    ymin: '-0.5'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate:
+    - 856
+    - 588
+    rotation: 0
+    state: enabled
+connections:
+- - sclk_src
+  - '0'
+  - m2k_digital_sink_0
+  - '0'
+- - mosi_src
+  - '0'
+  - m2k_digital_sink_0
+  - '1'
+- - cs_src
+  - '0'
+  - m2k_digital_sink_0
+  - '2'
+- - m2k_digital_source_0
+  - '0'
+  - sclk_f
+  - '0'
+- - m2k_digital_source_0
+  - '1'
+  - mosi_f
+  - '0'
+- - m2k_digital_source_0
+  - '2'
+  - cs_f
+  - '0'
+- - sclk_f
+  - '0'
+  - qtgui_time_sink_x_0
+  - '0'
+- - mosi_f
+  - '0'
+  - qtgui_time_sink_x_0
+  - '1'
+- - cs_f
+  - '0'
+  - qtgui_time_sink_x_0
+  - '2'
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2

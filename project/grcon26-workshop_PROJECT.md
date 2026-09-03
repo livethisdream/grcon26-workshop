@@ -64,6 +64,11 @@ display), and the session material itself.
 - **Offsets are per channel; gain is not.** Both signal paths share one gain error to
   0.7%, but their offsets differ 6.8x. Deriving offset once and applying it everywhere
   is wrong by most of it.
+- **gr-iio's `device_sink` drives ONE DIO pin, silently.** Sixteen 1-bit fields share
+  one 16-bit word; each channel's write is a full-width store that erases the last, so
+  only the highest pin survives. No error. `docs/gr-iio-multipin-sink.md`.
+- **GRC `dtype: enum` values are raw strings.** `'0' + '3'` concatenates, `int("'6'")`
+  raises, and an assert that raises makes GRC fall back to defaults without saying so.
 
 # Decisions
 
@@ -74,8 +79,6 @@ display), and the session material itself.
 - Demos must run before any slides get written.
 - Hardware scarcity is solved by architecture — one instructor unit, many receive-only
   stations. Reason: works for ultrasonic and standing-wave, not CN0363.
-- Attribute meaning is quoted verbatim from the kernel IIO ABI, every line tagged
-  `[abi]`/`[parsed]`/`[driver]`/`[overlay: ...]`. Reason: no guesswork taught as fact.
 - Overlay entries come from read-only evidence plus libm2k source tracing, each with a
   `check` field. Confidence is `MEASURED` only for what a capture proves, `SOURCED`
   where behaviour traces to libm2k, `UNVERIFIED` for anything inferred from a name.
@@ -96,10 +99,6 @@ display), and the session material itself.
   worth.
 - **2026-09-01** — Writes to the instrument are allowed with per-write approval,
   superseding the read-only default of 2026-08-18.
-- **2026-09-01** — Attributes are written directly with libiio at construction; the
-  `attr_updater` pair stays only as a keep-alive. Reason: a timer left the board
-  unconfigured for the first second of every flowgraph.
-- **2026-09-01** — Calibration offsets are measured per channel, never derived once.
 - **2026-09-02** — Both digital blocks take `first_pin`, and a sink and source in one
   flowgraph get disjoint ranges. Reason: `pins_for` counted from DIO0 only, so any pair
   fought over `direction` and the loser did nothing silently.
@@ -109,13 +108,15 @@ display), and the session material itself.
 - **2026-09-02** — `digital_sink` defaults `idle_level` to `'low'` rather than leaving
   `raw` alone. Reason: the resting level was otherwise leftover state from whatever
   last touched the board.
+- **2026-09-02** — `digital_sink` packs the 16-bit output word itself with pylibiio
+  instead of using `iio.device_sink`. Reason: device_sink can only drive one pin;
+  patching gr-iio upstream is deferred.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Block-building is done. All four blocks are verified
-against hardware, both triggers included. Open: a calibration script to close the last
-~6.5%, then the 43% explanation gap via the logic-analyzer board pack (Tier 1 + Tier 2,
-104 attributes, ~90% coverage expected).
+**Phase 1 (current) — crawl:** Block-building is done and hardware-verified, both
+triggers and a real SPI bus included. Open: a calibration script for the last ~6.5%,
+then the board pack (Tier 1 + Tier 2, 104 attributes, ~90% coverage expected).
 
 **Scope check:** no Phase 3 demo needs a new M2K block, and the four cover every Scopy
 instrument except the supply (`ad5627`), which is deferred and unneeded.
@@ -133,25 +134,23 @@ move acquisition state server-side; slides, procurement, timing.
 
 # Status
 
-- **Repo:** `main`, in sync with `origin`; this session committed the rename, the
-  idle level and the digital trigger. `m2k-discovery-gui` is stale at `93de0e8`,
-  fully merged, deletable.
-- **`gr-m2k/` — four blocks**, renamed this session to `analog_source`,
-  `analog_sink`, `digital_source`, `digital_sink`, plus `m2k_scale.py` (arithmetic,
-  imports nothing) and `m2k_config.py`.
-- **Bench checklist sections 1-8 all pass**, section 4's absolute accuracy aside.
-  `docs/bench-checklist.md` is the record.
-- **Everything the four blocks do is hardware-verified.** Section 8 added the
-  digital idle level (`raw` drives the pin with no flowgraph at all — that is
-  Scopy's Digital IO) and the digital trigger, proved real by an impossible
-  condition stalling the capture for 6 s.
+- **Repo:** `main`. Uncommitted: the packed sink, both digital ymls, the SPI
+  flowgraph, `bench/`, and three docs. `m2k-discovery-gui` is merged and deletable.
+- **`gr-m2k/` — four blocks**: `analog_source`, `analog_sink`, `digital_source`,
+  `digital_sink`, plus `m2k_scale.py` (arithmetic, imports nothing) and
+  `m2k_config.py`.
+- **Bench checklist sections 1-9 all pass**, section 4's absolute accuracy aside.
+  `docs/bench-checklist.md` is the record. Section 9 is a real SPI mode-0 bus on
+  three DIO pins, verified over all 256 byte values with zero errors.
+- **Everything the four blocks do is hardware-verified.** `raw` both drives and
+  reads a pin with no flowgraph — that is Scopy's Digital IO, in both directions.
 - **Residual absolute error is ~6.5%, one shared gain error**, consistent with
   `calibscale` (`1.000000` here). Offsets are per channel: W1 +49.4 mV, W2
   +114.5 mV, input 1 -21.4 mV, input 2 not yet split.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
-  passthrough — `--scan` finds only `local:`. DIO0/DIO1 restored to inputs, `raw` 0,
-  triggers off.
-- **Tests:** 205 pass, 12 new around the trigger and idle level.
+  passthrough — `--scan` finds only `local:`. All 16 DIO pins restored to inputs,
+  triggers off, board safe to unplug.
+- **Tests:** 212 pass, 7 new around the packed digital sink.
 - **Discovery tooling** unchanged for four sessions. Real-hardware ABI coverage 57%;
   58 of 74 overlay entries still `UNVERIFIED`.
 - **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
@@ -164,9 +163,8 @@ move acquisition state server-side; slides, procurement, timing.
       checked against libm2k's `calibrateADC()`. Per-channel offsets. Confirm on the
       way whether the input offset is a fixed count error scaling with range.
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
-- [ ] SPI loopback over the DIO pins — tests whether four ports at one bit per sample
-      is a workable way to teach a real bus.
-- [ ] Suppress or explain the cyclic-buffer `Device or resource busy` warning.
+- [ ] Non-cyclic digital streaming underruns at 1 MS/s (half the runs) — find the rate
+      where it stops.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 
 - [ ] Confirm `attr_note()` reaches these attributes before writing prose — channel

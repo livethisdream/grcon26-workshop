@@ -252,3 +252,129 @@ digital_sink._apply_idle(s, "ip:none", "floating")
 ''')
     assert message is not None
     assert "floating" in message
+
+
+# -------------------------------------------------------------- packing
+
+PACK_PRELUDE = '''
+import json, sys
+import numpy
+sys.path.insert(0, sys.argv[1])
+from m2k_blocks.digital import pack_word, pin_shift, _packed_sink
+
+class FakeBuffer(object):
+    """Records the words that would have reached the DMA."""
+
+    def __init__(self):
+        self.pushes = []
+        self._pending = None
+
+    def write(self, data):
+        self._pending = bytes(data)
+        return len(self._pending)
+
+    def push(self):
+        self.pushes.append(
+            [int(w) for w in numpy.frombuffer(self._pending,
+                                              dtype=numpy.uint16)])
+
+def sink(pins, buffer_size, cyclic=False):
+    """A packed sink wired to a fake buffer, so no board is involved."""
+    s = _packed_sink("ip:none", pins, buffer_size, cyclic)
+    s._buffer = FakeBuffer()
+    s._staged = numpy.empty(0, dtype=numpy.uint16)
+    s._pushed = False
+    return s
+
+def feed(s, streams):
+    """One work() call. `streams` is a list of samples per port."""
+    s.work([numpy.array(x, dtype=numpy.int16) for x in streams], [])
+    return s._buffer.pushes
+'''
+
+
+def packed(repo_root, body):
+    """Evaluate a packing snippet in the gnuradio interpreter."""
+    out = run_in_gr(PACK_PRELUDE + body,
+                    os.path.join(repo_root, "gr-m2k"))
+    return json.loads(out)
+
+
+@needs_gnuradio
+def test_every_port_reaches_the_word(repo_root):
+    """The regression test for the gr-iio bug this sink exists to avoid.
+
+    device_sink let each channel overwrite the whole word, so only the
+    last pin survived. All three bits must be present at once.
+    """
+    pushes = packed(repo_root, '''
+s = sink(["voltage0", "voltage1", "voltage2"], 4)
+print(json.dumps(feed(s, [[1, 0, 1, 0], [1, 1, 0, 0], [1, 0, 0, 1]])))
+''')
+    assert pushes == [[0b111, 0b010, 0b001, 0b100]]
+
+
+@needs_gnuradio
+def test_the_bit_position_is_the_pin_not_the_port(repo_root):
+    """A sink starting at DIO4 puts its first port in bit 4."""
+    pushes = packed(repo_root, '''
+s = sink(["voltage4", "voltage5"], 2)
+print(json.dumps(feed(s, [[1, 0], [0, 1]])))
+''')
+    assert pushes == [[1 << 4, 1 << 5]]
+
+
+@needs_gnuradio
+def test_pack_word_agrees_with_the_streaming_path(repo_root):
+    """The scalar helper and the vectorised one must not drift apart."""
+    same = packed(repo_root, '''
+pins = ["voltage2", "voltage3", "voltage7"]
+shifts = [pin_shift(p) for p in pins]
+rows = [[1, 0, 1], [0, 0, 0], [1, 1, 1], [0, 1, 0]]
+s = sink(pins, 4)
+streamed = feed(s, [[r[i] for r in rows] for i in range(3)])[0]
+print(json.dumps([pack_word(r, shifts) for r in rows] == streamed))
+''')
+    assert same is True
+
+
+@needs_gnuradio
+def test_any_nonzero_sample_is_a_one(repo_root):
+    """Ports are one bit. A stream of counts must not truncate to zero."""
+    pushes = packed(repo_root, '''
+s = sink(["voltage0"], 3)
+print(json.dumps(feed(s, [[2, 7, -1]])))
+''')
+    assert pushes == [[1, 1, 1]]
+
+
+@needs_gnuradio
+def test_a_partial_buffer_is_held_until_it_fills(repo_root):
+    """The DMA takes whole buffers only."""
+    pushes = packed(repo_root, '''
+s = sink(["voltage0"], 4)
+first = list(feed(s, [[1, 1]]))
+second = feed(s, [[0, 0]])
+print(json.dumps([first, second]))
+''')
+    assert pushes == [[], [[1, 1, 0, 0]]]
+
+
+@needs_gnuradio
+def test_a_cyclic_buffer_is_pushed_exactly_once(repo_root):
+    """Later pushes return -EBUSY, so we stop rather than provoke them."""
+    pushes = packed(repo_root, '''
+s = sink(["voltage0"], 2, cyclic=True)
+feed(s, [[1, 0]])
+print(json.dumps(feed(s, [[1, 1, 0, 0]])))
+''')
+    assert pushes == [[1, 0]]
+
+
+@needs_gnuradio
+def test_a_plain_buffer_is_pushed_every_time_it_fills(repo_root):
+    pushes = packed(repo_root, '''
+s = sink(["voltage0"], 2)
+print(json.dumps(feed(s, [[1, 0, 0, 1, 1, 1]])))
+''')
+    assert pushes == [[1, 0], [0, 1], [1, 1]]

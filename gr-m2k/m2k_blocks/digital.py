@@ -25,12 +25,27 @@ pins should do when nothing is playing.
 One port per pin, carrying one bit per sample in a short. That is
 gr-iio's model, not a choice made here: each DIO pin is its own IIO
 channel with a 1-bit scan element.
+
+Those sixteen channels are not sixteen samples. They are sixteen 1-bit
+fields inside ONE 16-bit word, each at a shift equal to its pin number,
+and this is why the sink does not use gr-iio's device_sink. See
+`_packed_sink` for the whole story; the short version is that
+device_sink writes each channel with a full-width store to the same
+address, so every pin erases the one before it and only the highest
+survives. The sink here packs the word itself and writes raw bytes.
+
+The source has no such problem -- reading a shared word and handing out
+one bit per port is exactly what libiio's demux does correctly -- so
+`digital_source` is plain gr-iio.
 """
+
+import numpy
 
 from gnuradio import gr
 from gnuradio import iio
 
-from .m2k_config import write_channel_attr, write_now
+from .m2k_config import (context, write_channel_attr, write_device_attr,
+                         write_now)
 
 DEV_CONFIG = "m2k-logic-analyzer"
 DEV_RX = "m2k-logic-analyzer-rx"
@@ -76,6 +91,29 @@ def pin_label(channel):
     return "DIO" + channel[len("voltage"):]
 
 
+def pin_shift(channel):
+    """'voltage3' -> 3, the bit this pin occupies in the output word."""
+    return int(channel[len("voltage"):])
+
+
+def pack_word(values, shifts):
+    """One 16-bit output word from one sample of every port.
+
+    `values` is one sample per port and `shifts` the pin number each
+    port drives. The bit position is the PIN, not the port: a sink
+    starting at DIO4 puts its first port in bit 4, because that is the
+    shift the hardware gave that channel.
+
+    Anything non-zero is a one. Ports are one bit each, so a stream of
+    counts rather than levels would otherwise silently truncate.
+    """
+    word = 0
+    for value, shift in zip(values, shifts):
+        if int(value) != 0:
+            word |= 1 << shift
+    return word
+
+
 class _digital(gr.hier_block2):
     """Shared plumbing: pick the pins, set their direction, stream."""
 
@@ -102,6 +140,130 @@ class _digital(gr.hier_block2):
     def _write_once(self, uri, device, channel, attr, value):
         """Set an attribute now and then leave it alone."""
         write_now(uri, device, channel, attr, value, keepalive=False)
+
+    def _write_device(self, uri, device, attr, value):
+        """Set a device-level attribute, and keep it set."""
+        write_device_attr(self, self._config, uri, device, attr, value)
+
+
+class _packed_sink(gr.sync_block):
+    """The DIO output stream, packed by hand rather than by gr-iio.
+
+    gr-iio's device_sink cannot drive more than one DIO pin, and it does
+    not say so -- it reports success and the extra pins simply never
+    move. This block exists to work around that, so it is worth writing
+    down why, because the failure is invisible from the outside.
+
+    The sixteen logic-analyzer channels are not sixteen samples side by
+    side. They are sixteen 1-bit fields inside ONE 16-bit word, each at
+    a shift equal to its pin number, which is why `iio_buffer_step` is 2
+    bytes whether you enable one channel or all sixteen. libiio knows
+    this; `iio_buffer_first` hands back the SAME address for every one
+    of them.
+
+    device_sink's inner loop then does:
+
+        for each channel i:
+            iio_channel_convert_inverse(chan[i], dst, src[i])
+
+    and convert_inverse is a full-width store, not a read-modify-write.
+    So channel i+1 writes its own bit and zeroes every other bit in the
+    word, erasing channel i. Measured on the bench:
+
+        ch0 <- 1,1,1,1   buffer = 0100 0100 0100 0100
+        ch1 <- 0,0,0,0   buffer = 0000 0000 0000 0000
+        ch1 <- 1,1,1,1   buffer = 0200 0200 0200 0200
+
+    Only the last channel in the list survives, which for us is the
+    highest-numbered pin. A three-pin bus drives one wire.
+
+    The way out is to never let convert_inverse near the buffer.
+    `Buffer.write` copies raw bytes, so we pack the word ourselves --
+    one 16-bit word per sample, bit per pin -- and the DMA gets exactly
+    what the hardware wants. See docs/gr-iio-multipin-sink.md.
+
+    Two consequences worth knowing:
+
+    The buffer is allocated in `start`, not here. A sink that is
+    constructed and never started must not hold the DMA, because
+    building a sink and leaving the flowgraph stopped is how you set a
+    static output level -- Scopy's Digital IO.
+
+    A cyclic buffer takes exactly one push; later pushes return -EBUSY.
+    So we push once and then quietly consume the rest of the stream,
+    rather than pushing into an error every buffer and printing the
+    `Device or resource busy` warning that gr-iio prints.
+    """
+
+    def __init__(self, uri, pins, buffer_size, cyclic):
+        gr.sync_block.__init__(
+            self, name="m2k_digital_packed_sink",
+            in_sig=[numpy.int16] * len(pins), out_sig=[])
+        self.uri = uri
+        self.pins = list(pins)
+        self.shifts = [pin_shift(pin) for pin in self.pins]
+        self.buffer_size = int(buffer_size)
+        self.cyclic = bool(cyclic)
+        self._buffer = None
+        self._staged = None
+        self._pushed = False
+
+    def start(self):
+        """Claim the pins we drive and allocate the DMA buffer.
+
+        Every other channel is disabled deliberately. Our packed word
+        carries all sixteen bits, so a channel left enabled by whatever
+        ran last would be driven by a bit we never set -- low, and
+        silently. This is also why there is only room for one digital
+        sink in a flowgraph: one tx device, one buffer, one word.
+        """
+        import iio as pyiio
+
+        device = context(self.uri).find_device(DEV_TX)
+        if device is None:
+            raise RuntimeError("no %s at %s" % (DEV_TX, self.uri))
+        wanted = set(self.pins)
+        for channel in device.channels:
+            channel.enabled = channel.id in wanted
+
+        self._buffer = pyiio.Buffer(device, self.buffer_size, self.cyclic)
+        self._staged = numpy.empty(0, dtype=numpy.uint16)
+        self._pushed = False
+        return True
+
+    def stop(self):
+        """Release the buffer, which is what stops the pins driving.
+
+        The pins then fall back to `raw`, the idle level. Dropping the
+        reference is the release; pylibiio destroys the buffer with it.
+        """
+        self._buffer = None
+        self._staged = None
+        return True
+
+    def work(self, input_items, output_items):
+        count = len(input_items[0])
+
+        # A cyclic buffer is already repeating on the hardware. Take the
+        # samples so upstream keeps running and throw them away.
+        if self._pushed:
+            return count
+
+        words = numpy.zeros(count, dtype=numpy.uint32)
+        for port, shift in enumerate(self.shifts):
+            words |= (input_items[port] != 0).astype(numpy.uint32) << shift
+        self._staged = numpy.concatenate(
+            (self._staged, words.astype(numpy.uint16)))
+
+        # The DMA takes whole buffers only, so partial ones wait here.
+        while len(self._staged) >= self.buffer_size and not self._pushed:
+            self._buffer.write(
+                bytearray(self._staged[:self.buffer_size].tobytes()))
+            self._buffer.push()
+            self._staged = self._staged[self.buffer_size:]
+            self._pushed = self.cyclic
+
+        return count
 
 
 class digital_source(_digital):
@@ -165,7 +327,23 @@ class digital_source(_digital):
 
 
 class digital_sink(_digital):
-    """Drive the DIO pins. One input port per pin, lowest pin first."""
+    """Drive the DIO pins. One input port per pin, lowest pin first.
+
+    Only one of these per flowgraph. There is a single tx device, a
+    single DMA buffer and a single 16-bit word behind all sixteen pins,
+    so a second sink would take the buffer away from the first and
+    overwrite its bits. A source alongside it is fine -- that is a
+    different device -- as long as the pin ranges do not overlap.
+
+    The stream is packed in Python rather than by gr-iio, for reasons
+    `_packed_sink` explains at length. That puts Python in the path of
+    every buffer, which costs nothing at the rates a bus demo uses:
+    1 MS/s with the default 16384-sample buffer is 61 pushes a second.
+    100 MS/s is 6100 a second and will not keep up. Nothing enforces
+    this, because whether it matters depends on the buffer size as much
+    as the rate -- a bigger buffer buys headroom in exchange for
+    latency.
+    """
 
     def __init__(self, uri="ip:192.168.2.1", pin_count=1,
                  sample_rate=1000000, buffer_size=16384,
@@ -176,9 +354,12 @@ class digital_sink(_digital):
         for pin in self.pins:
             self._write(uri, DEV_CONFIG, pin, "outputmode", drive)
         self._apply_idle(uri, idle_level)
-        self.sink = iio.device_sink(
-            uri, DEV_TX, self.pins, DEV_TX, self.params, self.buffer_size, 0,
-            bool(cyclic))
+        # device_sink applied this through its `params`; the packed sink
+        # does not take params, so the rate is written like every other
+        # attribute. It is a device attribute, not a channel one.
+        self._write_device(uri, DEV_TX, "sampling_frequency",
+                           int(sample_rate))
+        self.sink = _packed_sink(uri, self.pins, self.buffer_size, cyclic)
         for index in range(len(self.pins)):
             self.connect((self, index), (self.sink, index))
 

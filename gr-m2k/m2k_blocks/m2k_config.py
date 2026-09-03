@@ -56,7 +56,7 @@ CONFIG_INTERVAL_MS = 1000
 _CONTEXTS = {}
 
 
-def _context(uri):
+def context(uri):
     """A libiio context for this URI, opened once and reused.
 
     This is pylibiio (`import iio`), not gr-iio (`from gnuradio import
@@ -88,7 +88,7 @@ def write_now(uri, device, channel, attr, value, output=False,
     register the stream is deliberately overriding.
     """
     try:
-        dev = _context(uri).find_device(device)
+        dev = context(uri).find_device(device)
         if dev is None:
             raise LookupError("no device %r in the context at %s"
                               % (device, uri))

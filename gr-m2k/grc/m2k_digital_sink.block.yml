@@ -23,8 +23,12 @@ parameters:
     label: Pins to drive
     dtype: enum
     default: '1'
-    options: ['1', '2', '4', '8', '16']
-    option_labels: ['1 pin', '2 pins', '4 pins', '8 pins', '16 pins']
+    options: ['1', '2', '3', '4', '5', '6', '7', '8',
+              '9', '10', '11', '12', '13', '14', '15', '16']
+    option_labels: ['1 pin', '2 pins', '3 pins', '4 pins', '5 pins',
+                    '6 pins', '7 pins', '8 pins', '9 pins', '10 pins',
+                    '11 pins', '12 pins', '13 pins', '14 pins',
+                    '15 pins', '16 pins']
 
 -   id: sample_rate
     label: Sample rate
@@ -63,11 +67,11 @@ parameters:
 inputs:
 -   domain: stream
     dtype: short
-    multiplicity: ${ pin_count }
+    multiplicity: ${ int(pin_count) }
 
 asserts:
 - ${ buffer_size > 0 }
-- ${ first_pin + pin_count <= 16 }
+- ${ int(first_pin) + int(pin_count) <= 16 }
 
 templates:
     imports: from m2k_blocks.digital import digital_sink
@@ -82,9 +86,23 @@ documentation: |-
     the first pin you choose.
 
     Each port carries one bit per sample, in a short: send 0 or 1, not a
-    packed 16-bit word. That is gr-iio's model rather than a choice made
-    here -- every DIO pin is its own IIO channel with a one-bit scan
-    element.
+    packed 16-bit word. Anything non-zero counts as a one, so a stream of
+    counts will not quietly truncate.
+
+    Only one of these per flowgraph. All sixteen pins share a single
+    16-bit output word and a single DMA buffer, so two sinks would fight
+    over both. Drive every pin you need from one block, and use the
+    unused ports as spares.
+
+    This block does not use gr-iio's device_sink, which can drive exactly
+    one pin -- with no error when you ask it for more. It packs the
+    output word itself instead. `docs/gr-iio-multipin-sink.md` has the
+    evidence if you want it.
+
+    That packing is Python, once per buffer. At 1 MS/s with a 16384
+    sample buffer that is 61 pushes a second and comfortable; 100 MS/s
+    would be 6100 and will not keep up. High rates want a large buffer
+    and, if it still stumbles, fewer pins.
 
     A pin is an input or an output, never both. This block sets the pins
     it drives to outputs, so give a Digital Source in the same flowgraph a

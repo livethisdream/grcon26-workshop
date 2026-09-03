@@ -4,6 +4,19 @@ dateModified: 2026-09-02
 ---
 # Superseded Decisions
 
+**Rotated 2026-09-02 — closed, not reversed.** All three are now permanent
+implementation rather than open choices; the code and its docstrings carry them.
+
+- **2026-09-01** — Attributes are written directly with libiio at construction; the
+  `attr_updater` pair stays only as a keep-alive. Reason: a timer left the board
+  unconfigured for the first second of every flowgraph. Now documented at length in
+  `gr-m2k/m2k_blocks/m2k_config.py`.
+- **2026-09-01** — Calibration offsets are measured per channel, never derived once.
+  Superseded as a decision by the Traps entry that states the same thing as a fact.
+- Attribute meaning is quoted verbatim from the kernel IIO ABI, every line tagged
+  `[abi]`/`[parsed]`/`[driver]`/`[overlay: ...]`. Reason: no guesswork taught as fact.
+  Now enforced by the overlay schema and its tests.
+
 - **2026-08-18** — "Overlay entries are written from read-only evidence; the instrument
   is not written to." Superseded 2026-09-01: bench work required writes, taken with
   per-write approval. The read-only default still holds for enumeration.

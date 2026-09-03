@@ -5,10 +5,15 @@ Ordered so that each step makes the next one meaningful.
 Nothing here needs the discovery tool. It needs an M2K, a wire, and
 ideally a meter.
 
-**State as of 2026-09-02:** sections 1, 2, 3, 5, 6, 7 and 8 pass, both
-the analog and the digital trigger included. Section 4 passes on
-everything relative and fails on absolute accuracy, for a reason that is
-now understood.
+**State as of 2026-09-02:** sections 1, 2, 3, 5, 6, 7, 8 and 9 pass,
+both the analog and the digital trigger included, and a real SPI bus
+decoded off three DIO pins. Section 4 passes on everything relative and
+fails on absolute accuracy, for a reason that is now understood.
+
+Section 9 is where the multi-pin digital sink got fixed. gr-iio's
+`device_sink` can only drive one DIO pin -- silently -- so `digital_sink`
+packs the 16-bit output word itself now. The whole story, with the
+evidence, is in `docs/gr-iio-multipin-sink.md`.
 
 Board used: Rev.D (Z7010), fw v0.33, reached at `ip:192.168.2.1`.
 
@@ -414,7 +419,88 @@ off, differently each run. The attribute reads back exactly what was
 written in every case, so this is the hardware and not a lost write. Not
 explained; treat positive delay as approximate.
 
-## 9. Promote what passes
+## 9. Several pins at once, and a bus on them — PASSES
+
+Everything up to here moved one pin. A bus needs three moving together
+and staying together, which is a different question.
+
+Wire three jumpers:
+
+```
+DIO0 -> DIO4      SCLK
+DIO1 -> DIO5      MOSI
+DIO2 -> DIO6      CS
+```
+
+### 9a. Are the ports even coherent?
+
+Before decoding anything, check that ports captured together belong to
+the same instant. Send four patterns of period 2, 4, 8 and 16 out on
+DIO0-3, read DIO4-7 back, and look for ONE rotation of the 16-sample
+word that fits all of them. If each pin needs a different rotation, the
+ports have slipped past each other and any bus decoded off them is
+fiction.
+
+This is the check that failed first, and it failed for a real reason —
+see the sink note above. After the fix:
+
+```
+cyclic       4/4 runs coherent
+non-cyclic   2/4 runs coherent
+```
+
+Two rotations fit rather than one, because the three wired pins do not
+differ in DIO3's period-16 pattern and DIO3 is unwired. That is the test
+being loose, not the hardware.
+
+Use a big transmit buffer. At 1 MS/s a 512-sample buffer is 1953 refills
+a second over the network, and a dropped one looks exactly like skew.
+
+**Non-cyclic is not reliable at 1 MS/s.** It underruns. When it does,
+all three pins break at the same sample — they gap together rather than
+drift apart — so the failure is honest, but half the runs lose samples.
+Use cyclic for anything timed.
+
+### 9b. A real SPI frame
+
+Mode 0, bit-banged: MOSI settles while SCLK is low, the receiver samples
+on the rising edge, CS frames the byte. At 1 MS/s with 8 samples per
+half-clock that is a 62.5 kHz bus. One frame is 256 samples:
+
+```
+lead-in   64   CS high, clock idle low
+setup      8   CS low, MOSI on bit 7, no clock yet
+8 clocks 128   16 samples each: low half, high half
+tail       8   CS still low
+post      48   CS back high
+```
+
+Push it as one cyclic buffer, and trigger the capture on **CS falling**
+on DIO6 so every capture starts at a frame boundary. Decode by sampling
+MOSI on each SCLK rising edge between a CS fall and the next CS rise.
+
+Results:
+
+```
+0xA5                       first try, no adjustment
+8 edge-case bytes          0x00 0xFF 0x01 0x80 0xAA 0x55 0x0F 0xF0
+all 256 byte values        one 65536-sample capture, 3/3 repeats,
+                           768 frames, zero errors
+```
+
+That last run is the one worth quoting: every byte a byte can be, sent
+and recovered, three times over.
+
+### What this says about the workshop
+
+One bit per sample per port is a workable way to teach a bus. It is
+verbose — 256 samples to move 8 bits — but the frame is written as plain
+Python lists in the flowgraph's variables, which is exactly the kind of
+thing a participant can change and immediately see.
+
+The flowgraph is `flowgraphs/m2k_spi_loopback.grc`.
+
+## 10. Promote what passes
 
 Each entry in `iio_overlays.py` carries a `check` field describing how to
 confirm it. 58 of 74 are still `UNVERIFIED`. As they check out, change
@@ -444,3 +530,21 @@ settings you understand:
 | the digital trigger fires | **measured** — an impossible condition stalls |
 | digital `trigger_delay` in samples | **measured** — exact at 0 and below, approximate above |
 | `oversampling_ratio` is decimation | only in the overlay text now, not in code |
+| gr-iio can drive several DIO pins | **wrong** — one pin only, silently; see `docs/gr-iio-multipin-sink.md` |
+| three pins stay sample-aligned | **measured** — cyclic 4/4; non-cyclic underruns at 1 MS/s, 2/4 |
+| `raw` reads an input pin | **measured** — Digital IO works both directions, no flowgraph |
+
+---
+
+## Scripts
+
+The hardware runs in section 9 are reproducible:
+
+```
+python3 bench/digital_coherence.py cyclic       # 9a
+python3 bench/spi_loopback.py 0xA5              # 9b
+python3 bench/spi_loopback.py $(seq 0 255)      # every byte
+```
+
+Both want a gnuradio interpreter. The project `.venv` does not have one,
+so run them with the system python that does.
