@@ -4,6 +4,18 @@ dateModified: 2026-09-03
 ---
 # Superseded Decisions
 
+**Rotated 2026-09-03 — founding premises, not open choices.** These four have governed
+the project since it started and are not under review; they are here so the hot note
+does not carry them every session. They are still in force.
+
+- Every flowgraph uses libiio / gr-iio as its source. Reason: the workshop teaches the
+  IIO path specifically; no flowgraph uses a different source block.
+- No live software installs during the session. Reason: setup instructions go out two
+  weeks prior instead.
+- Demos must run before any slides get written.
+- Hardware scarcity is solved by architecture — one instructor unit, many receive-only
+  stations. Reason: works for ultrasonic and standing-wave, not CN0363.
+
 **Rotated 2026-09-03 — corrected by measurement.** The residual absolute error was
 recorded as "~6.5%, one shared gain error", on the strength of the two loopback paths
 agreeing on gain to 0.7%. Two-point meter runs on 2026-09-03 show that framing was

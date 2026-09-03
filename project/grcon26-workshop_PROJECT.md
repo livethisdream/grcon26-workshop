@@ -76,13 +76,6 @@ display), and the session material itself.
 
 # Decisions
 
-- Every flowgraph uses libiio / gr-iio as its source. Reason: the workshop teaches the
-  IIO path specifically; no flowgraph uses a different source block.
-- No live software installs during the session. Reason: setup instructions go out two
-  weeks prior instead.
-- Demos must run before any slides get written.
-- Hardware scarcity is solved by architecture — one instructor unit, many receive-only
-  stations. Reason: works for ultrasonic and standing-wave, not CN0363.
 - Overlay entries come from read-only evidence plus libm2k source tracing, each with a
   `check` field. Confidence is `MEASURED` only for what a capture proves, `SOURCED`
   where behaviour traces to libm2k, `UNVERIFIED` for anything inferred from a name.
