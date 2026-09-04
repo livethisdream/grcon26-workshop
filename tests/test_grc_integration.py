@@ -264,11 +264,122 @@ def test_illegal_combinations_are_refused(repo_root):
             assert result[label] is False, label
 
 
+# Sixteen pin dropdowns and sixteen name fields, of which only the first
+# `num_lines` are visible -- the rest keep whatever they were last set to.
+# So every check the block makes has to slice, and this puts a block into
+# a real flow graph one case at a time to prove that it does. A block
+# alone on a canvas always has unconnected ports; those are not the
+# errors we are asking about, so they are filtered out.
+
+LINES = '''
+    import json, logging, sys, tempfile, yaml
+    logging.disable(logging.CRITICAL)
+    from gnuradio.grc.core.platform import Platform
+    p = Platform(version="3.10", version_parts=("3", "10", "0"), prefs=None)
+    p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+    out = {}
+    for label, (key, params) in json.loads(sys.argv[2]).items():
+        doc = {"metadata": {"file_format": 1},
+               "options": {"states": {},
+                           "parameters": {"id": "probe",
+                                          "generate_options": "no_gui"}},
+               "blocks": [{"id": key, "name": "b", "states": {},
+                           "parameters": params}],
+               "connections": []}
+        path = tempfile.mktemp(suffix=".grc")
+        yaml.safe_dump(doc, open(path, "w"))
+        fg = p.make_flow_graph(path); fg.rewrite(); fg.validate()
+        blk = [b for b in fg.blocks if b.key == key][0]
+        ports = blk.sinks if key.endswith("sink") else blk.sources
+        out[label] = {
+            "errors": [e for e in blk.get_error_messages()
+                       if "not connected" not in e],
+            "ports": [q.name for q in ports],
+            "make": blk.templates.render("make")}
+    print(json.dumps(out))
+'''
+
+SOURCE, SINK = "m2k_digital_source", "m2k_digital_sink"
+
+
+def lines(repo_root, cases):
+    return json.loads(run_in_gr(LINES, os.path.join(repo_root, M2K_GRC),
+                                json.dumps(cases)))
+
+
+@needs_gnuradio
+def test_the_pins_come_out_in_the_order_they_were_chosen(repo_root):
+    """Scattered, descending, whatever the jumpers reached. Port 0 is
+    whichever pin went in the first dropdown."""
+    out = lines(repo_root, {"spi": (SOURCE, {
+        "num_lines": "3", "pin0": "3", "pin1": "7", "pin2": "1",
+        "name0": "SCLK", "name1": "MOSI", "name2": "CS"})})["spi"]
+    assert out["errors"] == []
+    assert out["ports"] == ["pin0", "pin1", "pin2"]
+    assert "pins=[3, 7, 1]" in out["make"]
+    assert "names=['SCLK', 'MOSI', 'CS']" in out["make"]
+
+
+@needs_gnuradio
+def test_the_sink_maps_pins_the_same_way(repo_root):
+    """A source and a sink that disagreed here would wire a bus
+    backwards, and both halves would run."""
+    out = lines(repo_root, {"latch": (SINK, {
+        "num_lines": "3", "pin0": "2", "pin1": "0", "pin2": "9",
+        "name0": "DATA", "name1": "LE"})})["latch"]
+    assert out["errors"] == []
+    assert out["ports"] == ["pin0", "pin1", "pin2"]
+    assert "pins=[2, 0, 9]" in out["make"]
+    assert "names=['DATA', 'LE', '']" in out["make"]
+
+
+@needs_gnuradio
+def test_the_hidden_dropdowns_are_not_read(repo_root):
+    """pin2..pin15 still hold whatever they were; a two-line block that
+    counted them would refuse itself for pins it is not using."""
+    out = lines(repo_root, {"two": (SOURCE, {
+        "num_lines": "2", "pin0": "3", "pin1": "7"})})["two"]
+    assert out["errors"] == []
+    assert out["ports"] == ["pin0", "pin1"]
+    assert "pins=[3, 7]" in out["make"]
+
+
+@needs_gnuradio
+def test_one_line_is_one_unnumbered_port(repo_root):
+    """GRC only numbers a port when there is more than one of it."""
+    out = lines(repo_root, {"one": (SOURCE, {
+        "num_lines": "1", "pin0": "5"})})["one"]
+    assert out["ports"] == ["pin"]
+    assert "pins=[5]" in out["make"]
+
+
+@needs_gnuradio
+def test_a_pin_mapping_that_cannot_work_is_refused_on_the_canvas(repo_root):
+    """Both of these produce a flowgraph that runs and is wrong: two
+    ports on one pin, and a trigger on a pin the block never reads."""
+    out = lines(repo_root, {
+        "ok": (SOURCE, {"num_lines": "2", "pin0": "0", "pin1": "1",
+                        "trigger_pin": "1"}),
+        "same pin twice": (SOURCE, {"num_lines": "2", "pin0": "5",
+                                    "pin1": "5"}),
+        "trigger on an unread pin": (SOURCE, {"num_lines": "2", "pin0": "0",
+                                              "pin1": "1",
+                                              "trigger_pin": "9"}),
+        "sink, same pin twice": (SINK, {"num_lines": "3", "pin0": "1",
+                                        "pin1": "2", "pin2": "1"}),
+    })
+    assert out["ok"]["errors"] == []
+    for label in ("same pin twice", "trigger on an unread pin",
+                  "sink, same pin twice"):
+        assert out[label]["errors"], label
+
+
 @needs_gnuradio
 def test_every_instrument_block_loads(repo_root):
     loaded = json.loads(run_in_gr(LOAD, os.path.join(repo_root, M2K_GRC)))
     assert set(loaded) == {"m2k_analog_source", "m2k_analog_sink",
-                           "m2k_digital_source", "m2k_digital_sink"}
+                           "m2k_digital_source", "m2k_digital_sink",
+                           "m2k_spi_decode", "m2k_spi_encode"}
 
 
 @needs_gnuradio
@@ -308,6 +419,110 @@ def test_native_loopback_builds(repo_root):
     assert result["iio"] == [], result["iio"]
     assert "analog_source(" in result["make"]
     assert "analog_sink(" in result["make"]
+
+
+@needs_gnuradio
+@pytest.mark.parametrize("name", ["m2k_spi_loopback.grc",
+                                  "m2k_spi_loopback_continuous.grc"])
+def test_the_spi_loopback_builds(repo_root, name):
+    """Both workshop flowgraphs, with the pins they actually ship:
+    DIO0-2 driven, DIO4-6 read, and the trigger on the CS they read."""
+    path = os.path.join(repo_root, "flowgraphs", name)
+    result = json.loads(run_in_gr(BUILD, path,
+                                  os.path.join(repo_root, M2K_GRC)))
+    assert result["valid"], result["errors"]
+    assert "pins=[0, 1, 2]" in result["make"]
+    assert "pins=[4, 5, 6]" in result["make"]
+    assert "names=['SCLK', 'MOSI', 'CS']" in result["make"]
+
+
+@needs_gnuradio
+def test_the_interactive_loopback_sends_once_and_aligns(repo_root):
+    """The two settings that make send-on-demand work at all.
+
+    A cyclic sink would repeat the message forever, and an unaligned
+    frame can land across a DMA buffer seam and be torn in the middle.
+    They go together: alignment only matters because the sink is not
+    cyclic, and one without the other is a flowgraph that looks right
+    and misbehaves on a bench.
+    """
+    path = os.path.join(repo_root, "flowgraphs", "m2k_spi_loopback.grc")
+    result = json.loads(run_in_gr(BUILD, path,
+                                  os.path.join(repo_root, M2K_GRC)))
+    assert result["valid"], result["errors"]
+    assert "cyclic=False" in result["make"]
+    assert "align=buffer_len" in result["make"]
+    assert "buffer_size=buffer_len" in result["make"]
+
+
+@needs_gnuradio
+def test_the_spi_encode_block_loads(repo_root):
+    """The .yml and the class have to agree about the message port.
+
+    GRC writes `msg_connect` from the port label in the .yml, so a
+    block that registers the port under a different name compiles
+    cleanly and then raises at run time.
+    """
+    out = json.loads(run_in_gr('''
+        import json, logging, os, sys
+        logging.disable(logging.CRITICAL)
+        from gnuradio.grc.core.platform import Platform
+        p = Platform(version="3.10", version_parts=("3","10","0"), prefs=None)
+        p.build_library(["/usr/share/gnuradio/grc/blocks", sys.argv[1]])
+        b = p.blocks["m2k_spi_encode"]
+        sys.path.insert(0, os.path.dirname(sys.argv[1]))
+        import pmt
+        from m2k_blocks.spi import MESSAGE
+        print(json.dumps({
+            "params": [q["id"] for q in b.parameters_data],
+            "inputs": [q.get("id") for q in b.inputs_data],
+            "outputs": [q.get("label") for q in b.outputs_data],
+            "registered": pmt.symbol_to_string(MESSAGE),
+        }))
+    ''', os.path.join(repo_root, M2K_GRC)))
+    # A message port's key is its id; a stream port's is its position,
+    # so only the message port's name has to match the class.
+    assert out["inputs"] == ["message"]
+    assert out["registered"] == out["inputs"][0]
+    assert out["outputs"] == ["sclk", "mosi", "cs"]
+    assert "align" in out["params"]
+
+
+@needs_gnuradio
+def test_the_decoded_pdu_carries_the_text(repo_root):
+    """The bytes and their reading, in one Message Debug print.
+
+    This is the loopback's own proof: someone types M2K, and what comes
+    back off the wire says M2K next to `4d 32 4b`. The text rides in the
+    metadata, so the payload stays the bytes that were actually clocked.
+    """
+    out = json.loads(run_in_gr('''
+        import json, os, sys
+        sys.path.insert(0, os.path.dirname(sys.argv[1]))
+        import pmt
+        from m2k_blocks.spi import spi_decode
+
+        def text(words, **kwargs):
+            got = pmt.dict_ref(pmt.car(spi_decode(**kwargs)._pdu(words)),
+                               pmt.intern("text"), pmt.PMT_NIL)
+            return None if pmt.is_null(got) else pmt.symbol_to_string(got)
+
+        print(json.dumps({
+            "text": text([0x4d, 0x32, 0x4b]),
+            "escaped": text([0x4d, 0x00, 0xff]),
+            "off": text([0x4d], add_text=False),
+            "wide": text([0x0141], bits_per_word=16),
+            "bytes": list(pmt.u8vector_elements(
+                pmt.cdr(spi_decode()._pdu([0x4d, 0x32, 0x4b])))),
+        }))
+    ''', os.path.join(repo_root, M2K_GRC)))
+    assert out["text"] == "M2K"
+    assert out["escaped"] == "M\\x00\\xff"
+    assert out["bytes"] == [0x4d, 0x32, 0x4b]
+    # No text where there is no text to give: a 16-bit word is not a
+    # character, and a binary bus should not be told it is one.
+    assert out["off"] is None
+    assert out["wide"] is None
 
 
 @needs_gnuradio

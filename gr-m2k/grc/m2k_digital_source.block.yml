@@ -9,26 +9,287 @@ parameters:
     dtype: string
     default: ip:192.168.2.1
 
--   id: first_pin
-    label: First pin
-    dtype: enum
-    default: '0'
-    options: ['0', '1', '2', '3', '4', '5', '6', '7',
-              '8', '9', '10', '11', '12', '13', '14', '15']
-    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
-                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12',
-                    'DIO13', 'DIO14', 'DIO15']
-
--   id: pin_count
-    label: Pins to read
+-   id: num_lines
+    label: Number of pins
     dtype: enum
     default: '1'
-    options: ['1', '2', '3', '4', '5', '6', '7', '8',
-              '9', '10', '11', '12', '13', '14', '15', '16']
-    option_labels: ['1 pin', '2 pins', '3 pins', '4 pins', '5 pins',
-                    '6 pins', '7 pins', '8 pins', '9 pins', '10 pins',
-                    '11 pins', '12 pins', '13 pins', '14 pins',
-                    '15 pins', '16 pins']
+    options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+              '13', '14', '15', '16']
+    option_labels: ['1 pin', '2 pins', '3 pins', '4 pins', '5 pins', '6 pins',
+                    '7 pins', '8 pins', '9 pins', '10 pins', '11 pins',
+                    '12 pins', '13 pins', '14 pins', '15 pins', '16 pins']
+
+-   id: pin0
+    label: Pin 1
+    dtype: enum
+    default: '0'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 0 else 'all' }
+
+-   id: name0
+    label: Pin 1 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 0 else 'all' }
+
+-   id: pin1
+    label: Pin 2
+    dtype: enum
+    default: '1'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 1 else 'all' }
+
+-   id: name1
+    label: Pin 2 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 1 else 'all' }
+
+-   id: pin2
+    label: Pin 3
+    dtype: enum
+    default: '2'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 2 else 'all' }
+
+-   id: name2
+    label: Pin 3 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 2 else 'all' }
+
+-   id: pin3
+    label: Pin 4
+    dtype: enum
+    default: '3'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 3 else 'all' }
+
+-   id: name3
+    label: Pin 4 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 3 else 'all' }
+
+-   id: pin4
+    label: Pin 5
+    dtype: enum
+    default: '4'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 4 else 'all' }
+
+-   id: name4
+    label: Pin 5 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 4 else 'all' }
+
+-   id: pin5
+    label: Pin 6
+    dtype: enum
+    default: '5'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 5 else 'all' }
+
+-   id: name5
+    label: Pin 6 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 5 else 'all' }
+
+-   id: pin6
+    label: Pin 7
+    dtype: enum
+    default: '6'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 6 else 'all' }
+
+-   id: name6
+    label: Pin 7 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 6 else 'all' }
+
+-   id: pin7
+    label: Pin 8
+    dtype: enum
+    default: '7'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 7 else 'all' }
+
+-   id: name7
+    label: Pin 8 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 7 else 'all' }
+
+-   id: pin8
+    label: Pin 9
+    dtype: enum
+    default: '8'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 8 else 'all' }
+
+-   id: name8
+    label: Pin 9 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 8 else 'all' }
+
+-   id: pin9
+    label: Pin 10
+    dtype: enum
+    default: '9'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 9 else 'all' }
+
+-   id: name9
+    label: Pin 10 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 9 else 'all' }
+
+-   id: pin10
+    label: Pin 11
+    dtype: enum
+    default: '10'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 10 else 'all' }
+
+-   id: name10
+    label: Pin 11 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 10 else 'all' }
+
+-   id: pin11
+    label: Pin 12
+    dtype: enum
+    default: '11'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 11 else 'all' }
+
+-   id: name11
+    label: Pin 12 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 11 else 'all' }
+
+-   id: pin12
+    label: Pin 13
+    dtype: enum
+    default: '12'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 12 else 'all' }
+
+-   id: name12
+    label: Pin 13 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 12 else 'all' }
+
+-   id: pin13
+    label: Pin 14
+    dtype: enum
+    default: '13'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 13 else 'all' }
+
+-   id: name13
+    label: Pin 14 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 13 else 'all' }
+
+-   id: pin14
+    label: Pin 15
+    dtype: enum
+    default: '14'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 14 else 'all' }
+
+-   id: name14
+    label: Pin 15 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 14 else 'all' }
+
+-   id: pin15
+    label: Pin 16
+    dtype: enum
+    default: '15'
+    options: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+              '12', '13', '14', '15']
+    option_labels: ['DIO0', 'DIO1', 'DIO2', 'DIO3', 'DIO4', 'DIO5', 'DIO6',
+                    'DIO7', 'DIO8', 'DIO9', 'DIO10', 'DIO11', 'DIO12', 'DIO13',
+                    'DIO14', 'DIO15']
+    hide: ${ 'none' if int(num_lines) > 15 else 'all' }
+
+-   id: name15
+    label: Pin 16 Label
+    dtype: string
+    default: ''
+    hide: ${ 'none' if int(num_lines) > 15 else 'all' }
 
 -   id: sample_rate
     label: Sample rate
@@ -72,46 +333,79 @@ parameters:
 outputs:
 -   domain: stream
     dtype: short
-    multiplicity: ${ int(pin_count) }
+    label: pin
+    multiplicity: ${ int(num_lines) }
 
 asserts:
 - ${ buffer_size > 0 }
-- ${ int(first_pin) + int(pin_count) <= 16 }
-- ${ trigger_pin == 'off' or int(first_pin) <= int(trigger_pin)
-     < int(first_pin) + int(pin_count) }
+- ${ len(set([pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10, pin11, pin12, pin13, pin14, pin15][:int(num_lines)])) == int(num_lines) }
+- ${ trigger_pin == 'off' or trigger_pin in [pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10, pin11, pin12, pin13, pin14, pin15][:int(num_lines)] }
 
 templates:
     imports: from m2k_blocks.digital import digital_source
     make: |-
         digital_source(
-            uri=${uri}, pin_count=${pin_count}, sample_rate=${sample_rate},
-            buffer_size=${buffer_size}, first_pin=${first_pin},
+            uri=${uri},
+            pins=[${ ", ".join(str(int(p)) for p in [pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7, pin8, pin9, pin10, pin11, pin12, pin13, pin14, pin15][:int(num_lines)]) }],
+            names=[${ ", ".join(str(n) for n in [name0, name1, name2, name3, name4, name5, name6, name7, name8, name9, name10, name11, name12, name13, name14, name15][:int(num_lines)]) }],
+            sample_rate=${sample_rate}, buffer_size=${buffer_size},
             trigger_pin='${trigger_pin}',
             trigger_condition=${trigger_condition},
             trigger_delay=${trigger_delay})
 
 documentation: |-
-    Read the M2K's digital pins. One output port per pin, counting up from
-    the first pin you choose.
+    Read the M2K's digital pins. One output port per pin, in the order
+    you list them.
 
     Each port carries one bit per sample, in a short. That is gr-iio's
     model rather than a choice made here: every DIO pin is its own IIO
     channel with a one-bit scan element.
 
-    A pin is an input or an output, never both. This block sets the pins
-    it reads to inputs, so give a Digital Sink in the same flowgraph a
-    range that does not overlap -- a sink at DIO0 and this block at DIO1
-    share no pin. Where the ranges do overlap, whichever block starts
-    last wins and the other one reads nothing.
+    Number of pins
+      How many pins this block reads, and therefore how many ports it has.
+      Choosing a count reveals that many pin dropdowns.
+
+    Pin N
+      Which DIO pin that port is. Any pin, in any order -- the pins need
+      not be next to each other, and they need not ascend. Pin 1 is the
+      first port whichever DIO you point it at, so a bus wired across
+      DIO3, DIO7 and DIO1 because that is where the jumpers reached is
+      spelled exactly that way.
+
+      No DIO twice, and none shared with the other digital block: a pin
+      is an input or an output, never both. Where two blocks claim the
+      same pin, whichever starts last wins and the other silently
+      reads nothing.
+
+      The ports are numbered from zero, so Pin 1 is the port drawn
+      `pin0`. GNU Radio Companion numbers cloned ports itself and will
+      not take a template for it.
+
+    Pin N Label
+      Optional, and changes nothing about what the block does. A labelled
+      pin reports itself as `MOSI (DIO7)` instead of `DIO7` when
+      something is wrong, which is the difference between a wiring
+      mistake you can see and one you have to go and look up.
+
+      The label does not appear on the ports -- GNU Radio Companion draws
+      port labels from the block description, not from a parameter, so
+      they stay pin0, pin1, pin2. Downstream protocol blocks are where
+      names show on the canvas: the SPI decoder's ports really are
+      called sclk, mosi and cs, because for SPI those never change.
+
+    This block knows nothing about protocols. Three pins are three pins,
+    whether they are a clock, data and select or a latch strobe beside a
+    data bus. What the pins mean is the business of whatever block reads
+    them next.
 
     Trigger on
       Which pin decides when a buffer starts. "Free running" captures
       whenever the buffer is ready, which is the default and is what you
       want unless you are lining a capture up with something.
 
-      The pin has to be one this block is reading. A trigger pin outside
-      the range is a flowgraph error rather than a capture that silently
-      never fires.
+      The pin has to be one this block is reading. A trigger pin this
+      block does not read is a flowgraph error rather than a capture
+      that silently never fires.
 
       This is the logic analyzer's own trigger, separate from the scope's.
       A digital trigger does not start an analog capture.

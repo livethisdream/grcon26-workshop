@@ -30,12 +30,12 @@ word = [[(i // (1 << ch)) % 2 for ch in range(4)] for i in range(WORD)]
 streams = [[word[i][ch] for i in range(WORD)] * (TXBUF // WORD) for ch in range(4)]
 
 tb = gr.top_block()
-sink = digital_sink(uri=URI, pin_count=4, first_pin=0, sample_rate=RATE,
+sink = digital_sink(uri=URI, pins=[0, 1, 2, 3], sample_rate=RATE,
                     buffer_size=TXBUF, cyclic=CYCLIC, idle_level="low")
 for ch in range(4):
     tb.connect(blocks.vector_source_s(streams[ch], True), (sink, ch))
 
-src = digital_source(uri=URI, pin_count=4, first_pin=4, sample_rate=RATE,
+src = digital_source(uri=URI, pins=[4, 5, 6, 7], sample_rate=RATE,
                      buffer_size=BUF)
 vecs = []
 for ch in range(4):
