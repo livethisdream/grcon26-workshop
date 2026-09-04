@@ -1,8 +1,113 @@
 ---
 name: "#grcon26-workshop"
-dateModified: 2026-09-03
+dateModified: 2026-09-04
 ---
 # Superseded Decisions
+
+- **2026-09-02** — Blocks are named on the analog/digital axis, not by
+  instrument. Reason: the four cover nine Scopy instruments between them. Rotated
+  2026-09-04, settled — the six blocks are built and named. The same entry's
+  "no supply block" half was reversed the same day; see below.
+
+- **Rotated 2026-09-04 (trap)** — GRC will not template a port label. `dtype`,
+  `vlen`, `multiplicity` and `hidden` are evaluated; `label` is set once. Naming a
+  line changes error text, not the canvas. Out of the hot note because the ymls it
+  applies to are written and generated.
+
+- **Rotated from Traps 2026-09-04** — **`'low'` is the WIDE +/-25 V range, `'high'` is
+  +/-2.5 V.** The name is the amplifier gain, not the volts, and it is backwards from
+  every guess. Still true; rotated because `gr-m2k/README.md` and checklist section 4
+  both carry it now and Traps was at its budget.
+
+- **2026-09-04 (rotated trap)** — *A disconnected input reads as a clean, stable,
+  plausible number* — its own offset. Input 1 sat at -13.9 counts through a full-volt
+  swing on a generator wired to the wrong socket, three runs, and -13.9 was a genuinely
+  correct prior measurement. Only sweeping the source and watching for *no* response
+  tells a dead wire from a real reading. Rotated out because analog bring-up is closed
+  and calibrated; the evidence is in `docs/bench-checklist.md` section 10 and
+  `bench/dc_point.py`.
+
+**Rotated 2026-09-04 from Traps, because the code already carries it.** `calibbias` is
+storage; `calibscale` is not. Write `calibbias`, read it back, and it holds the value
+while changing nothing in the samples -- the ADC's offset trim is really `ad5625`
+channels 2 and 3. `calibscale` is the opposite: the driver applies it before you see the
+sample, so a block that reads it back and multiplies again is wrong by exactly that
+factor. Both are spelled out at the top of `gr-m2k/m2k_calibrate.py` and in
+`m2k_scale.volts_per_count()`.
+
+- **2026-09-02 — `first_pin`, superseded 2026-09-04.** Both digital blocks took a pin
+  count and a first pin, giving a sink and a source disjoint contiguous ranges. Replaced
+  by a per-line pin list: the range was never the real constraint, only "no shared pin"
+  was, and a contiguous range cannot describe a bus wired where the jumpers reached.
+
+**Rotated 2026-09-04 — closed, the code shipped and is hardware-verified.** The three
+decisions that shaped the digital blocks. Their live consequences are carried by the
+Traps section, the block docstrings and `docs/gr-iio-multipin-sink.md`; the reasoning
+is here.
+
+- **2026-09-02** — Both digital blocks take `first_pin`, and a sink and source in one
+  flowgraph get disjoint ranges. Reason: `pins_for` counted from DIO0 only, so any pair
+  fought over `direction` and the loser did nothing silently.
+- **2026-09-02** — `digital_sink` defaults `idle_level` to `'low'` rather than leaving
+  `raw` alone. Reason: the resting level was otherwise leftover state from whatever
+  last touched the board.
+- **2026-09-02** — `digital_sink` packs the 16-bit output word itself with pylibiio
+  instead of using `iio.device_sink`. Reason: device_sink can only drive one pin;
+  patching gr-iio upstream is deferred.
+
+**Rotated 2026-09-04 — reversed.** "Blocks are named on the analog/digital axis, not
+by instrument, and the supply (`ad5627`) gets no block for now. Reason: the four cover
+nine Scopy instruments between them; nothing planned needs the supply." The naming half
+stands and stays in the hot note; the supply half is reversed by the 2026-09-04
+decision to build a supply block. The 2026-09-03 rotation above, which recorded the
+supply as "deferred and unneeded", is superseded on the same point.
+
+**Rotated 2026-09-04 — closed, calibration is done and meter-verified.** Four decisions
+that shaped `m2k_calibrate.py`. The script exists, `--apply` has run against the board,
+and the live constraints they imply are now carried by the Traps section and by the code
+itself. Kept here because the reasoning explains why the script is shaped as it is.
+
+- **2026-09-03** — `m2k_calibrate.py` trims DAC offset only, and ADC gain *and* offset,
+  both per channel. Reason: two-point meter runs put both DAC gains within 0.25% of
+  unity while the two ADC gains differ 0.52%.
+- **2026-09-03** — Calibration lands on the `ad5625` trim DAC and `m2k-adc calibscale`;
+  blocks apply neither. Reason: `calibbias` is inert and the driver applies `calibscale`
+  itself, so a block re-applying it double-counts the gain. (The live half is the
+  `calibbias`/`calibscale` trap.)
+- **2026-09-03** — Calibration-mode captures convert at a fixed 0.29297 mV/count, not
+  `volts_per_count()`. Reason: the internal references bypass the input range amplifier,
+  which is why libm2k forces `hw_gain` to 1 there. (Duplicated verbatim as a trap.)
+- **2026-09-03** — Generator offset comes from a five-point sweep's zero crossing, not
+  libm2k's single capture through a 9.06 divider. Reason: a crossing needs no scale
+  factor at all, and this board's loopback measures 8.34.
+
+**Parked 2026-09-04 — two discovery-tooling ToDo items.** They belong with the
+overlay work below, not with Phase 1:
+
+- Commit the real capture alongside the synthetic fixture (not over it) and point
+  README demos at it. Decide whether to scrub `hw_serial` and `cal,*` first.
+- Confirm whether `ctx.attrs` returns strings or objects on the installed libiio --
+  `iio_discover._read()` handles both, neither observed.
+
+**Parked 2026-09-04 — overlay coverage, from ToDo.** The board-pack work dropped to
+"if we have time" on 2026-09-04: the four blocks need no overlays, and the intro slide
+comes from `iio_explain.py --glossary`. Real-hardware ABI coverage stands at 57%, with
+58 of 74 overlay entries still `UNVERIFIED`. Pick this up from here.
+
+- Confirm `attr_note()` reaches these attributes first — `in_voltage0_trigger_delay`
+  must reduce to `trigger_delay`, and device attrs must hit the same flat
+  `pack["attrs"]`. Otherwise entries get written and never displayed.
+- Tier 1 (96 attributes) — new packs for `m2k-logic-analyzer` and `-rx`, plus the
+  shared trigger attributes on `-tx` and both DACs. Checklist section 8 measures most
+  of the `-rx` trigger set, so those go in as `MEASURED`.
+- Tier 2 (8 attributes) — `m2k-adc-trigger` as a new pack, `m2k-fabric`
+  `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`. The existing `calibrate`
+  entry is wrong: it is `setCalibrateHDL`, FPGA interface training, not a rewrite of
+  `calibscale`/`calibbias`.
+- Then the bookkeeping: tests for the new entries; re-run coverage (57% → ~90%
+  expected); read the `channels-m2k-adc.txt` golden diff by hand rather than
+  `REGEN_GOLDEN=1`; correct the README's "95%" claim to report synthetic and real
+  separately; sweep the remaining `[overlay: UNVERIFIED]` entries via each `check`.
 
 **Rotated 2026-09-03 — settled, still binding.** The three board-pack authoring rules
 that had governed the Decisions section since August. Nothing here has changed; they

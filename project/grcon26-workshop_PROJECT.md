@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-03
+dateModified: 2026-09-04
 container: cdocker
 ---
 # Overview
@@ -30,8 +30,6 @@ display), and the session material itself.
 
 # Traps
 
-- **`'low'` is the WIDE +/-25 V range, `'high'` is +/-2.5 V.** The name is the
-  amplifier gain, not the volts. Backwards from every guess.
 - **The M2K ADC always returns both channels, interleaved.** Ask for one and gr-iio
   splits the two-channel buffer as if it were one: channel 2 lands in channel 1, the
   time base is 2x slow, and it presents as a tone at exactly Nyquist.
@@ -45,9 +43,10 @@ display), and the session material itself.
 - **Reading trigger attributes back proves nothing.** A silently free-running trigger
   sets every one correctly and delivers every sample. Only alignment, a stall above the
   peak, and the edge's slope tell them apart.
-- **`-tx` and `-rx` hold separate `sampling_frequency`.** Each digital block writes
-  only its own device, so a Sink and a Source given different rates disagree about time
-  and neither complains.
+- **The two directions never share a rate.** On the digital side `-tx` and `-rx` hold
+  separate `sampling_frequency`, so a Sink and a Source given different rates disagree
+  about time. On the analog side the ladders themselves differ -- 75 MS/s decades for
+  the generator, 100 MS/s decades for the scope. Neither case complains.
 - **At rest the digital sink is the opposite of the generator.** The DAC holds its last
   cyclic buffer; DIO pins snap back to `raw`.
 - **The keep-alive means `tb.run()` never returns** -- it waits for every block and the
@@ -55,30 +54,30 @@ display), and the session material itself.
   `start`/`stop`/`wait`.
 - **Positive digital `trigger_delay` is approximate.** Zero and negative are exact and
   repeat; positive lands tens of samples off, differently each run, reading back right.
-- **`calibbias` is storage; `calibscale` is not.** Write `calibbias`, read it back, and
-  it holds the value while changing nothing in the samples -- the ADC's offset trim is
-  really `ad5625` channels 2 and 3. `calibscale` is the opposite: the driver applies it
-  before you see the sample, so a block that reads it back and multiplies again is
-  wrong by exactly that factor.
 - **Calibration mode reads the same counts on both ranges.** Its references and the
   generator loopback arrive past the input amplifier, so `volts_per_count()` mis-scales
   them by 4.7x. Convert at a fixed 0.29297 mV/count instead.
-- **A disconnected input reads as a clean, stable, plausible number** -- its own
-  offset. Input 1 sat at -13.9 counts through a full-volt swing on a generator wired
-  to the wrong socket, three runs, and -13.9 was a genuinely correct prior
-  measurement. Only sweeping the source and watching for *no* response tells a dead
-  wire from a real reading.
 - **gr-iio's `device_sink` drives ONE DIO pin, silently.** Sixteen 1-bit fields share
   one 16-bit word; each channel's write is a full-width store that erases the last, so
   only the highest pin survives. No error. `docs/gr-iio-multipin-sink.md`.
 - **GRC `dtype: enum` values are raw strings.** `'0' + '3'` concatenates, `int("'6'")`
   raises, and an assert that raises makes GRC fall back to defaults without saying so.
+- **A triggered digital capture is gapped between buffers and re-arms per buffer**, so
+  the trigger edge is a frame boundary. CS framed per byte makes every buffer start on
+  an arbitrary byte: the stream prints rotations, every byte individually correct.
+- **gr-iio's `device_source` ends itself on any refill error.** `work()` returns
+  WORK_DONE on a timeout, so a triggered source waiting on a human never comes back --
+  one message decodes and the capture is gone. `set_timeout_ms` stores its value and
+  never hands it to libiio. Free-run the source; trigger the display.
+- **A non-cyclic digital sink pushes one DMA buffer at a time and need not join them.**
+  A frame lying across the seam tears mid-message. `m2k_spi_encode`'s "Align frames to"
+  holds a queued frame until the next boundary; its sample count is the sink's position.
 
 # Decisions
 
-- Board-pack authoring rules — evidence tiers and the `check` field, the real capture
-  alongside the fixture rather than over it, chip plumbing deferred — are settled and
-  still binding; the archive has them in full.
+- Closed and rotated to the archive, which has the reasoning in full: the board-pack
+  authoring rules (settled, still binding), the three digital-block decisions, and
+  calibration's four. Their live halves are traps and `docs/gr-iio-multipin-sink.md`.
 
 - **2026-09-01** — Calibration is a standalone script run once per session, not block
   init. Reason: it seizes the whole analog front end, is a closed loop `attr_sink`
@@ -90,106 +89,108 @@ display), and the session material itself.
   worth.
 - **2026-09-01** — Writes to the instrument are allowed with per-write approval,
   superseding the read-only default of 2026-08-18.
-- **2026-09-02** — Both digital blocks take `first_pin`, and a sink and source in one
-  flowgraph get disjoint ranges. Reason: `pins_for` counted from DIO0 only, so any pair
-  fought over `direction` and the loser did nothing silently.
-- **2026-09-02** — Blocks are named on the analog/digital axis, not by instrument, and
-  the supply (`ad5627`) gets no block for now. Reason: the four cover nine Scopy
-  instruments between them; nothing planned needs the supply.
-- **2026-09-02** — `digital_sink` defaults `idle_level` to `'low'` rather than leaving
-  `raw` alone. Reason: the resting level was otherwise leftover state from whatever
-  last touched the board.
-- **2026-09-02** — `digital_sink` packs the 16-bit output word itself with pylibiio
-  instead of using `iio.device_sink`. Reason: device_sink can only drive one pin;
-  patching gr-iio upstream is deferred.
-- **2026-09-03** — `m2k_calibrate.py` trims DAC offset only, and ADC gain *and* offset,
-  both per channel. Reason: two-point meter runs put both DAC gains within 0.25% of
-  unity while the two ADC gains differ 0.52%.
-- **2026-09-03** — Calibration lands on the `ad5625` trim DAC and `m2k-adc calibscale`;
-  blocks apply neither. Reason: `calibbias` is inert and the driver applies `calibscale`
-  itself, so a block re-applying it double-counts the gain.
-- **2026-09-03** — Calibration-mode captures convert at a fixed 0.29297 mV/count, not
-  `volts_per_count()`. Reason: the internal references bypass the input range amplifier,
-  which is why libm2k forces `hw_gain` to 1 there.
-- **2026-09-03** — Generator offset comes from a five-point sweep's zero crossing, not
-  libm2k's single capture through a 9.06 divider. Reason: a crossing needs no scale
-  factor at all, and this board's loopback measures 8.34.
+- **2026-09-04** — Build a DC power supply block, reversing the 2026-09-02 "no supply
+  block" decision. Reason: GNU Radio cannot control a power rail at all, and the
+  setpoint spans four places including the context `cal,*` attributes.
+- **2026-09-04** — Standing-wave / VSWR is out of the workshop. Reason: scope control
+  with GRCon26 this month; it carried the most unbuilt work of the three.
+- **2026-09-04** — Discovery tooling drops to "if we have time"; the intro gets one
+  slide on what IIO is and which M2K attributes matter. Reason: the blocks need no
+  overlays, and `iio_explain.py --glossary` generates the slide content.
+- **2026-09-04** — Ultrasonic reuses ECE448's `fsk_project.grc` (AFSK, 200 baud,
+  600 Hz deviation) retuned to 40 kHz. Reason: already end to end; only the endpoints
+  and the rates change, which is itself the lesson.
+- **2026-09-04** — Ultrasonic transmits at 750 kS/s and receives at 1 MS/s. Reason:
+  DAC and ADC have different rate ladders, and 40 kHz needs the third rung of each.
+- **2026-09-04** — One SPI frame is one whole transaction, CS asserted once across all
+  bytes. Reason: the capture re-arms per buffer, so per-byte CS framing starts each
+  buffer on a random byte -- and one assertion is what real SPI does anyway.
+- **2026-09-04** — Digital blocks take a pin list plus an optional name per line, not a
+  count and an offset. Reason: a bus is not always contiguous, and a name only has to
+  make an error legible — GRC will not evaluate a port label.
+- **2026-09-04** — SPI sends on demand through a new `m2k_spi_encode` block; the cyclic
+  version is kept as `m2k_spi_loopback_continuous.grc`. Reason: a cyclic buffer is
+  repeated by the hardware and nothing downstream can gate it.
+- **2026-09-04** — `m2k_spi_encode` aligns frames to the sink's buffer size. Reason: a
+  non-cyclic sink's DMA buffers need not join seamlessly, and the encoder's sample
+  count is the sink's position in its buffer.
+- **2026-09-04** — The decoded PDU carries the bytes as text in its metadata,
+  not as the payload. Reason: the loopback's own proof, the way Scopy shows a text
+  column, while the payload stays what was on the wire.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Block-building is done and hardware-verified, both
-triggers and a real SPI bus included, and calibration has closed the absolute error.
-Open: the board pack (Tier 1 + Tier 2, 104 attributes, ~90% coverage expected).
+**Phase 1 (current) — crawl:** Six blocks built, all bench-verified; calibration
+has closed the absolute error. Open: a DC power supply block, a capability GNU Radio
+does not have at all.
 
-**Timing:** GRCon26 is this month, Phases 2 and 3 have not started, slides are gated
-behind working demos, and setup instructions are due two weeks prior.
+**Timing:** GRCon26 is this month and Phase 3 has not started. Slides are gated behind
+working demos; setup instructions are due two weeks prior.
 
-**Phase 2 — walk:** IIO block anatomy through the discover/explain pair; the handout in
-`docs/reading-iio-attributes.md` is the participant-facing artifact.
+**Phase 2 — walk:** IIO block anatomy. One intro slide on what IIO is and which M2K
+attributes matter, from `iio_explain.py --glossary`. The walkthrough and overlay
+coverage only if there is time; `docs/reading-iio-attributes.md` is the
+participant-facing artifact either way.
 
-**Phase 3 — run:** standing-wave / VSWR, ultrasonic, CN0363 colorimeter.
-
-**Later:** rebuild the standing-wave display; pick the hands-on participant station;
-move acquisition state server-side; slides, procurement, timing.
+**Phase 3 — run:** ultrasonic FSK, then the CN0363 colorimeter. Ultrasonic reuses
+ECE448's `fsk_project.grc` retuned to 40 kHz — sweep for resonance first, then port
+the endpoints and the rates. Time-of-flight ranging is the stretch goal if the FSK
+link lands early.
 
 # Status
 
-- **Repo:** `main` at `b5a3b67`. `gr-m2k/m2k_calibrate.py`, `tests/test_calibrate.py`
-  and a corrected `m2k_scale.py` docstring are new and uncommitted.
-  `m2k-discovery-gui` is merged and deletable.
-- **`gr-m2k/` — four blocks**: `analog_source`, `analog_sink`, `digital_source`,
-  `digital_sink`, plus `m2k_scale.py` (arithmetic, imports nothing) and
-  `m2k_config.py`.
-- **Bench checklist sections 1-9 all pass**, section 4's absolute accuracy aside.
-  `docs/bench-checklist.md` is the record. Section 9 is a real SPI mode-0 bus on
-  three DIO pins, verified over all 256 byte values with zero errors.
-- **Everything the four blocks do is hardware-verified.** `raw` both drives and
-  reads a pin with no flowgraph — that is Scopy's Digital IO, in both directions.
-- **Absolute error is closed and meter-verified.** `gr-m2k/m2k_calibrate.py --apply`
-  moved input 1 from gain 0.93686 / offset -20.9 mV to 1.00080 / -1.0 mV, input 2 from
-  0.93199 / +61.9 mV to 1.00310 / -0.35 mV, W1's offset from +48.5 mV to +10.0 mV and
-  W2's from +112.1 mV to +17.0 mV. A 1.0 V input read 0.916 V before and reads 0.9998 V
-  now. Internal references only -- the meter was the independent check, not an input.
-  The generators keep ~10 and ~17 mV because the internal loopback never sees a DMM's
-  load. Evidence: `bench/dc_point.py`, checklist section 10.
+- **Repo:** branch `spi-send-on-demand`, PR open against `main`.
+- **`gr-m2k/` — six blocks**: `analog_source`, `analog_sink`, `digital_source`,
+  `digital_sink`, `spi_decode`, `spi_encode`, plus `m2k_calibrate.py`, `m2k_scale.py`
+  and `spi_decode.py`/`spi_encode.py` (arithmetic, import nothing) and `m2k_config.py`.
+  367 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
+- **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
+  fails if the committed copy drifts.
+- **Bench checklist sections 1-12 all pass.** Section 9 is a real SPI mode-0 bus on
+  three DIO pins over all 256 byte values, zero errors; section 11 runs `m2k_spi_decode`
+  live at half = 4, 8 and 16; section 12 is send-on-demand, 20 sends clean at 100 kS/s,
+  which also proves an untriggered capture is not gapped between rx buffers.
+- **Absolute error is closed and meter-verified.** Input gains within 0.31% of unity,
+  offsets under 1 mV; generators keep ~10-17 mV (the internal loopback never sees a
+  DMM's load). Numbers: checklist section 10.
 - **Live M2K at `ip:192.168.2.1`** (Rev.D Z7010, fw v0.33), network backend, no USB
   passthrough. Calibrated and held; all 16 DIO pins are inputs, triggers off.
-- **Tests:** 253 pass, 41 new around the calibration arithmetic.
-- **Discovery tooling** unchanged for four sessions. Real-hardware ABI coverage 57%;
-  58 of 74 overlay entries still `UNVERIFIED`.
-- **Hardware:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic board.
-  40 kHz TX/RX pairs on order.
+- **Hardware in hand:** ADALM2000, one CN0363, 10x Pico, instructor ultrasonic mic
+  board, 40 kHz TX/RX transducer pairs.
+- **The FSK flowgraph Phase 3 reuses:** `~/USAFA/ECE448/L01_Intro/fsk_project.grc`
+  (also `~/projects/ece448/faculty/`).
 
 # ToDo
 
-- [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
-- [ ] Non-cyclic digital streaming underruns at 1 MS/s (half the runs) — find the rate
-      where it stops.
-- [ ] Delete the merged `m2k-discovery-gui` branch.
+**DC power supply block**
+- [ ] Fetch `m2kpowersupply_impl.cpp` via `iio_libm2k_fetch.py` for the raw-to-rail
+      expression; measure a two-point sweep against the meter and let the meter win.
+- [ ] Block: float setpoint in volts, rate-limited writes, one instance per rail.
+      Clears `powerdown` on both `m2k-fabric` user_supply and `ad5627`, applies the
+      context `cal,*` corrections.
+- [ ] Precision demo — rail to input 1, commanded vs measured.
+- [ ] Then the PWM LED application off `digital_sink`.
 
-- [ ] Confirm `attr_note()` reaches these attributes first — `in_voltage0_trigger_delay`
-      must reduce to `trigger_delay`, device attrs must hit the same flat `pack["attrs"]`.
-      Otherwise entries get written and never displayed.
-- [ ] Tier 1 (96 attributes) — new packs for `m2k-logic-analyzer` and `-rx`, plus the
-      shared trigger attributes on `-tx` and both DACs. Checklist section 8 measures
-      most of the `-rx` trigger set, so those go in as `MEASURED`.
-- [ ] Tier 2 (8 attributes) — `m2k-adc-trigger` as a new pack, `m2k-fabric`
-      `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`. The existing
-      `calibrate` entry is wrong: it is `setCalibrateHDL`, FPGA interface training,
-      not a rewrite of `calibscale`/`calibbias`.
-- [ ] Then the bookkeeping: tests for the new entries; re-run coverage (57% → ~90%
-      expected); read the `channels-m2k-adc.txt` golden diff by hand rather than
-      `REGEN_GOLDEN=1`; correct the README's "95%" claim to report synthetic and real
-      separately; sweep the remaining `[overlay: UNVERIFIED]` entries via each `check`.
-- [ ] Commit the real capture alongside the synthetic fixture (not over it) and point
-      README demos at it. Decide whether to scrub `hw_serial` and `cal,*` first.
-- [ ] Confirm whether `ctx.attrs` returns strings or objects on the installed libiio —
-      `iio_discover._read()` handles both, neither observed.
-- [ ] Recover or rebuild `standing_wave_view.jsx`.
-- [ ] Bench-measure whether 40 kHz transducers have the bandwidth for sweep-direction
-      encoding or must use two-tone FSK, and whether the M2K input resolves the mic
-      signal without a gain stage.
+**Ultrasonic**
+- [ ] Sweep 36-44 kHz with `analog_sink` / `analog_source` for resonance and the real
+      -6 dB bandwidth. Everything downstream needs f0.
+- [ ] Port `fsk_project.grc` to `flowgraphs/m2k_ultrasonic_fsk.grc`: split `samp_rate`
+      into 750 kS/s tx and 1 MS/s rx, tones at f0 +/- 300, M2K endpoints, xlating
+      filter recentred, `vco_f` output scaled to volts.
+- [ ] Bench it, then measure range and off-axis falloff.
+- [ ] Confirm non-cyclic analog streaming holds at 750 kS/s; fall back to one cyclic
+      buffer if it underruns.
+
+**Loose ends**
+- [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
+- [ ] Raise `samp_rate` on `m2k_spi_loopback.grc` from 100 kS/s a step at a time and
+      record where non-cyclic send-on-demand stops holding. Nothing in the repo knows
+      that rate, and it is the honest answer to how fast this bus can go.
+- [ ] Delete the merged `m2k-discovery-gui` branch.
 - [ ] Decide which demo becomes the hands-on participant station.
-- [ ] Move standing-wave acquisition state server-side for late joiners.
 - [ ] Write participant setup instructions; send two weeks before the session.
-- [ ] Slides — after demos run.
+- [ ] Slides — after demos run. Intro slide from `iio_explain.py --glossary`.
+
+**If we have time**
+- [ ] Overlay coverage (Tier 1 + Tier 2, ~104 attributes, 57% → ~90%) is parked. The
+      full task list is in the archive under "Parked 2026-09-04".
