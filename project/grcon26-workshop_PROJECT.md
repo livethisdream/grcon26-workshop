@@ -111,12 +111,12 @@ display), and the session material itself.
 - **2026-09-04** — SPI sends on demand through a new `m2k_spi_encode` block; the cyclic
   version is kept as `m2k_spi_loopback_continuous.grc`. Reason: a cyclic buffer is
   repeated by the hardware and nothing downstream can gate it.
-- **2026-09-04** — `m2k_spi_encode` aligns frames to the sink's buffer size. Reason: a
-  non-cyclic sink's DMA buffers need not join seamlessly, and the encoder's sample
-  count is the sink's position in its buffer.
 - **2026-09-04** — The decoded PDU carries the bytes as text in its metadata,
   not as the payload. Reason: the loopback's own proof, the way Scopy shows a text
   column, while the payload stays what was on the wire.
+- **2026-09-04** — SPI mode 0 is checked against libsigrokdecode, not only against
+  our own decoder. Reason: encoder and decoder were written from the same sentences, so
+  a shared misreading round-trips clean and is still wrong on a real bus.
 
 # Plan
 
@@ -128,14 +128,12 @@ does not have at all.
 working demos; setup instructions are due two weeks prior.
 
 **Phase 2 — walk:** IIO block anatomy. One intro slide on what IIO is and which M2K
-attributes matter, from `iio_explain.py --glossary`. The walkthrough and overlay
-coverage only if there is time; `docs/reading-iio-attributes.md` is the
-participant-facing artifact either way.
+attributes matter, from `iio_explain.py --glossary`. `docs/reading-iio-attributes.md`
+is the participant-facing artifact either way.
 
 **Phase 3 — run:** ultrasonic FSK, then the CN0363 colorimeter. Ultrasonic reuses
-ECE448's `fsk_project.grc` retuned to 40 kHz — sweep for resonance first, then port
-the endpoints and the rates. Time-of-flight ranging is the stretch goal if the FSK
-link lands early.
+ECE448's `fsk_project.grc` retuned to 40 kHz; steps in ToDo. Time-of-flight ranging is
+the stretch goal if the FSK link lands early.
 
 # Status
 
@@ -143,13 +141,13 @@ link lands early.
 - **`gr-m2k/` — six blocks**: `analog_source`, `analog_sink`, `digital_source`,
   `digital_sink`, `spi_decode`, `spi_encode`, plus `m2k_calibrate.py`, `m2k_scale.py`
   and `spi_decode.py`/`spi_encode.py` (arithmetic, import nothing) and `m2k_config.py`.
-  367 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
+  390 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
 - **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
   fails if the committed copy drifts.
-- **Bench checklist sections 1-12 all pass.** Section 9 is a real SPI mode-0 bus on
-  three DIO pins over all 256 byte values, zero errors; section 11 runs `m2k_spi_decode`
-  live at half = 4, 8 and 16; section 12 is send-on-demand, 20 sends clean at 100 kS/s,
-  which also proves an untriggered capture is not gapped between rx buffers.
+- **Bench checklist sections 1-13 all pass.** Section 9 is a real SPI mode-0 bus over
+  all 256 byte values; 11 runs `m2k_spi_decode` live at half = 4, 8, 16; 12 is
+  send-on-demand, 20 sends clean at 100 kS/s, which also proves an untriggered capture
+  is not gapped; 13 checks the bus against libsigrokdecode, off the board.
 - **Absolute error is closed and meter-verified.** Input gains within 0.31% of unity,
   offsets under 1 mV; generators keep ~10-17 mV (the internal loopback never sees a
   DMM's load). Numbers: checklist section 10.
@@ -184,8 +182,9 @@ link lands early.
 **Loose ends**
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
 - [ ] Raise `samp_rate` on `m2k_spi_loopback.grc` from 100 kS/s a step at a time and
-      record where non-cyclic send-on-demand stops holding. Nothing in the repo knows
-      that rate, and it is the honest answer to how fast this bus can go.
+      record where send-on-demand stops holding. Nothing in the repo knows that rate.
+- [ ] Run the sigrok check against a real M2K capture, not the encoder's arithmetic:
+      `bench/spi_flowgraph.py M2K 8 --csv`, DIO0-2 wired to DIO4-6.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 - [ ] Decide which demo becomes the hands-on participant station.
 - [ ] Write participant setup instructions; send two weeks before the session.

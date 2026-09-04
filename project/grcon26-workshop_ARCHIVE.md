@@ -4,6 +4,12 @@ dateModified: 2026-09-04
 ---
 # Superseded Decisions
 
+- **2026-09-04** — `m2k_spi_encode` aligns frames to the sink's buffer size. Reason: a
+  non-cyclic sink's DMA buffers need not join seamlessly, and the encoder's sample
+  count is the sink's position in its buffer. Rotated 2026-09-04: not reversed, said in
+  full by the Traps bullet that names the "Align frames to" parameter. Section 12 of the
+  bench checklist has the measurement, 20/20 sends whole at 100 kS/s.
+
 - **2026-09-02** — Blocks are named on the analog/digital axis, not by
   instrument. Reason: the four cover nine Scopy instruments between them. Rotated
   2026-09-04, settled — the six blocks are built and named. The same entry's
