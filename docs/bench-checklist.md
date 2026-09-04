@@ -743,7 +743,65 @@ where it stops holding. That number is the answer to "how fast can a
 GNU Radio flowgraph drive this bus on demand," which nothing in the
 repo currently knows.
 
-## 13. Promote what passes
+## 13. An independent decoder — PASSES (no board needed)
+
+Every SPI test before this one sends through `SpiEncoder` and reads back
+with `SpiDecoder`. They all pass, and they prove the two halves agree
+with each other. They cannot prove either agrees with SPI: both were
+written from the same three sentences about mode 0, and a shared
+misreading — LSB first, sampling the falling edge, CS moving a half
+clock early — round-trips perfectly and is still wrong on a real bus.
+
+So the waveform goes to libsigrokdecode's `spi` decoder, the one
+PulseView uses, written by people who have never seen this repo.
+`tests/test_spi_sigrok.py` writes the three lines to a CSV and shells
+out to `sigrok-cli`:
+
+```
+sudo apt install sigrok-cli
+pytest tests/test_spi_sigrok.py -q
+```
+
+23 tests, all passing against sigrok-cli 0.7.2 / libsigrokdecode 0.5.2.
+They skip cleanly where it is not installed. Nothing here touches the
+board — `SpiEncoder` imports nothing, so this runs anywhere.
+
+**What it reads.** `M2K` comes back `4D 32 4B`, and so does all 256
+bytes in one transaction, four bus speeds (`half` 2/4/8/16), an
+active-high chip select, 12- and 16-bit words, and a frame with 4096
+idle samples either side — which also says our idle levels really are
+idle, since sigrok finds no bytes in them.
+
+**Both decoders on the same samples.** Six frames built with every half
+clock a different random length — something our encoder never emits —
+and ours and sigrok's read the same words. A decoder quietly counting
+samples instead of watching edges fails this; ours does not.
+
+**The negative control.** A harness that cannot fail has not checked
+anything, so four runs deliberately tell sigrok the wrong thing, and
+each one has to return something other than `4D 32 4B`:
+
+| told | reads |
+| --- | --- |
+| `bitorder=lsb-first` | `B2 4C D2` |
+| `cpha=1` | `9A 64 96` |
+| `cpol=1` | `9A 64 96` |
+| `cs_polarity=active-high` | nothing |
+
+An unknown option name exits 1 and decodes nothing, which would
+otherwise look like a quiet bus, so the harness asserts on the exit
+code rather than on empty output.
+
+### Still to find
+
+This checks the encoder, not the board. `bench/spi_flowgraph.py` now
+takes `--csv PATH` and writes what the M2K actually captured in the
+same format, so the hardware half is the same command against a real
+capture. Needs DIO0-2 wired to DIO4-6.
+
+---
+
+## 14. Promote what passes
 
 Each entry in `iio_overlays.py` carries a `check` field describing how to
 confirm it. 58 of 74 are still `UNVERIFIED`. As they check out, change
@@ -798,6 +856,7 @@ gnuradio-companion flowgraphs/m2k_spi_loopback_continuous.grc  # 11
 gnuradio-companion flowgraphs/m2k_spi_loopback.grc             # 12
 python3 bench/dc_point.py 0.0 --output w1       # 10, one point
 python3 bench/dc_point.py 1.0 --output w1 --meter 1.051
+python3 bench/spi_flowgraph.py M2K 8 --csv /tmp/bus.csv     # 13, on hardware
 ```
 
 Both want a gnuradio interpreter. The project `.venv` does not have one,

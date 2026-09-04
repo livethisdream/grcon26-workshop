@@ -17,6 +17,18 @@ Run from the repo root:
     python3 bench/spi_flowgraph.py              # 'M2K', half = 4, 8, 16
     python3 bench/spi_flowgraph.py hello        # any message
     python3 bench/spi_flowgraph.py hi 8         # one bus speed only
+    python3 bench/spi_flowgraph.py M2K 8 --csv /tmp/bus.csv
+
+`--csv` writes the captured lines out for section 13, where
+libsigrokdecode reads the same samples and has to reach the same bytes:
+
+    sigrok-cli -i /tmp/bus.csv -I csv:header=true:samplerate=1000000 \
+        -P spi:clk=clk:mosi=mosi:cs=cs:cpol=0:cpha=0 -A spi=mosi-data
+
+These are samples off a board, which is what makes them worth a second
+opinion -- the encoder's own waveform is checked against sigrok without
+hardware in `tests/test_spi_sigrok.py`, but nothing in that file has
+ever seen a real edge.
 
 Three things it is actually asking:
 
@@ -113,7 +125,22 @@ def run(message, half):
     return {"frame": frame, "samples": [len(t.data()) for t in taps],
             "chunks": heard.seen,
             "words": [b for chunk in heard.seen for b in chunk],
+            "lines": [list(taps[port].data()) for port in (SCLK, MOSI, CS)],
             "cs": list(taps[CS].data())}
+
+
+def write_csv(path, lines):
+    """The three captured lines, in the shape sigrok's csv input wants.
+
+    A header row rather than bare columns, so the decoder binding can
+    name its channels instead of guessing which column libsigrok called
+    what. One sample per row, levels already 0 or 1.
+    """
+    with open(path, "w") as out:
+        out.write("clk,mosi,cs\n")
+        for triple in zip(*lines):
+            out.write("%d,%d,%d\n" % tuple(1 if v else 0 for v in triple))
+    print("  wrote %s (%d samples)" % (path, len(lines[0])))
 
 
 def first_cs_falls_at(cs):
@@ -163,11 +190,26 @@ def report(message, half, out):
 
 
 if __name__ == "__main__":
-    message = sys.argv[1] if len(sys.argv) > 1 else "M2K"
-    halves = [int(sys.argv[2])] if len(sys.argv) > 2 else [4, 8, 16]
+    argv = sys.argv[1:]
+    csv_path = None
+    if "--csv" in argv:
+        at = argv.index("--csv")
+        csv_path = argv[at + 1]
+        argv = argv[:at] + argv[at + 2:]
+
+    message = argv[0] if argv else "M2K"
+    halves = [int(argv[1])] if len(argv) > 1 else [4, 8, 16]
     results = []
     for half in halves:
-        results.append(report(message, half, run(message, half)))
+        out = run(message, half)
+        results.append(report(message, half, out))
+        if csv_path:
+            # One file per bus speed when several are run, so a failing
+            # speed can be handed to sigrok on its own.
+            name = csv_path if len(halves) == 1 else "%s.half%d%s" % (
+                os.path.splitext(csv_path)[0], half,
+                os.path.splitext(csv_path)[1] or ".csv")
+            write_csv(name, out["lines"])
         print("")
     print("SECTION 11 %s" % ("PASSES" if all(results) else "FAILS"))
     sys.stdout.flush()

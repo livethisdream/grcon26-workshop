@@ -120,6 +120,14 @@ and that sentence is the whole decoder. Modes 1-3 sample on a different
 edge — a two-line change, deliberately not offered, because no capture
 in this repo contains one and an untested dropdown is worse than none.
 
+That mode 0 is the same mode 0 as everyone else's, and not just the one
+this repo agrees with itself about: `tests/test_spi_sigrok.py` hands the
+encoder's waveform to libsigrokdecode — PulseView's SPI decoder, no
+relation to anything here — and gets the queued bytes back, across four
+bus speeds, both chip-select polarities and 8/12/16-bit words. Told the
+wrong bit order or the wrong clock phase, it reads different bytes, so
+the check is one that could have failed. See checklist section 13.
+
 **The message carries the bytes and their reading.** The payload is the
 words that were on the wire; the metadata carries the same words as
 text, so a Message Debug prints
