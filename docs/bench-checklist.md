@@ -294,13 +294,14 @@ Use the **`'low'`** range for the scope. 3.3 V logic clips flat on
 - [x] `m2k-logic-analyzer` `direction` reads `in`/`out` to match the block
 - [x] a rate from the dropdown is accepted
 
-**A loopback needed `first_pin` before it could exist.** `pins_for`
-counted from DIO0 upward with no offset, so a sink and a source in one
-flowgraph always claimed the same pins and fought over `direction` --
-whichever was built last won and the other silently did nothing. Both
-blocks now take a first pin, and the sink at DIO0 with the source at
-DIO1 share nothing. `direction` afterwards read `out` on DIO0, `in` on
-DIO1, and `in` on the untouched DIO2.
+**A loopback needed the two blocks to claim different pins before it
+could exist.** `pins_for` counted from DIO0 upward and took no offset, so
+a sink and a source in one flowgraph always claimed the same pins and
+fought over `direction` -- whichever was built last won and the other
+silently did nothing. Each block now takes its own pin list, and the sink
+at `pins=[0]` with the source at `pins=[1]` share nothing. `direction`
+afterwards read `out` on DIO0, `in` on DIO1, and `in` on the untouched
+DIO2.
 
 **The pin drives a real 3.3 V.** A 16384-sample square at 1 MS/s --
 61.04 Hz, one buffer per cycle -- measured on the scope:
@@ -504,7 +505,7 @@ verbose — 256 samples to move 8 bits — but the frame is written as plain
 Python lists in the flowgraph's variables, which is exactly the kind of
 thing a participant can change and immediately see.
 
-The flowgraph is `flowgraphs/m2k_spi_loopback.grc`.
+The flowgraph is `flowgraphs/m2k_spi_loopback_continuous.grc`.
 
 ## 10. Splitting the composite, per channel — PASSES
 
@@ -572,7 +573,177 @@ for no response; a dead wire and a real reading are otherwise identical.
 neutral is not established, and `m2k_calibrate.py` must not write until
 it is checked against libm2k's `calibrateADC()`.
 
-## 11. Promote what passes
+## 11. The decoder in the flowgraph — PASSES
+
+Section 9 proved the bus. It decoded the capture *offline*, in
+`bench/spi_loopback.py`, after the run finished. `M2K SPI Decode` does
+the same arithmetic inside the running flowgraph, and that is a
+different claim: it has to hold its state across `work()` calls that
+land wherever the scheduler puts them, and it has to keep up.
+
+It does, at half = 4, 8 and 16 — 62.5 kHz down to 31.25 kHz and up to
+125 kHz, ~6 M samples captured per run, `M2K` repeating with no
+underruns. `python3 bench/spi_flowgraph.py` is the headless version:
+same three blocks, a collector standing in for Message Debug.
+
+```
+export GRC_BLOCKS_PATH=$PWD/gr-m2k/grc:$GRC_BLOCKS_PATH
+export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
+gnuradio-companion flowgraphs/m2k_spi_loopback_continuous.grc
+```
+
+Three jumpers, DIO0-2 to DIO4-6. `bench/dio_continuity.py` walks a single
+1 across the driven pins and prints the 3x3 table, if a jumper is in
+doubt. What to look for:
+
+- Message Debug prints `M2K` over and over, and nothing else.
+- Type into the `SPI message` box and press Enter. The printed string
+  changes without a restart, and the three vector sources stay the same
+  length -- `spi_capacity` fixes the frame, and a short message pads with
+  idle. A message longer than `spi_capacity` is cut, not wrapped.
+- Watch for a length mismatch after a live change: GRC recomputes the
+  variables in dependency order, so `spi_pad` is fresh before the three
+  waveforms use it. If that ever stopped being true the symptom would be
+  three vector sources of different lengths, which shifts the bus.
+- Change `half` to 4 and then 16. The bus speed changes, the frame
+  length follows it, and the string still comes back. This is the part
+  the old flowgraph could not do -- `frame` was hard-coded at 256, so
+  any other `half` silently mismatched the buffer.
+- Nothing prints between the flowgraph starting and the first CS falling
+  edge. A byte appearing before the first frame boundary would mean the
+  decoder is emitting from a partial frame, which is exactly the failure
+  the arming rule exists to prevent.
+
+The thing to watch for is not wrong bytes. It is the flowgraph falling
+behind: Python decodes 1 MS/s in about 4% of real time when the samples
+are a list, but twenty times slower if anything hands it a numpy array
+element by element. If the source starts reporting underruns, that is
+where to look first.
+
+### What this section found: CS framed per byte prints rotations
+
+The first run failed, and the way it failed is worth keeping.
+
+Every byte was correct. `M2K` was there, `2KM` was there, `KM2` was
+there. The diagnostic counted 1978 chunks, 5958 bytes, **zero bytes that
+were not in the message** — chunk sizes `{3: 1975, 6: 2, 21: 1}`, chunk
+starts `M 689 / 2 649 / K 640`. Uniform. That is not corruption; that is
+a fair coin deciding where each capture begins.
+
+The cause is the two halves of the design meeting. The M2K's non-cyclic
+digital capture is **gapped between buffers** — it fills one, hands it
+over, and re-arms. A triggered source re-arms on the trigger, so every
+buffer starts at a CS falling edge. The frame, at that point, put a CS
+falling edge in front of *every byte*. So each buffer began on an
+arbitrary byte of the message, and the decoder — correctly — reported
+what it was handed. Section 9 never saw it because it captured a single
+buffer and stopped.
+
+The fix is the waveform, not the code: hold CS low across the whole
+message, so one frame is one transaction and the only falling edge in
+the frame is the message start. That is also what real SPI does, so the
+fix costs nothing pedagogically. `SpiDecoder` needed no change — it
+already abandons a part-built word at CS release and clocks straight
+through a multi-byte window.
+
+`tests/test_spi_decode.py::test_the_frame_asserts_chip_select_exactly_once`
+now pins it. It is the only test that would have caught this without a
+board, and it did not exist until the board found it.
+
+## 12. Send on demand, non-cyclic — PASSES
+
+Section 11 settled the decoder against a buffer the hardware repeats
+forever. `flowgraphs/m2k_spi_loopback.grc` asks a different question:
+can the sink *stream*, so a message goes out once when somebody presses
+Enter and the bus rests in between?
+
+**2026-09-04: it can.** Twenty sends with varying text, one print per
+press, no rotations, nothing dropped, no timeout. So at 100 kS/s:
+
+- **non-cyclic digital output holds** across repeated sends, and frame
+  alignment keeps every frame off the DMA buffer seam;
+- **a free-running capture is not gapped between rx buffers** the way
+  the triggered one in section 11 is. That was the open question, and
+  the answer is that the gap belongs to the trigger re-arming, not to
+  the buffers.
+
+The message also comes back readable:
+
+```
+((text . M2K))
+pdu length =          3 bytes
+pdu vector contents =
+0000: 4d 32 4b
+```
+
+`m2k_spi_decode` puts the bytes in the metadata as text as well, which
+is the check a participant can make at a glance.
+
+### Why the source is not triggered
+
+The first run of this flowgraph decoded one message and then printed:
+
+```
+device_source :warning: Unable to refill buffer: Connection timed out (110)
+```
+
+**That warning is fatal.** gr-iio's `device_source::work()` returns
+`-1` — `WORK_DONE` — on *any* refill error, so the block ends
+permanently. An armed trigger waiting for the next message will always
+time out eventually: the wait is however long it takes a person to
+type. `set_timeout_ms` is not a way out; in 3.10 it stores the value
+and never hands it to libiio.
+
+Free-running the source and letting CS frame the stream in software is
+what the decoder's arming rule was written for. The QT time sink
+triggers the display instead — normal mode, negative slope, CS channel.
+The continuous flowgraph keeps its hardware trigger, which it needs and
+which section 11 verified.
+
+If a `Connection timed out (110)` appears again, something is arming a
+trigger. Check `trigger_pin` is `off` on the Source, and note that pin
+triggers are board state that outlives the program: a previous run can
+leave one set. `_apply_trigger` writes `none` to every pin it reads, so
+simply running this flowgraph clears them.
+
+### Running it
+
+```
+export GRC_BLOCKS_PATH=$PWD/gr-m2k/grc:$GRC_BLOCKS_PATH
+export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
+gnuradio-companion flowgraphs/m2k_spi_loopback.grc
+```
+
+Three jumpers, DIO0-2 to DIO4-6 — the same wiring as section 11.
+
+- Message Debug prints `M2K` once at startup — the edit box emits its
+  default value on `start()` — and then stays silent.
+- **Press Enter, do not click away.** The box is wired to
+  `returnPressed`, deliberately, so losing focus sends nothing.
+- One print per press. A second print means something is repeating.
+- Key to print should be under about a third of a second: up to one
+  buffer waiting for the alignment boundary (16384 / 100000 = 164 ms)
+  plus one buffer of capture.
+- A long message — `ADALM2000 at GRCon26` — and a single character both
+  come back whole. The only constraint is `buffer_len` ≥
+  `128 + 16*half*bytes`, which at half = 8 is 127 bytes.
+- CS falls **once** per message on the MOSI trace, whatever its length.
+
+If a message ever comes back corrupted, the order to try things in is:
+raise `buffer_len` (32768) — that is the output seam and the capture
+seam at once — then drop `samp_rate` to 50 kS/s, then set `half = 16`.
+Capture a run with `bench/spi_flowgraph.py` before changing more.
+
+### Still to find
+
+**How fast this goes.** 100 kS/s is a tenth of what the continuous
+flowgraph uses, chosen because non-cyclic output underran 2 of 4 runs
+at 1 MS/s in section 9. Raise `samp_rate` one step at a time and record
+where it stops holding. That number is the answer to "how fast can a
+GNU Radio flowgraph drive this bus on demand," which nothing in the
+repo currently knows.
+
+## 13. Promote what passes
 
 Each entry in `iio_overlays.py` carries a `check` field describing how to
 confirm it. 58 of 74 are still `UNVERIFIED`. As they check out, change
@@ -605,17 +776,26 @@ settings you understand:
 | gr-iio can drive several DIO pins | **wrong** — one pin only, silently; see `docs/gr-iio-multipin-sink.md` |
 | three pins stay sample-aligned | **measured** — cyclic 4/4; non-cyclic underruns at 1 MS/s, 2/4 |
 | `raw` reads an input pin | **measured** — Digital IO works both directions, no flowgraph |
+| the decoder keeps up in the flowgraph | **measured** — three bus speeds, ~6 M samples each, no rotation |
+| non-cyclic digital output joins its buffers seamlessly | **not needed** — aligned frames never cross a seam; 20/20 sends whole at 100 kS/s |
+| an untriggered digital capture is gapped between rx buffers | **no** — 20 sends, no tear; the gap in section 11 is the trigger re-arming |
+| a gr-iio source survives a refill timeout | **wrong** — `work()` returns WORK_DONE on any refill error, and the block is done |
 
 ---
 
 ## Scripts
 
-The hardware runs in sections 9 and 10 are reproducible:
+The hardware runs in sections 9, 10 and 11 are reproducible:
 
 ```
+export GRC_BLOCKS_PATH=$PWD/gr-m2k/grc:$GRC_BLOCKS_PATH
+export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
 python3 bench/digital_coherence.py cyclic       # 9a
 python3 bench/spi_loopback.py 0xA5              # 9b
 python3 bench/spi_loopback.py $(seq 0 255)      # every byte
+python3 bench/spi_flowgraph.py                  # 11, headless, three speeds
+gnuradio-companion flowgraphs/m2k_spi_loopback_continuous.grc  # 11
+gnuradio-companion flowgraphs/m2k_spi_loopback.grc             # 12
 python3 bench/dc_point.py 0.0 --output w1       # 10, one point
 python3 bench/dc_point.py 1.0 --output w1 --meter 1.051
 ```

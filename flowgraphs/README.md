@@ -66,8 +66,21 @@ this.
 
 # SPI loopback
 
-`m2k_spi_loopback.grc` — a real SPI bus bit-banged out of three DIO pins
-and read back on three more. **Three jumpers:**
+A real SPI bus bit-banged out of three DIO pins and read back on three
+more. There are two flowgraphs. They wire up the same way, decode the
+same way, and differ only in what makes the waveform:
+
+| | |
+|---|---|
+| `m2k_spi_loopback.grc` | **Send on demand.** Type in a box, press Enter, one transaction goes out. The bus rests at idle in between. |
+| `m2k_spi_loopback_continuous.grc` | **Repeat forever.** One frame in a cyclic buffer, played by the hardware on a loop. |
+
+Start with the interactive one — it is what a participant expects a bus
+to do. The continuous one is the older of the two, is the one with
+hardware evidence behind it, and is the better thing to leave running
+while you talk over a trace.
+
+**Three jumpers, both flowgraphs:**
 
 ```
 DIO0 -> DIO4      SCLK
@@ -75,44 +88,174 @@ DIO1 -> DIO5      MOSI
 DIO2 -> DIO6      CS
 ```
 
+Those six pins are a choice, not a constraint — each line has its own
+dropdown, so any six free DIO pins in any order work as well. Contiguous
+is what the workshop ships because it is what twenty people can wire
+without a diagram.
+
 ```
+export GRC_BLOCKS_PATH=$PWD/gr-m2k/grc:$GRC_BLOCKS_PATH
 export PYTHONPATH=$PWD/gr-m2k:$PYTHONPATH
 gnuradio-companion flowgraphs/m2k_spi_loopback.grc
 ```
 
-Three vector sources hold one 256-sample frame each, repeating. The
-Digital Sink plays them as one cyclic buffer at 1 MS/s; with 8 samples
-per half-clock that is a 62.5 kHz bus in SPI mode 0. The Digital Source
-triggers on **CS falling** on DIO6, so the time sink starts every capture
-at a frame boundary rather than wherever the buffer happened to land.
+## Send on demand — `m2k_spi_loopback.grc`
 
-## The frame is a variable, which is the point
+**QT GUI Message Edit Box** → **M2K SPI Encode** → **Digital Sink**. Type
+something, press Enter, and the message goes out exactly once. Encode
+holds the whole waveform: it turns a message into three streams of levels
+and produces idle — clock low, data low, CS released — for as long as the
+sink asks, so the sink never starves between messages.
+
+**The Digital Source here is free-running, not triggered.** That is the
+one thing that differs from the continuous flowgraph, and it is not a
+style choice. gr-iio's `device_source` returns `WORK_DONE` from `work()`
+on *any* refill error, so an armed trigger that times out waiting for the
+next message ends the source for good: the first message decodes, and
+everything after it goes out on the wire with nothing left to read it
+back. The block has a `set_timeout_ms` but in 3.10 the value is stored
+and never handed to libiio, and no timeout would be long enough anyway —
+the wait is however long it takes somebody to type.
+
+Nothing is lost by dropping it. The decoder emits nothing until it has
+seen a falling CS, so CS frames the stream in software, which is what
+that rule was written for. The QT time sink does the display triggering
+instead: normal mode, negative slope, on the CS channel.
+
+Two more settings make send-on-demand work, and they go together:
+
+- **The sink is not cyclic.** A cyclic buffer is pushed once and repeated
+  by the hardware forever; nothing downstream can gate it. Send-on-demand
+  needs streaming.
+- **Encode's "Align frames to" is set to the sink's `buffer_len`.** A
+  non-cyclic sink hands the board one DMA buffer at a time and the board
+  need not join them seamlessly, so a frame lying across a buffer seam can
+  be torn in the middle. Encode counts the samples it produces, and that
+  count *is* the sink's position in its buffer, so it can hold a queued
+  frame until the next boundary and start it there. The cost is up to one
+  buffer of latency — 160 ms here, which nobody pressing a key notices.
+  `buffer_len` must exceed the longest frame, `128 + 16*half*bytes`.
+
+`samp_rate` is **100 kS/s**, not the 1 MS/s the continuous flowgraph uses.
+Non-cyclic digital streaming underruns at 1 MS/s about half the runs. An
+underrun while the bus is idle is harmless; one mid-frame corrupts the
+message. At 100 kS/s the bus is still 6.25 kHz at `half = 8`.
+
+`half`, the pin dropdowns and the four timing parameters behind
+*Advanced* mean the same thing here as anywhere else.
+
+## Repeat forever — `m2k_spi_loopback_continuous.grc`
+
+Three vector sources hold one frame, repeating. A frame is one whole SPI
+transaction: idle, CS low, every byte of `spi_message` clocked out back
+to back, CS high again. The Digital Sink plays the three lists as one
+cyclic buffer at 1 MS/s; with 8 samples per half-clock that is a 62.5 kHz
+bus in SPI mode 0. The Digital Source triggers on **CS falling** on DIO6,
+so every capture starts at the beginning of a message, and **M2K SPI
+Decode** turns the three streams back into the bytes that went out.
+Message Debug prints them.
+
+**Type into the `SPI message` box while it runs.** Press Enter and the
+string goes out on the next buffer -- GRC generates a callback that
+recomputes the three sample lists and hands them to the vector sources
+with `set_data()`.
+
+That only works because the frame length is fixed. `spi_capacity` (8
+bytes) sets it, not the message: a short message is padded out with idle
+samples, CS already high, which the decoder skips. The sink's buffer
+size is a constructor argument with no callback, so a frame that grew
+with the message would stop dividing the buffer the moment someone typed
+a longer one -- and a message spliced across a buffer boundary is the
+section 11 failure again. Anything past `spi_capacity` is cut; raise it
+and restart to send more.
+
+**CS is asserted once per message, not once per byte.** Both decode, and
+per-byte framing is what a first draft naturally produces -- but the M2K's
+capture is gapped between buffers, and the source re-arms on each one. If
+CS falls once per byte, the arming edge is a *byte* boundary, so every
+buffer starts on whichever byte it happened to land on and Message Debug
+prints rotations: `M2K`, then `2KM`, then `KM2`, every byte individually
+correct. One assertion per message makes the only falling edge in the
+frame the start of the message. Section 11 of `docs/bench-checklist.md`
+has the numbers.
+
+### The frame is a variable, which is the point
 
 ```python
-spi_bits = [(spi_byte >> (7 - i)) & 1 for i in range(8)]
-spi_sclk = [0]*72 + ([0]*half + [1]*half)*8 + [0]*56
-spi_mosi = [0]*64 + [spi_bits[0]]*8 + \
-           [b for bit in spi_bits for b in [bit]*(2*half)] + [0]*56
-spi_cs   = [1]*64 + [0]*144 + [1]*48
+spi_bytes = [ord(ch) for ch in str(spi_message)[:spi_capacity]]
+spi_bits  = [[(byte >> (7 - i)) & 1 for i in range(8)] for byte in spi_bytes]
+n, pad    = len(spi_bytes), 16*half*(spi_capacity - len(spi_bytes))
+spi_sclk  = ([0]*72 + ([0]*half + [1]*half)*(8*n) + [0]*(56 + pad))
+spi_mosi  = ([0]*64 + [spi_bits[0][0] if spi_bits else 0]*8
+             + [b for bits in spi_bits for bit in bits for b in [bit]*(2*half)]
+             + [0]*(56 + pad))
+spi_cs    = ([1]*64 + [0]*(16 + 16*half*n) + [1]*(48 + pad))
 ```
 
-Change `spi_byte` and the waveform changes. Change `half` and the bus
-speed changes. A participant can see mode 0's rule — MOSI settles while
-the clock is low, the receiver samples on the rising edge — directly in
-the list, which is harder to get from a datasheet timing diagram.
+Change `spi_message` and the waveform changes, live. Change `half` and the
+bus speed changes — `frame` is `128 + 16*half*spi_capacity`, `repeats` is
+`16384 // frame`, and the buffer stays a whole number of frames. `half`
+still needs a restart, because `frame` moves with it. A participant can see
+mode 0's rule — MOSI settles while the clock is low, the receiver samples
+on the rising edge — directly in the list, which is harder to get from a
+datasheet timing diagram.
 
-The three lists are all 256 long, and they have to be: they are one
-buffer, and a short one would shift the others.
+The three lists are all the same length, and they have to be: they are
+one buffer, and a short one would shift the others.
+
+## Chip select is doing more than it looks like
+
+The decoder emits **nothing** until it has seen a falling CS, and that
+rule is worth a minute of the session. On a bus there is no start bit.
+If a capture happens to begin in the middle of a frame, some unknown
+number of bits are already gone — and the next eight still make a byte,
+one that is real, plausible and wrong. Dropping the partial frame is the
+only way to tell "I missed the start" from "here is your data."
+
+Bits left over when CS releases go the same way rather than being padded
+out to a byte.
+
+## Reading the output
+
+Message Debug prints the bytes twice — once as characters, once as hex:
+
+```
+((text . M2K))
+pdu length =          3 bytes
+pdu vector contents =
+0000: 4d 32 4b
+```
+
+The payload is the words that were actually on the wire; the text rides
+in the metadata, which is Scopy's text column and the quickest way for
+somebody to see that what they typed is what came back. Bytes outside
+printable ASCII show as `\xNN`. Turn *Text in metadata* off on a bus
+that is not carrying text.
 
 ## What has been checked
 
 On hardware, 2026-09-02: 0xA5 first try, then eight edge-case bytes,
 then all 256 byte values in a single 65536-sample capture, three repeat
-runs, 768 frames, zero errors. Section 9 of `docs/bench-checklist.md` has
-the detail.
+runs, 768 frames, zero errors — decoded offline by `bench/spi_loopback.py`.
+Section 9 of `docs/bench-checklist.md` has the detail.
 
-Use **Repeat forever** (cyclic). Non-cyclic underruns at 1 MS/s and loses
-about half its runs.
+The in-flowgraph decoder passed section 11 on 2026-09-04: whole-message
+frames at three bus speeds, about 6 M samples each, `M2K` repeating with
+no rotation and no ragged chunk. `tests/test_spi_decode.py` evaluates the
+continuous flowgraph's own variables to confirm the message it declares
+is the message that comes back; `tests/test_spi_encode.py` round-trips
+the encoder through the decoder, including the alignment rule.
+
+The interactive flowgraph passed section 12 on the board on 2026-09-04:
+twenty sends with varying text, one print per press, no rotations,
+nothing dropped, no timeout. Non-cyclic streaming and frame alignment
+both hold at 100 kS/s, and a free-running capture is *not* gapped
+between rx buffers — the gap section 11 found belongs to the trigger
+re-arming. The one number still missing is how far `samp_rate` can come
+back up before it stops holding.
+
+The continuous flowgraph must stay cyclic. Non-cyclic underruns at 1 MS/s
+and loses about half its runs.
 
 One Digital Sink per flowgraph — all sixteen pins share one output word
 and one DMA buffer.

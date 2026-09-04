@@ -1,9 +1,10 @@
-"""Which DIO pins each digital block claims.
+"""Which DIO pins each digital block claims, and in what order.
 
 `pins_for` decides this, and getting it wrong is expensive: a source and
-a sink that overlap fight over `direction`, and the loser reads or drives
-nothing without saying so. These are the only tests that pin the mapping
-down.
+a sink that share a pin fight over `direction`, and the loser reads or
+drives nothing without saying so. The order matters just as much -- the
+list is the port order, so a list written wrong wires the bus wrong and
+still runs. These are the only tests that pin the mapping down.
 
 `m2k_blocks.digital` imports gnuradio, which is usually not the
 interpreter running this suite, so the checks run in the same borrowed
@@ -20,7 +21,7 @@ from test_grc_integration import needs_gnuradio, run_in_gr
 PRELUDE = '''
 import json, sys
 sys.path.insert(0, sys.argv[1])
-from m2k_blocks.digital import pins_for, PIN_COUNT
+from m2k_blocks.digital import pins_for, line_names, line_label, PIN_COUNT
 '''
 
 
@@ -31,11 +32,11 @@ def pins(repo_root, expr):
     return json.loads(out)
 
 
-def refused(repo_root, expr):
-    """The ValueError message pins_for raises for `expr`, or None."""
+def raises(repo_root, expr):
+    """The ValueError message `expr` raises, or None."""
     script = PRELUDE + '''
 try:
-    pins_for(%s)
+    %s
 except ValueError as exc:
     print(json.dumps(str(exc)))
 else:
@@ -44,52 +45,116 @@ else:
     return json.loads(run_in_gr(script, os.path.join(repo_root, "gr-m2k")))
 
 
-@needs_gnuradio
-def test_default_still_starts_at_dio0(repo_root):
-    """The old one-argument behaviour is unchanged."""
-    assert pins(repo_root, "pins_for(1)") == ["voltage0"]
-    assert pins(repo_root, "pins_for(4)") == ["voltage%d" % i for i in range(4)]
+def refused(repo_root, expr):
+    """The ValueError message pins_for raises for `expr`, or None."""
+    return raises(repo_root, "pins_for(%s)" % expr)
 
 
 @needs_gnuradio
-def test_first_pin_offsets_the_range(repo_root):
-    assert pins(repo_root, "pins_for(1, 1)") == ["voltage1"]
-    assert pins(repo_root, "pins_for(2, 5)") == ["voltage5", "voltage6"]
-    assert pins(repo_root, "pins_for(1, 15)") == ["voltage15"]
+def test_one_pin_is_one_channel(repo_root):
+    assert pins(repo_root, "pins_for([0])") == ["voltage0"]
+    assert pins(repo_root, "pins_for([15])") == ["voltage15"]
+
+
+@needs_gnuradio
+def test_the_list_is_the_port_order(repo_root):
+    """Port 0 carries whichever pin was named first, not the lowest one.
+
+    gr-iio's device_source reads channels in the order the caller lists
+    them, so this is a promise the hardware keeps, not a convenience.
+    """
+    assert pins(repo_root, "pins_for([6, 2, 0])") == [
+        "voltage6", "voltage2", "voltage0"]
+
+
+@needs_gnuradio
+def test_pins_need_not_be_adjacent(repo_root):
+    """Wire the bus where the jumpers reach and say so here."""
+    assert pins(repo_root, "pins_for([3, 7, 1])") == [
+        "voltage3", "voltage7", "voltage1"]
 
 
 @needs_gnuradio
 def test_a_sink_and_source_can_be_kept_apart(repo_root):
-    """The whole reason first_pin exists: no shared pin, no fight."""
-    sink = pins(repo_root, "pins_for(1, 0)")
-    source = pins(repo_root, "pins_for(1, 1)")
+    """No shared pin, no fight over direction."""
+    sink = pins(repo_root, "pins_for([0, 1, 2])")
+    source = pins(repo_root, "pins_for([4, 5, 6])")
     assert not set(sink) & set(source)
 
 
 @needs_gnuradio
 def test_the_full_span_still_fits(repo_root):
-    assert len(pins(repo_root, "pins_for(16, 0)")) == 16
+    assert len(pins(repo_root, "pins_for(list(range(16)))")) == 16
 
 
 @needs_gnuradio
 @pytest.mark.parametrize("expr,word", [
-    ("0", "pin count"),
-    ("17", "pin count"),
-    ("1, -1", "first pin"),
-    ("1, 16", "first pin"),
+    ("[]", "at least one"),
+    ("list(range(17))", "will not fit"),
+    ("[-1]", "DIO-1 does not exist"),
+    ("[16]", "DIO16 does not exist"),
+    ("[0, 1, 0]", "more than once"),
+    ("['clk']", "whole numbers"),
+    ("'012'", "must be a list"),
+    ("7", "must be a list"),
 ])
-def test_out_of_range_is_refused(repo_root, expr, word):
+def test_a_pin_list_that_cannot_work_is_refused(repo_root, expr, word):
+    """Every one of these would otherwise be a flowgraph that runs wrong."""
     message = refused(repo_root, expr)
     assert message is not None, expr
     assert word in message, message
 
 
 @needs_gnuradio
-def test_a_range_running_off_the_end_is_refused(repo_root):
-    """In range individually, impossible together."""
-    message = refused(repo_root, "4, 14")
+def test_a_repeated_pin_names_itself(repo_root):
+    """Which pin was doubled is the whole of what you need to know."""
+    message = refused(repo_root, "[4, 9, 4, 9, 2]")
     assert message is not None
-    assert "DIO14" in message and "2 pins" in message
+    assert "DIO4, DIO9" in message
+
+
+# ---------------------------------------------------------------- names
+
+# Names change no behaviour at all. They exist so a mistake reports
+# itself as 'MOSI (DIO7)' rather than 'DIO7', which is the difference
+# between a wiring error you can see and one you have to go look up.
+
+
+@needs_gnuradio
+def test_naming_is_optional(repo_root):
+    assert pins(repo_root, "line_names(None, 3)") == [None, None, None]
+
+
+@needs_gnuradio
+def test_a_blank_name_is_not_an_error(repo_root):
+    """Half a bus named is a normal thing to have typed."""
+    assert pins(repo_root, "line_names(['SCLK', '', '  '], 3)") == [
+        "SCLK", None, None]
+
+
+@needs_gnuradio
+def test_one_name_per_line_or_none(repo_root):
+    message = raises(repo_root, "line_names(['a', 'b'], 3)")
+    assert message is not None
+    assert "3 lines but 2 names" in message
+
+
+@needs_gnuradio
+def test_a_bare_string_is_not_a_list_of_names(repo_root):
+    """'SCLK' is three names to len() and one to everybody else."""
+    message = raises(repo_root, "line_names('SCLK', 4)")
+    assert message is not None
+    assert "must be a list" in message
+
+
+@needs_gnuradio
+def test_a_named_line_reports_both(repo_root):
+    assert pins(repo_root, "line_label('voltage7', 'MOSI')") == "MOSI (DIO7)"
+
+
+@needs_gnuradio
+def test_an_unnamed_line_reports_its_pin(repo_root):
+    assert pins(repo_root, "line_label('voltage7')") == "DIO7"
 
 
 # --------------------------------------------------------------- config
@@ -102,14 +167,18 @@ def test_a_range_running_off_the_end_is_refused(repo_root):
 CONFIG_PRELUDE = '''
 import json, sys
 sys.path.insert(0, sys.argv[1])
-from m2k_blocks.digital import digital_source, digital_sink, pins_for
+from m2k_blocks.digital import (digital_source, digital_sink, pins_for,
+                                line_names, line_label)
 
 
 class Stub(object):
     """Everything _apply_* touches, without a hier block or a board."""
 
-    def __init__(self, count, first=0):
-        self.pins = pins_for(count, first)
+    def __init__(self, pins, names=None):
+        self.pins = pins_for(pins)
+        self.names = line_names(names, len(self.pins))
+        self.labels = [line_label(pin, name)
+                       for pin, name in zip(self.pins, self.names)]
         self.writes = []
 
     def _write(self, uri, device, channel, attr, value):
@@ -150,7 +219,7 @@ def attr(records, channel, name):
 def test_free_running_disarms_every_pin(repo_root):
     """'none' on all of them is the only way to say off."""
     records = writes(repo_root, '''
-s = Stub(4)
+s = Stub([0, 1, 2, 3])
 digital_source._apply_trigger(s, "ip:none", "off", "edge-rising", 0)
 ''')
     for pin in ["voltage%d" % i for i in range(4)]:
@@ -160,7 +229,7 @@ digital_source._apply_trigger(s, "ip:none", "off", "edge-rising", 0)
 @needs_gnuradio
 def test_arming_touches_one_pin_and_disarms_the_rest(repo_root):
     records = writes(repo_root, '''
-s = Stub(4)
+s = Stub([0, 1, 2, 3])
 digital_source._apply_trigger(s, "ip:none", "2", "edge-falling", 0)
 ''')
     assert attr(records, "voltage2", "trigger") == "edge-falling"
@@ -170,9 +239,9 @@ digital_source._apply_trigger(s, "ip:none", "2", "edge-falling", 0)
 
 @needs_gnuradio
 def test_the_trigger_pin_is_absolute_not_an_offset(repo_root):
-    """DIO9 means DIO9, whatever the block's range starts at."""
+    """DIO9 means DIO9, whichever pins the block happens to list."""
     records = writes(repo_root, '''
-s = Stub(4, 8)
+s = Stub([8, 9, 10, 11])
 digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
 ''')
     assert attr(records, "voltage9", "trigger") == "edge-rising"
@@ -185,7 +254,7 @@ def test_leftover_board_state_is_always_overwritten(repo_root, pin):
     """A stale 'and', or a mux pointing elsewhere, silently eats the
     trigger. Both are rewritten whether we are arming or not."""
     records = writes(repo_root, '''
-s = Stub(2)
+s = Stub([0, 1])
 digital_source._apply_trigger(s, "ip:none", "%s", "edge-rising", 7)
 ''' % pin)
     assert attr(records, "voltage0", "trigger_logic_mode") == "or"
@@ -197,7 +266,7 @@ digital_source._apply_trigger(s, "ip:none", "%s", "edge-rising", 7)
 def test_a_trigger_pin_outside_the_range_is_refused(repo_root):
     """Otherwise it is a capture that never fires, which looks like a hang."""
     message = rejected(repo_root, '''
-s = Stub(2, 4)
+s = Stub([4, 5])
 digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
 ''')
     assert message is not None
@@ -205,9 +274,20 @@ digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
 
 
 @needs_gnuradio
+def test_the_refusal_names_the_lines_you_named(repo_root):
+    """The point of naming: 'CS (DIO5)' says which wire to go and move."""
+    message = rejected(repo_root, '''
+s = Stub([4, 5], ["MOSI", "CS"])
+digital_source._apply_trigger(s, "ip:none", "9", "edge-rising", 0)
+''')
+    assert message is not None
+    assert "MOSI (DIO4)" in message and "CS (DIO5)" in message
+
+
+@needs_gnuradio
 def test_an_unknown_trigger_condition_is_refused(repo_root):
     message = rejected(repo_root, '''
-s = Stub(2)
+s = Stub([0, 1])
 digital_source._apply_trigger(s, "ip:none", "0", "edge-sideways", 0)
 ''')
     assert message is not None
@@ -218,7 +298,7 @@ digital_source._apply_trigger(s, "ip:none", "0", "edge-sideways", 0)
 def test_the_condition_is_not_checked_when_free_running(repo_root):
     """Nothing reads it, so nothing should complain about it."""
     records = writes(repo_root, '''
-s = Stub(1)
+s = Stub([0])
 digital_source._apply_trigger(s, "ip:none", "off", "nonsense", 0)
 ''')
     assert attr(records, "voltage0", "trigger") == "none"
@@ -228,7 +308,7 @@ digital_source._apply_trigger(s, "ip:none", "off", "nonsense", 0)
 @pytest.mark.parametrize("level,raw", [("low", "0"), ("high", "1")])
 def test_the_idle_level_sets_raw_on_every_pin(repo_root, level, raw):
     records = writes(repo_root, '''
-s = Stub(3)
+s = Stub([0, 1, 2])
 digital_sink._apply_idle(s, "ip:none", "%s")
 ''' % level)
     for pin in ["voltage0", "voltage1", "voltage2"]:
@@ -238,7 +318,7 @@ digital_sink._apply_idle(s, "ip:none", "%s")
 @needs_gnuradio
 def test_leave_as_found_writes_nothing(repo_root):
     records = writes(repo_root, '''
-s = Stub(3)
+s = Stub([0, 1, 2])
 digital_sink._apply_idle(s, "ip:none", "leave")
 ''')
     assert records == []
@@ -247,7 +327,7 @@ digital_sink._apply_idle(s, "ip:none", "leave")
 @needs_gnuradio
 def test_an_unknown_idle_level_is_refused(repo_root):
     message = rejected(repo_root, '''
-s = Stub(1)
+s = Stub([0])
 digital_sink._apply_idle(s, "ip:none", "floating")
 ''')
     assert message is not None
@@ -378,3 +458,53 @@ s = sink(["voltage0"], 2)
 print(json.dumps(feed(s, [[1, 0, 0, 1, 1, 1]])))
 ''')
     assert pushes == [[1, 0], [0, 1], [1, 1]]
+
+
+# ------------------------------------------------------------ generated
+
+# Sixteen pins and sixteen names, twice over, is six hundred lines of
+# YAML that differ only by an index -- and a source and a sink that drift
+# apart there wire a bus backwards with nothing to show for it. So the
+# two ymls are generated and committed, and this is the check that the
+# committed copy is still what the generator produces.
+
+
+def generator():
+    """gr-m2k/generate_digital_grc.py, imported. It needs nothing."""
+    import importlib.util
+
+    path = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "gr-m2k", "generate_digital_grc.py")
+    spec = importlib.util.spec_from_file_location("generate_digital_grc", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("name,template,verb,reads", [
+    ("m2k_digital_source", "SOURCE", "read", "reads"),
+    ("m2k_digital_sink", "SINK", "drive", "drives"),
+])
+def test_the_committed_yml_is_what_the_generator_writes(
+        repo_root, name, template, verb, reads):
+    """Edit the yml by hand and this fails; rerun the generator and it
+    passes. That is the whole contract."""
+    module = generator()
+    fresh = module.render(getattr(module, template), verb, reads)
+    path = os.path.join(repo_root, "gr-m2k", "grc", "%s.block.yml" % name)
+    with open(path) as handle:
+        committed = handle.read()
+    assert committed == fresh, "%s is out of date; rerun %s" % (
+        path, "gr-m2k/generate_digital_grc.py")
+
+
+def test_both_blocks_get_the_same_sixteen_lines(repo_root):
+    """A source that maps DIO7 differently from a sink is unfindable."""
+    module = generator()
+    source = module.render(module.SOURCE, "read", "reads")
+    sink = module.render(module.SINK, "drive", "drives")
+    for index in range(16):
+        for key in ("pin%d" % index, "name%d" % index):
+            assert ("id: %s\n" % key) in source, key
+            assert ("id: %s\n" % key) in sink, key
+    assert module.PINS in source and module.PINS in sink

@@ -7,35 +7,24 @@ options:
     comment: 'Three jumpers: DIO0-DIO4, DIO1-DIO5, DIO2-DIO6.
 
 
-      Type something in the box and press Enter. One SPI transaction goes out,
+      SPI mode 0, bit-banged one bit per sample. Change spi_message and
 
-      the decoder picks it out of the stream on its CS edge and prints
+      watch the MOSI trace change; the same bytes come back out of the
 
-      the bytes back. Nothing repeats -- the bus rests at idle until you send.
-
-
-      The sink is not cyclic here, so the board gets one buffer at a time and
-
-      need not join them seamlessly. SPI Encode''s "Align frames to" is set to
-
-      the same buffer_len, which is what keeps a frame off a buffer seam.
+      decoder, which reads MOSI at each rising SCLK edge while CS is low.
 
 
-      The source is NOT triggered. gr-iio ends a source on any refill error, so
+      The buffer must be cyclic. Non-cyclic streaming underruns about half
 
-      an armed trigger waiting for the next message times out and the capture
-
-      never comes back. CS does the framing in software, which is what the
-
-      decoder was written to do anyway.'
+      the time at 1 MS/s and drops samples in the middle of a frame.'
     copyright: ''
-    description: Send-on-demand SPI mode 0 out of DIO0-2, back in on DIO4-6, decoded
-      to bytes.
+    description: Bit-banged SPI mode 0 out of DIO0-2, back in on DIO4-6, decoded to
+      bytes.
     gen_cmake: 'On'
     gen_linking: dynamic
     generate_options: qt_gui
     hier_block_src_path: '.:'
-    id: m2k_spi_loopback
+    id: m2k_spi_loopback_continuous
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -46,7 +35,7 @@ options:
     run_options: prompt
     sizing_mode: fixed
     thread_safe_setters: ''
-    title: M2K SPI loopback - send on demand, three DIO pins
+    title: M2K SPI loopback - continuous, three DIO pins
     window_size: (1000,1000)
   states:
     bus_sink: false
@@ -60,59 +49,169 @@ blocks:
 - name: buffer_len
   id: variable
   parameters:
-    comment: 'One DMA buffer, and the grid the encoder
-
-      aligns frames to. Must exceed the longest
-
-      frame: 128 + 16 * half * bytes.'
-    value: '16384'
+    comment: Whole frames, and a frame is a whole message. Both blocks use it.
+    value: frame * repeats
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 180]
+    coordinate: [232, 80.0]
     rotation: 0
     state: enabled
 - name: frame
   id: variable
   parameters:
-    comment: 'Eight bytes'' worth -- the scope width, not
-
-      a limit on what you can send.'
-    value: 128 + 16 * half * 8
+    comment: One frame is one whole transaction. Fixed by spi_capacity, not by the
+      message, because the sink's buffer size cannot change while it runs.
+    value: 128 + 16 * half * spi_capacity
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [400, 180]
+    coordinate: [328, 8.0]
     rotation: 0
     state: enabled
 - name: half
   id: variable
   parameters:
-    comment: 'Samples per half clock. The bus runs at
-
-      samp_rate / (2 * half) = 6.25 kHz.'
+    comment: Samples per half clock. 8 at 1 MS/s is a 62.5 kHz SCLK.
     value: '8'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [136, 180]
+    coordinate: [160, 8.0]
+    rotation: 0
+    state: enabled
+- name: repeats
+  id: variable
+  parameters:
+    comment: As many whole messages as fit a 16384-sample buffer.
+    value: max(1, 16384 // frame)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [160, 80.0]
     rotation: 0
     state: enabled
 - name: samp_rate
   id: variable
   parameters:
-    comment: '100 kS/s, not 1 MS/s. A non-cyclic digital sink
-
-      underruns at 1 MS/s about half the runs.'
-    value: '100000'
+    comment: ''
+    value: '1000000'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 180]
+    coordinate: [232, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_bits
+  id: variable
+  parameters:
+    comment: MSB first, the way SPI sends it.
+    value: "[[(byte >> (7 - i)) & 1 for i in range(8)]\n for byte in spi_bytes]"
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [640, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_bytes
+  id: variable
+  parameters:
+    comment: The message, cut to what the frame holds.
+    value: '[ord(ch) for ch in str(spi_message)[:spi_capacity]]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [424, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_capacity
+  id: variable
+  parameters:
+    comment: Longest message the frame has room for. Raise it and restart to send
+      more; the frame grows with it whether or not you use the space.
+    value: '8'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [536, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_cs
+  id: variable
+  parameters:
+    comment: Asserted low once, across the whole message -- the only falling edge
+      in the frame is the start of the message, which is what the capture triggers
+      on.
+    value: ([1] * 64 + [0] * (16 + 16 * half * len(spi_bytes)) + [1] * (48 + spi_pad))
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [928, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_message
+  id: variable_qtgui_entry
+  parameters:
+    comment: Type here while it runs. Anything past spi_capacity is cut.
+    entry_signal: returnPressed
+    gui_hint: ''
+    label: SPI message
+    type: string
+    value: M2K
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1080, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_mosi
+  id: variable
+  parameters:
+    comment: Each bit is presented while SCLK is low, so it is already settled at
+      the rising edge.
+    value: ([0] * 64 + [spi_bits[0][0] if spi_bits else 0] * 8 + [b for bits in spi_bits
+      for bit in bits for b in [bit] * (2 * half)] + [0] * (56 + spi_pad))
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [784, 8.0]
+    rotation: 0
+    state: enabled
+- name: spi_pad
+  id: variable
+  parameters:
+    comment: Idle samples that keep a short message the same length as a full one.
+      CS is already high here, so the decoder ignores all of it.
+    value: 16 * half * (spi_capacity - len(spi_bytes))
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [336, 80.0]
+    rotation: 0
+    state: enabled
+- name: spi_sclk
+  id: variable
+  parameters:
+    comment: Idle low, eight pulses per byte with no gap between them, idle low.
+    value: ([0] * 72 + ([0] * half + [1] * half) * (8 * len(spi_bytes)) + [0] * (56
+      + spi_pad))
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [928, 88.0]
     rotation: 0
     state: enabled
 - name: cs_f
@@ -129,7 +228,27 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [352, 700]
+    coordinate: [664, 664.0]
+    rotation: 0
+    state: enabled
+- name: cs_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: CS -> DIO2
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_cs
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [56, 488.0]
     rotation: 0
     state: enabled
 - name: m2k_digital_sink_0
@@ -138,10 +257,10 @@ blocks:
     affinity: ''
     alias: ''
     buffer_size: buffer_len
-    comment: 'Not cyclic: each buffer is pushed once and
+    comment: 'Whole messages per buffer, pushed once and
 
-      then it is gone.'
-    cyclic: 'False'
+      repeated by the hardware.'
+    cyclic: 'True'
     drive: '''push-pull'''
     idle_level: '''low'''
     name0: SCLK
@@ -183,7 +302,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [616, 300.0]
+    coordinate: [376, 260.0]
     rotation: 0
     state: enabled
 - name: m2k_digital_source_0
@@ -192,13 +311,9 @@ blocks:
     affinity: ''
     alias: ''
     buffer_size: buffer_len
-    comment: 'Free-running. An armed trigger would kill this
+    comment: 'Triggered on CS falling, so every capture
 
-      block: gr-iio ends a source on any refill error,
-
-      and a trigger waiting for the next message times
-
-      out. CS frames in software.'
+      starts at the head of a frame.'
     maxoutbuf: '0'
     minoutbuf: '0'
     name0: SCLK
@@ -237,13 +352,13 @@ blocks:
     sample_rate: '1000000'
     trigger_condition: '''edge-falling'''
     trigger_delay: '0'
-    trigger_pin: 'off'
+    trigger_pin: '6'
     uri: ip:192.168.2.1
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [24, 596]
+    coordinate: [376, 548.0]
     rotation: 0
     state: enabled
 - name: message_debug_0
@@ -258,7 +373,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [592, 820]
+    coordinate: [992, 368.0]
     rotation: 0
     state: enabled
 - name: mosi_f
@@ -275,7 +390,27 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [352, 636]
+    coordinate: [664, 584.0]
+    rotation: 0
+    state: enabled
+- name: mosi_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: MOSI -> DIO1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_mosi
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [48, 360.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -305,11 +440,7 @@ blocks:
     color7: yellow
     color8: dark red
     color9: dark green
-    comment: 'Eight bytes wide at whatever `half` is set to.
-
-      Triggered on CS falling in software -- the board is
-
-      free-running now.'
+    comment: Two frames wide, whatever `half` is set to.
     ctrlpanel: 'False'
     entags: 'True'
     grid: 'True'
@@ -337,7 +468,7 @@ blocks:
     marker9: '-1'
     name: '"SPI mode 0 - captured on DIO4-6"'
     nconnections: '3'
-    size: frame
+    size: 2 * frame
     srate: samp_rate
     stemplot: 'False'
     style1: '1'
@@ -350,11 +481,11 @@ blocks:
     style7: '1'
     style8: '1'
     style9: '1'
-    tr_chan: '2'
+    tr_chan: '0'
     tr_delay: '0'
-    tr_level: '0.5'
-    tr_mode: qtgui.TRIG_MODE_NORM
-    tr_slope: qtgui.TRIG_SLOPE_NEG
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
     tr_tag: '""'
     type: float
     update_time: '0.10'
@@ -376,7 +507,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [632, 616.0]
+    coordinate: [856, 528.0]
     rotation: 0
     state: enabled
 - name: sclk_f
@@ -393,7 +524,27 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [352, 572]
+    coordinate: [664, 504.0]
+    rotation: 0
+    state: enabled
+- name: sclk_src
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SCLK -> DIO0
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: short
+    vector: spi_sclk
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [64, 248.0]
     rotation: 0
     state: enabled
 - name: spi_decode_0
@@ -412,63 +563,13 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [352, 812]
-    rotation: 0
-    state: enabled
-- name: spi_encode_0
-  id: m2k_spi_encode
-  parameters:
-    affinity: ''
-    alias: ''
-    align: buffer_len
-    bits_per_word: '8'
-    comment: 'Messages in, three streams of levels out.
-
-      Idle between messages, so the sink never
-
-      starves.'
-    cs_active_low: 'True'
-    gap: '48'
-    half: half
-    lead: '64'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    setup: '8'
-    tail: '8'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [280, 340]
-    rotation: 0
-    state: enabled
-- name: spi_entry
-  id: qtgui_edit_box_msg
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: 'Press Enter to send. Each press is one
-
-      transaction, sent once.'
-    gui_hint: ''
-    is_pair: 'False'
-    is_static: 'True'
-    key: ''
-    label: Send over SPI
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    type: string
-    value: M2K
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [24, 348]
+    coordinate: [704, 368.0]
     rotation: 0
     state: enabled
 
 connections:
 - [cs_f, '0', qtgui_time_sink_x_0, '2']
+- [cs_src, '0', m2k_digital_sink_0, '2']
 - [m2k_digital_source_0, '0', sclk_f, '0']
 - [m2k_digital_source_0, '0', spi_decode_0, '0']
 - [m2k_digital_source_0, '1', mosi_f, '0']
@@ -476,12 +577,10 @@ connections:
 - [m2k_digital_source_0, '2', cs_f, '0']
 - [m2k_digital_source_0, '2', spi_decode_0, '2']
 - [mosi_f, '0', qtgui_time_sink_x_0, '1']
+- [mosi_src, '0', m2k_digital_sink_0, '1']
 - [sclk_f, '0', qtgui_time_sink_x_0, '0']
+- [sclk_src, '0', m2k_digital_sink_0, '0']
 - [spi_decode_0, bytes, message_debug_0, print_pdu]
-- [spi_encode_0, '0', m2k_digital_sink_0, '0']
-- [spi_encode_0, '1', m2k_digital_sink_0, '1']
-- [spi_encode_0, '2', m2k_digital_sink_0, '2']
-- [spi_entry, msg, spi_encode_0, message]
 
 metadata:
   file_format: 1

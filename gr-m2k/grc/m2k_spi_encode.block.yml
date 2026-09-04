@@ -1,0 +1,143 @@
+id: m2k_spi_encode
+label: M2K SPI Encode
+category: '[ADALM2000]'
+flags: [python]
+
+parameters:
+-   id: bits_per_word
+    label: Bits per word
+    dtype: int
+    default: '8'
+
+-   id: cs_active_low
+    label: Chip select
+    dtype: enum
+    default: 'True'
+    options: ['True', 'False']
+    option_labels: ['Active low', 'Active high']
+
+-   id: half
+    label: Samples per half clock
+    dtype: int
+    default: '8'
+
+-   id: lead
+    label: Idle before CS
+    dtype: int
+    default: '64'
+    hide: part
+
+-   id: setup
+    label: CS to first clock
+    dtype: int
+    default: '8'
+    hide: part
+
+-   id: tail
+    label: Last clock to CS
+    dtype: int
+    default: '8'
+    hide: part
+
+-   id: gap
+    label: Idle after CS
+    dtype: int
+    default: '48'
+    hide: part
+
+-   id: align
+    label: Align frames to
+    dtype: int
+    default: '0'
+
+inputs:
+-   id: message
+    label: message
+    domain: message
+    optional: false
+
+outputs:
+-   label: sclk
+    domain: stream
+    dtype: short
+-   label: mosi
+    domain: stream
+    dtype: short
+-   label: cs
+    domain: stream
+    dtype: short
+
+asserts:
+- ${ 1 <= bits_per_word <= 32 }
+- ${ half >= 1 }
+- ${ min(lead, setup, tail, gap) >= 0 }
+- ${ align >= 0 }
+
+templates:
+    imports: from m2k_blocks.spi import spi_encode
+    make: |-
+        spi_encode(
+            bits_per_word=${bits_per_word},
+            cs_active_low=${cs_active_low},
+            half=${half}, lead=${lead}, setup=${setup},
+            tail=${tail}, gap=${gap}, align=${align})
+
+documentation: |-
+    Turn messages into an SPI mode 0 bus on three digital streams. Wire
+    SCLK, MOSI and CS into an M2K Digital Sink, in that order, and send
+    it text from a QT GUI Message Edit Box or bytes from any PDU block.
+
+    Nothing goes out until a message arrives. Between messages all three
+    outputs sit at idle -- clock low, data low, chip select released --
+    for as long as the graph asks for samples, so the Sink downstream
+    never starves and the bus simply rests. That is what makes this a
+    send-on-demand bus rather than a repeating one: set the Sink to
+    "Play once" and each message is clocked out exactly once.
+
+    One message is one transaction. Chip select falls once, every byte
+    is clocked out back to back, chip select rises once. Not once per
+    byte -- a triggered capture arms on the falling edge, and an edge
+    per byte makes the capture start on an arbitrary byte of the
+    message. See docs/bench-checklist.md section 11 for what that looks
+    like on a board.
+
+    Bits go out most significant first, and each one is put on MOSI
+    while the clock is low and held across the rising edge, so a mode 0
+    receiver samples a settled line.
+
+    Samples per half clock
+      The bus speed, in the only units this block has. At a 1 MS/s
+      sample rate, 8 samples per half clock is a 62.5 kHz bus; the clock
+      is `sample_rate / (2 * half)`. Smaller is faster and there is no
+      slack below about 2.
+
+    Bits per word
+      8 for a normal byte-wide bus. Text from an edit box is bytes
+      whatever this says, so widths above 8 are for PDU input.
+
+    Chip select
+      Active low is nearly always right. Active high exists.
+
+    Idle before CS / CS to first clock / Last clock to CS / Idle after CS
+      The four quiet stretches around the clocked bits, in samples. The
+      defaults are what the bench used. "Idle before CS" matters most:
+      it is the settled bus a triggered capture sees before the edge it
+      is waiting for.
+
+    Align frames to
+      Set this to the Digital Sink's buffer size when that Sink is NOT
+      cyclic; leave it 0 otherwise. A non-cyclic sink hands the board
+      one buffer at a time and the board need not join them seamlessly,
+      so a frame lying across a buffer boundary can be torn in the
+      middle. With this set, a queued frame waits for the next boundary
+      and starts there. The buffer must be at least as long as the
+      longest frame, which is `128 + 16 * half * bytes` at the defaults.
+
+    A word that does not fit the bus width is dropped with a warning
+    rather than taken as an error -- a bad message should not end a run
+    that a participant is halfway through.
+
+    This block does not touch the board. It builds streams, so it works
+    just as well into a File Sink or a Time Sink as into a Digital Sink.
+
+file_format: 1

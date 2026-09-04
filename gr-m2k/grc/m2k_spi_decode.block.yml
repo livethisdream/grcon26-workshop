@@ -1,0 +1,108 @@
+id: m2k_spi_decode
+label: M2K SPI Decode
+category: '[ADALM2000]'
+flags: [python]
+
+parameters:
+-   id: bits_per_word
+    label: Bits per word
+    dtype: int
+    default: '8'
+
+-   id: cs_active_low
+    label: Chip select
+    dtype: enum
+    default: 'True'
+    options: ['True', 'False']
+    option_labels: ['Active low', 'Active high']
+
+-   id: add_text
+    label: Text in metadata
+    dtype: enum
+    default: 'True'
+    options: ['True', 'False']
+    option_labels: ['Yes', 'No']
+
+inputs:
+-   label: sclk
+    domain: stream
+    dtype: short
+-   label: mosi
+    domain: stream
+    dtype: short
+-   label: cs
+    domain: stream
+    dtype: short
+
+outputs:
+-   id: bytes
+    label: bytes
+    domain: message
+    optional: false
+
+asserts:
+- ${ 1 <= bits_per_word <= 32 }
+
+templates:
+    imports: from m2k_blocks.spi import spi_decode
+    make: |-
+        spi_decode(
+            bits_per_word=${bits_per_word},
+            cs_active_low=${cs_active_low},
+            add_text=${add_text})
+
+documentation: |-
+    Turn three digital streams back into the bytes that were sent on
+    them. Wire SCLK, MOSI and CS from an M2K Digital Source, in that
+    order, and connect the message output to a Message Debug.
+
+    SPI mode 0 only. The clock rests low, the transmitter puts a bit on
+    MOSI while the clock is low, and this block reads it on the rising
+    edge -- so a rising clock edge with chip select asserted is a bit,
+    and that is the entire decode. Modes 1-3 sample on a different
+    edge; they are not offered here because nothing in this repo has
+    ever captured one, and a dropdown that has never been tested is
+    worse than no dropdown at all.
+
+    Bits arrive most significant first.
+
+    Chip select is the framing, and it is doing more work than it looks
+    like. On a bus there is no start bit, so the falling edge of CS is
+    the only thing that says where a word begins. That has one visible
+    consequence: this block emits NOTHING until it has seen a falling
+    CS. If a capture happens to start in the middle of a frame, some
+    unknown number of bits are already gone, and the next eight would
+    make a byte that is real, plausible and wrong. Dropping the partial
+    frame is the point, not a limitation.
+
+    The same rule applies at the other end -- bits left over when CS
+    releases are discarded rather than padded.
+
+    Bits per word
+      8 for a normal byte-wide bus. Some parts clock 12- or 16-bit
+      words in one chip select; set the width and the message carries
+      words of that size instead.
+
+    Chip select
+      Active low is nearly always right. Active high exists.
+
+    Text in metadata
+      Adds the bytes as characters to the message's metadata, so a
+      Message Debug prints `((text . M2K))` above the `4d 32 4b` hex
+      dump -- the text column Scopy shows beside the hex, and the
+      quickest proof that a loopback carried what you typed. Bytes
+      outside printable ASCII come out as `\xNN` rather than as dots,
+      so nothing is thrown away. Ignored above 8 bits per word, where a
+      word is not a character. Turn it off for a binary bus.
+
+    Output is a message, not a stream, on purpose. One frame in the
+    workshop flowgraph is 256 samples and carries one byte, and CS
+    decides how long a frame is, so there is no fixed ratio between
+    input samples and output bytes for a stream port to declare. Bytes
+    come out when there are bytes.
+
+    This block does not touch the board. It decodes whatever it is
+    given, so it works just as well on a capture from a File Source as
+    on a live Digital Source.
+
+file_format: 1
