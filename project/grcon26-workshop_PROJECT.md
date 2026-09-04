@@ -168,13 +168,18 @@ move acquisition state server-side; slides, procurement, timing.
       where it stops.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 
-- [ ] Confirm `attr_note()` reaches these attributes first — `in_voltage0_trigger_delay`
-      must reduce to `trigger_delay`, device attrs must hit the same flat `pack["attrs"]`.
-      Otherwise entries get written and never displayed.
-- [ ] Tier 1 (96 attributes) — new packs for `m2k-logic-analyzer` and `-rx`, plus the
-      shared trigger attributes on `-tx` and both DACs. Checklist section 8 measures
-      most of the `-rx` trigger set, so those go in as `MEASURED`.
-- [ ] Tier 2 (8 attributes) — `m2k-adc-trigger` as a new pack, `m2k-fabric`
+- [x] `attr_note()` reaches them. `in_voltage0_trigger_delay` reduces to
+      `trigger_delay`, and `attr_note()` is a flat `pack["attrs"]` lookup that never
+      sees the channel, so device and channel attrs land in the same dict. Verified
+      against the live `-rx` and `m2k-fabric` packs. One display caveat: `--tree`
+      prints the ABI summary only and never calls `attr_note()`; overlays show under
+      `--attr`, `--unknown` and the JSON path.
+- [ ] Tier 1 (96 attributes) — `m2k-logic-analyzer`, `-rx`, `m2k-logic-analyzer-tx`
+      and `m2k-adc-trigger` packs already exist but are thin (`-rx` carries 6 attrs);
+      these are additions, not new packs. Plus the shared trigger attributes on `-tx`
+      and both DACs. Checklist section 8 measures most of the `-rx` trigger set, so
+      those go in as `MEASURED`.
+- [ ] Tier 2 (8 attributes) — `m2k-adc-trigger` additions, `m2k-fabric`
       `calibration_mode` + `clk_powerdown`, `m2k-adc` `calibrate`. The existing
       `calibrate` entry is wrong: it is `setCalibrateHDL`, FPGA interface training,
       not a rewrite of `calibscale`/`calibbias`.
