@@ -121,8 +121,9 @@ display), and the session material itself.
 triggers and a real SPI bus included, and calibration has closed the absolute error.
 Open: the board pack (Tier 1 + Tier 2, 104 attributes, ~90% coverage expected).
 
-**Timing:** GRCon26 is this month, Phases 2 and 3 have not started, slides are gated
-behind working demos, and setup instructions are due two weeks prior.
+**Timing:** GRCon26 is this month and Phases 2 and 3 have not started. Everything --
+demos, setup instructions, slides -- is due by the conference; slides are gated behind
+working demos. The conference date is tracked outside this note.
 
 **Phase 2 — walk:** IIO block anatomy through the discover/explain pair; the handout in
 `docs/reading-iio-attributes.md` is the participant-facing artifact.
@@ -134,9 +135,9 @@ move acquisition state server-side; slides, procurement, timing.
 
 # Status
 
-- **Repo:** `main` at `b5a3b67`. `gr-m2k/m2k_calibrate.py`, `tests/test_calibrate.py`
-  and a corrected `m2k_scale.py` docstring are new and uncommitted.
-  `m2k-discovery-gui` is merged and deletable.
+- **Repo:** `main` at `25db5a2`, working tree clean. Calibration is committed:
+  `gr-m2k/m2k_calibrate.py`, `tests/test_calibrate.py` and the corrected `m2k_scale.py`
+  docstring all landed. `m2k-discovery-gui` is merged and deletable.
 - **`gr-m2k/` — four blocks**: `analog_source`, `analog_sink`, `digital_source`,
   `digital_sink`, plus `m2k_scale.py` (arithmetic, imports nothing) and
   `m2k_config.py`.
@@ -191,5 +192,5 @@ move acquisition state server-side; slides, procurement, timing.
       signal without a gain stage.
 - [ ] Decide which demo becomes the hands-on participant station.
 - [ ] Move standing-wave acquisition state server-side for late joiners.
-- [ ] Write participant setup instructions; send two weeks before the session.
+- [ ] Write participant setup instructions; send before the session.
 - [ ] Slides — after demos run.
