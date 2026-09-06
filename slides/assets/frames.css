@@ -1,0 +1,291 @@
+/* GRCon26 workshop -- frame view.
+ *
+ * Ported from ECE 444's book/_static/frames.css. Layers on shell.css, which
+ * carries the palette, type, HUD and overlay. Everything here is about a
+ * document that is a stack of full-viewport frames: the scroller, present/read
+ * mode, the laser and spotlight, the present layer, and print.
+ *
+ * The one structural difference from ECE 444: there is no Sphinx here, so a
+ * frame titles itself with a plain <h2> instead of a docutils rubric, and the
+ * `cut` class (a frame that carries `.present` blocks) is written by hand in
+ * the markup rather than stamped by an extension at build time.
+ */
+
+/* ---- the scroller --------------------------------------------------- */
+.deck {
+  height: 100dvh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.deck::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) { .deck { scroll-behavior: auto; } }
+
+.frame {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: grid;
+  align-content: center;
+  padding: clamp(3rem, 7vh, 6rem) clamp(1.4rem, 6vw, 5rem) clamp(4.5rem, 9vh, 7rem);
+}
+.wrap {
+  width: 100%;
+  max-width: 62rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(.9rem, 2.2vh, 1.5rem);
+  /* A flex item's automatic minimum is its min-content width, and a wide
+     table or <pre> will not wrap. Without this the wrap grows past the
+     viewport on a phone and the frame pans sideways -- the overflow-x rules
+     never fire, because their own box has already been widened to fit. */
+  min-width: 0;
+}
+.wrap > * { min-width: 0; max-width: 100%; }
+.wrap.wide { max-width: 74rem; }
+.wrap.narrow { max-width: 46rem; }
+
+/* ---- laser + spotlight ---------------------------------------------- */
+.laser {
+  position: fixed; z-index: 60; pointer-events: none;
+  width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: radial-gradient(circle, #ff3b30 0 28%, rgba(255,59,48,.85) 45%, rgba(255,59,48,0) 72%);
+  box-shadow: 0 0 14px 5px rgba(255,59,48,.42);
+  opacity: 0; transition: opacity .12s linear;
+}
+.laser.on { opacity: 1; }
+.spot {
+  position: fixed; inset: 0; z-index: 55; pointer-events: none;
+  opacity: 0; transition: opacity .18s linear;
+}
+.spot.on { opacity: 1; }
+body.pointing, body.pointing * { cursor: none !important; }
+/* On a touch screen `pointermove` only fires while a finger is down, and the
+   browser claims that drag as a scroll -- so the deck slides away under the
+   pointer. Handing the gesture to the pointer handler is what makes the laser
+   usable on a tablet at all. */
+body.pointing .deck { touch-action: none; }
+@media (prefers-reduced-motion: reduce) { .laser, .spot { transition: none; } }
+
+/* ---- title frame ---------------------------------------------------- */
+.title-frame .wrap { gap: clamp(1rem, 3vh, 2rem); }
+.course-mark {
+  font-family: var(--mono); font-size: var(--step--1);
+  letter-spacing: .22em; text-transform: uppercase; color: var(--blue);
+}
+.title-rule { height: 3px; background: var(--blue-dark); width: 5.5rem; border-radius: 2px; }
+.meta { color: var(--muted); font-size: var(--step--1); }
+
+/* A section divider: the frame that says which act we are in. */
+.section-frame .wrap { gap: clamp(.6rem, 2vh, 1.1rem); }
+.section-frame h2 { border-bottom: none; font-size: var(--step-3); padding-bottom: 0; }
+.section-frame .sec-n {
+  font-family: var(--mono); font-size: var(--step--1); letter-spacing: .22em;
+  text-transform: uppercase; color: var(--blue);
+}
+
+/* ---- two modes, one document --------------------------------------- */
+/* The depth is ALWAYS in the DOM. Present mode hides it; it is never
+   deleted, so nothing the notes carry can be lost by the deck view. */
+.depth { display: flex; flex-direction: column; gap: .8em; max-width: 68ch; }
+
+/* In READ mode the depth is not an aside -- it is the notes continuing. No
+   rule, no label, no size drop: the present block is the topic sentence and
+   this is the paragraph after it. */
+[data-mode="read"] .depth { gap: inherit; }
+
+/* In PRESENT mode it IS an aside -- you pulled it up mid-talk, so a quiet
+   rule earns its place by showing what just appeared. */
+[data-mode="present"] .frame.open .depth {
+  border-left: 3px solid var(--rule);
+  padding-left: clamp(.9rem, 2vw, 1.4rem);
+}
+
+.more {
+  align-self: flex-start; font: inherit; font-size: var(--step--1);
+  font-weight: 600; letter-spacing: .02em;
+  color: var(--blue); background: var(--soft);
+  border: 1px solid var(--rule); border-radius: 999px;
+  padding: .3em .9em; cursor: pointer;
+}
+.more:hover { background: var(--soft-red); color: var(--red); border-color: var(--red); }
+.more:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* present: a deck. depth collapsed behind an affordance. */
+[data-mode="present"] .deck  { scroll-snap-type: y mandatory; }
+[data-mode="present"] .frame { min-height: 100dvh; }
+[data-mode="present"] .depth { display: none; }
+[data-mode="present"] .frame.open .depth { display: flex; }
+
+/* A frame is one screen, so anything with an intrinsic size has to be told
+   the ceiling. */
+[data-mode="present"] .frame img,
+[data-mode="present"] .frame svg { max-height: 58vh; }
+
+/* read: a notes page. no snapping, everything visible, frames sized to their
+   content so the document scrolls continuously. */
+[data-mode="read"] .deck  { scroll-snap-type: none; }
+[data-mode="read"] .frame {
+  min-height: 0;
+  padding-top: clamp(2rem, 5vh, 3.2rem);
+  padding-bottom: clamp(2rem, 5vh, 3.2rem);
+  border-bottom: 1px solid var(--rule);
+}
+[data-mode="read"] .frame:last-child { border-bottom: none; }
+[data-mode="read"] .more  { display: none; }
+[data-mode="read"] .depth { display: flex; }
+
+/* ---- pinch-to-zoom --------------------------------------------------- */
+/* Mandatory snapping and a pinch fight each other: iOS re-snaps the deck on
+   every pan, so a zoomed frame springs straight back to the top and the zoom
+   reads as broken. While the reader is pinched in the deck stops snapping;
+   let go back to 1x and snapping returns. frames.js stamps `.zoomed` from
+   visualViewport.scale. `body.zoomed .deck` is (0,2,1), which outranks the
+   `[data-mode="present"]` rule above (0,2,0) with no !important. */
+body.zoomed .deck  { scroll-snap-type: none; }
+body.zoomed .frame { scroll-snap-align: none; scroll-snap-stop: normal; }
+
+/* ---- the present layer ---------------------------------------------- */
+/* A `.present` block is what the frame shows on screen; everything else in a
+   `.cut` frame is wrapped in `.depth` by hand, so the rules above do the
+   hiding. In READ mode neither wrapper has a box -- the present block is the
+   topic sentence and the prose after it continues the sentence, so a rule or
+   a card here would rebuild the seam this format removes. */
+.stage, .present { display: contents; }
+/* `.present.callout` is the one present block with a box of its own, in both
+   modes: it IS the callout, so it keeps shell.css's card. */
+.present.callout { display: flex; }
+
+/* In PRESENT mode the stage is a row: two present blocks -- the key points
+   and the graphic they talk to -- side by side on a laptop, stacked on a
+   phone. `min()` keeps the track able to shrink below a phone's width. */
+[data-mode="present"] .frame.cut .stage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(21rem, 100%), 1fr));
+  gap: clamp(1rem, 3vw, 2.6rem);
+  align-items: center;
+}
+[data-mode="present"] .frame.cut .present {
+  display: flex; flex-direction: column; min-width: 0; max-width: 100%;
+  gap: clamp(.7rem, 1.8vh, 1.1rem);
+}
+/* Two equal tracks is right for prose beside a graphic and wrong for a
+   parameter table beside a one-line callout: a three-column table in half a
+   laptop screen wraps every cell onto four lines. `split` widens the first
+   track, `split-r` the second -- and both collapse back to the auto-fit
+   single column on a phone, because the media query below drops the
+   template entirely. */
+[data-mode="present"] .frame.cut .stage.split {
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+}
+[data-mode="present"] .frame.cut .stage.split-r {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr);
+}
+@media (max-width: 54rem) {
+  [data-mode="present"] .frame.cut .stage.split,
+  [data-mode="present"] .frame.cut .stage.split-r {
+    grid-template-columns: 1fr;
+  }
+}
+/* Forty words a screen earns slide-size type. Only the present block grows;
+   the depth behind "More detail +" keeps the notes size, since it is the
+   notes. */
+[data-mode="present"] .frame.cut .present { font-size: var(--step-1); line-height: 1.32; }
+[data-mode="present"] .frame.cut .present p,
+[data-mode="present"] .frame.cut .present li { max-width: 46ch; }
+[data-mode="present"] .frame.cut .present ul,
+[data-mode="present"] .frame.cut .present ol { margin: 0; padding-left: 1.1em; }
+[data-mode="present"] .frame.cut .present li + li { margin-top: .35em; }
+[data-mode="present"] .frame.cut .present table { font-size: var(--step-0); }
+[data-mode="present"] .frame.cut .present pre { font-size: clamp(.8rem, .7rem + .4vw, 1.02rem); }
+
+/* A read-only frame is a beat that exists in the notes and not in the room:
+   a reference table, a link list. Present mode skips it, and frames.js
+   leaves it out of the counter and the contents overlay in both modes so the
+   numbers agree with what the room sees. */
+[data-mode="present"] .frame.read-only { display: none; }
+
+/* ---- the flow-graph chain strip ------------------------------------- */
+/* The build-up frames each show the same eight-block chain with one block
+   lit. It is markup rather than a picture so it stays legible at any width,
+   reflows on a phone, and prints. */
+.chain {
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: .3rem;
+  font-family: var(--mono); font-size: clamp(.62rem, .55rem + .28vw, .78rem);
+  max-width: 100%;
+}
+.chain .lnk {
+  border: 1px solid var(--rule); border-radius: 5px;
+  padding: .3em .55em; color: var(--muted);
+  background: var(--panel); opacity: .55;
+  display: flex; align-items: center; text-align: center; line-height: 1.2;
+}
+.chain .arw { display: flex; align-items: center; color: var(--rule-strong); }
+.chain .lnk.on {
+  opacity: 1; color: var(--panel); background: var(--blue-dark);
+  border-color: var(--blue-dark); font-weight: 700;
+}
+.chain .lnk.done { opacity: 1; color: var(--blue-dark); border-color: var(--rule-strong); }
+.chain .lnk.wire {
+  background: none; border-style: dashed; border-color: var(--red);
+  color: var(--red); opacity: .8;
+}
+.chain .lnk.wire.on { background: var(--red); color: var(--panel); opacity: 1; }
+
+/* a parameter table that has to fit beside a chain strip */
+.params td:first-child { font-family: var(--mono); white-space: nowrap; }
+.params td code { background: none; padding: 0; }
+
+/* ---- print ------------------------------------------------------------ */
+/* `.deck` is a fixed-height scroll container so present mode can pin one
+   frame per viewport -- exactly what print cannot have. Left alone, print
+   sees the container's one clipped viewport and the whole deck comes out as
+   a single sheet with the bottom bar stamped on it. Let the deck flow like an
+   ordinary document, and cut that flow back into one sheet per frame, so a
+   printed frame has room to write beside it.
+   Every rule carries `!important`: the selectors it overrides are not, so
+   cascade order alone would not win against whichever mode the page happened
+   to be in when it was sent to the printer. */
+@media print {
+  .deck {
+    height: auto !important;
+    overflow: visible !important;
+    scroll-snap-type: none !important;
+  }
+  .frame {
+    min-height: 0 !important;
+    scroll-snap-align: none !important;
+    scroll-snap-stop: normal !important;
+    break-after: page;
+    display: block !important;
+    padding: 0 0 1.2rem !important;
+  }
+  .frame:last-child { break-after: auto; }
+
+  /* Print has no mode toggle, so it always renders as read mode: the depth
+     is the rest of the notes, not an aside collapsed behind a button. */
+  .depth {
+    display: flex !important;
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+  /* "More detail +" reveals the depth above -- on paper the depth is already
+     there, so the button would be a button that does nothing. */
+  .more { display: none !important; }
+
+  /* Screen-only chrome: the bottom bar and its panels, the progress rail, the
+     jump overlay, and the presenter's laser and spotlight. */
+  .hud, .rail, .index, .laser, .spot { display: none !important; }
+
+  /* Present-mode type is sized for a projector, not a sheet of A4. */
+  [data-mode="present"] .frame.cut .present { font-size: inherit !important; }
+  [data-mode="present"] .frame.read-only { display: block !important; }
+  .stage { display: block !important; }
+  .card, pre, .callout { break-inside: avoid; }
+  svg { max-height: none !important; }
+  a { color: inherit; text-decoration: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+}
+@page { margin: 14mm 14mm 16mm; }

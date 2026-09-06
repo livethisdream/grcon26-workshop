@@ -1,0 +1,48 @@
+# Publish slides/ to GitHub Pages.
+#
+# There is no build: the deck is one HTML file and three assets beside it, so
+# this uploads the directory as-is. Needs Settings -> Pages -> Source: GitHub
+# Actions, once.
+name: Publish the deck
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'slides/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and let a newer push win rather than queueing
+# behind a run whose output it would replace anyway.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Structure
+        run: python3 slides/check_deck.py
+
+  publish:
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: slides
+      - id: deploy
+        uses: actions/deploy-pages@v4

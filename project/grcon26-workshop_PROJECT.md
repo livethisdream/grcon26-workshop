@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-04
+dateModified: 2026-09-06
 container: cdocker
 ---
 # Overview
@@ -118,14 +118,22 @@ display), and the session material itself.
   our own decoder. Reason: encoder and decoder were written from the same sentences, so
   a shared misreading round-trips clean and is still wrong on a real bus.
 
+- **2026-09-06** — The deck is ECE444's frame view, ported standalone into `slides/`.
+  Reason: one document serves the projector, the participant's notes and the printed
+  handout, and nothing in it can be lost by presenting it. No book, no generator: one
+  HTML file and three assets, published to Pages by a workflow.
+- **2026-09-06** — Slides are written for the demos that run, with the two that do not
+  as labelled placeholders. Reason: the SPI half is bench-verified end to end and
+  gating the whole deck on the ultrasonic link would leave nothing written this month.
+
 # Plan
 
 **Phase 1 (current) — crawl:** Six blocks built, all bench-verified; calibration
 has closed the absolute error. Open: a DC power supply block, a capability GNU Radio
 does not have at all.
 
-**Timing:** GRCon26 is this month and Phase 3 has not started. Slides are gated behind
-working demos; setup instructions are due two weeks prior.
+**Timing:** GRCon26 is this month and Phase 3 has not started. The deck exists for
+everything that runs; setup instructions are due two weeks prior.
 
 **Phase 2 — walk:** IIO block anatomy. One intro slide on what IIO is and which M2K
 attributes matter, from `iio_explain.py --glossary`. `docs/reading-iio-attributes.md`
@@ -144,6 +152,11 @@ the stretch goal if the FSK link lands early.
   390 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
 - **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
   fails if the committed copy drifts.
+- **`slides/` — 47 frames**, frame view, read and present from one document. IIO,
+  the M2K, the six blocks, SPI, and the loopback built one block at a time;
+  ultrasonic and the colorimeter are labelled placeholders. `slides/check_deck.py`
+  gates titles, ids and the 40-word present budget; every frame fits one screen at
+  1024x768, 1280x800 and 1440x900, and it prints 49 sheets rather than 1.
 - **Bench checklist sections 1-13 all pass.** Section 9 is a real SPI mode-0 bus over
   all 256 byte values; 11 runs `m2k_spi_decode` live at half = 4, 8, 16; 12 is
   send-on-demand, 20 sends clean at 100 kS/s, which also proves an untriggered capture
@@ -188,7 +201,9 @@ the stretch goal if the FSK link lands early.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 - [ ] Decide which demo becomes the hands-on participant station.
 - [ ] Write participant setup instructions; send two weeks before the session.
-- [ ] Slides — after demos run. Intro slide from `iio_explain.py --glossary`.
+- [ ] Turn on Settings -> Pages -> Source: GitHub Actions so `pages.yml` can publish.
+- [ ] Fill the two placeholder frames (`#ultrasonic`, `#colorimeter`) once those
+      demos run. Everything else in `slides/` is written.
 
 **If we have time**
 - [ ] Overlay coverage (Tier 1 + Tier 2, ~104 attributes, 57% → ~90%) is parked. The
