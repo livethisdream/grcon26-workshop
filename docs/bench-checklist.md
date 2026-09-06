@@ -857,6 +857,7 @@ gnuradio-companion flowgraphs/m2k_spi_loopback.grc             # 12
 python3 bench/dc_point.py 0.0 --output w1       # 10, one point
 python3 bench/dc_point.py 1.0 --output w1 --meter 1.051
 python3 bench/spi_flowgraph.py M2K 8 --csv /tmp/bus.csv     # 13, on hardware
+python3 bench/ultrasonic_sweep.py               # transducer f0, see docs/ultrasonic-demo.md
 ```
 
 Both want a gnuradio interpreter. The project `.venv` does not have one,

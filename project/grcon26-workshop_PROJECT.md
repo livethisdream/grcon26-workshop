@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-04
+dateModified: 2026-09-06
 container: cdocker
 ---
 # Overview
@@ -117,6 +117,23 @@ display), and the session material itself.
 - **2026-09-04** — SPI mode 0 is checked against libsigrokdecode, not only against
   our own decoder. Reason: encoder and decoder were written from the same sentences, so
   a shared misreading round-trips clean and is still wrong on a real bus.
+- **2026-09-06** — Ultrasonic time-of-flight ranging is the centrepiece and FSK is
+  the finale, swapping the 2026-09-04 order. Reason: a link either works or shows
+  nothing, while a distance readout degrades gracefully -- a weak signal shortens the
+  range and the number still tracks your hand. FSK stays; it is no longer what the
+  session depends on.
+- **2026-09-06** — Transducers connect straight to W1 and input 1, no amplifier and
+  no matching network. Reason: the disc is about 2 nF, roughly 2 kOhm at 40 kHz, and a
+  50 Ohm generator does not notice that load. Whether the received level needs a gain
+  stage is measurement 2, not an assumption.
+- **2026-09-06** — Ultrasonic is the hands-on participant station. Reason: one M2K,
+  one transducer pair and two wires per station, which is the only one of the three
+  demos where hardware scarcity stops being an architecture problem. This closes the
+  open question from 2026-08-18.
+- **2026-09-06** — Differential drive across W1 and W2 is not counted on for extra
+  range. Reason: they are separate IIO devices, so two cyclic buffers start
+  independently and nothing in the current blocks controls their relative phase.
+  Available again if someone measures that phase and finds it stable.
 
 # Plan
 
@@ -131,9 +148,10 @@ working demos; setup instructions are due two weeks prior.
 attributes matter, from `iio_explain.py --glossary`. `docs/reading-iio-attributes.md`
 is the participant-facing artifact either way.
 
-**Phase 3 — run:** ultrasonic FSK, then the CN0363 colorimeter. Ultrasonic reuses
-ECE448's `fsk_project.grc` retuned to 40 kHz; steps in ToDo. Time-of-flight ranging is
-the stretch goal if the FSK link lands early.
+**Phase 3 — run:** ultrasonic, then the CN0363 colorimeter. One wiring setup, three
+stages that escalate: sweep for f0, time-of-flight ranging, then the FSK link retuned
+from ECE448's `fsk_project.grc`. Ranging is the centrepiece; FSK is the payoff if it
+lands. Written up in `docs/ultrasonic-demo.md`, steps in ToDo.
 
 # Status
 
@@ -141,7 +159,7 @@ the stretch goal if the FSK link lands early.
 - **`gr-m2k/` — six blocks**: `analog_source`, `analog_sink`, `digital_source`,
   `digital_sink`, `spi_decode`, `spi_encode`, plus `m2k_calibrate.py`, `m2k_scale.py`
   and `spi_decode.py`/`spi_encode.py` (arithmetic, import nothing) and `m2k_config.py`.
-  390 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
+  411 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
 - **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
   fails if the committed copy drifts.
 - **Bench checklist sections 1-13 all pass.** Section 9 is a real SPI mode-0 bus over
@@ -169,12 +187,20 @@ the stretch goal if the FSK link lands early.
 - [ ] Precision demo — rail to input 1, commanded vs measured.
 - [ ] Then the PWM LED application off `digital_sink`.
 
-**Ultrasonic**
-- [ ] Sweep 36-44 kHz with `analog_sink` / `analog_source` for resonance and the real
-      -6 dB bandwidth. Everything downstream needs f0.
+**Ultrasonic** — plan in `docs/ultrasonic-demo.md`
+
+- [x] `bench/ultrasonic_sweep.py` — sweeps 36-44 kHz, reports f0, the -6 dB
+      bandwidth, Q and the ringdown. Picks a cyclic buffer per point that holds a
+      whole number of cycles, so the frequency printed is the one the hardware made.
+      Arithmetic tested without a board.
+- [ ] Run it. Four numbers: f0 and bandwidth; amplitude vs distance at f0; the
+      crosstalk floor with the receiver turned away; the ringdown, which is the
+      blind zone.
 - [ ] Port `fsk_project.grc` to `flowgraphs/m2k_ultrasonic_fsk.grc`: split `samp_rate`
       into 750 kS/s tx and 1 MS/s rx, tones at f0 +/- 300, M2K endpoints, xlating
       filter recentred, `vco_f` output scaled to volts.
+- [ ] Burst-and-range flowgraph, direct path: send at f0, find the arrival, print
+      centimetres. Echo off a hand only once the direct path works.
 - [ ] Bench it, then measure range and off-axis falloff.
 - [ ] Confirm non-cyclic analog streaming holds at 750 kS/s; fall back to one cyclic
       buffer if it underruns.
@@ -186,7 +212,6 @@ the stretch goal if the FSK link lands early.
 - [ ] Run the sigrok check against a real M2K capture, not the encoder's arithmetic:
       `bench/spi_flowgraph.py M2K 8 --csv`, DIO0-2 wired to DIO4-6.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
-- [ ] Decide which demo becomes the hands-on participant station.
 - [ ] Write participant setup instructions; send two weeks before the session.
 - [ ] Slides — after demos run. Intro slide from `iio_explain.py --glossary`.
 
