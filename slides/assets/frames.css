@@ -207,6 +207,27 @@ body.zoomed .frame { scroll-snap-align: none; scroll-snap-stop: normal; }
    numbers agree with what the room sees. */
 [data-mode="present"] .frame.read-only { display: none; }
 
+/* ---- GRC screenshots ------------------------------------------------ */
+/* Rendered by `slides/render_grc.py` out of GRC's own canvas code, so they
+   are light whatever theme the page is in. Framing them is honest -- the
+   canvas really does look like that -- and the hairline rule keeps a pale
+   block from bleeding into a dark ground. */
+.wrap img { max-width: 100%; height: auto; }
+figure.shot { gap: .5em; }
+figure.shot img {
+  display: block; width: auto; max-width: 100%;
+  background: #ffffff; color-scheme: light;
+  border: 1px solid var(--rule); border-radius: 5px;
+  box-shadow: var(--shadow);
+}
+/* A whole-canvas figure earns the column; a single block keeps its own size
+   until the column is narrower than it is. */
+figure.shot.canvas img { width: 100%; }
+/* One screen is the budget, and a block image is the tallest thing on these
+   frames -- 58vh leaves nothing for the title and the chain strip above it. */
+[data-mode="present"] .frame.cut .present figure.shot img { max-height: 44vh; }
+[data-mode="present"] .frame figure.shot.canvas img { max-height: 56vh; }
+
 /* ---- the flow-graph chain strip ------------------------------------- */
 /* The build-up frames each show the same eight-block chain with one block
    lit. It is markup rather than a picture so it stays legible at any width,

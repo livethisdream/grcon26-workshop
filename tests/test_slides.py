@@ -50,6 +50,50 @@ def test_every_asset_the_deck_asks_for_is_checked_in(deck):
         assert os.path.exists(os.path.join(SLIDES, ref)), ref
 
 
+def test_every_grc_figure_the_deck_uses_is_one_render_grc_produces(deck):
+    """A picture of a flowgraph drifts; a render of one cannot.
+
+    The point of `render_grc.py` is that re-running it reproduces every
+    figure in the deck. An `<img>` pointing at a file the script does not
+    know how to make is a hand-placed screenshot that will quietly go stale,
+    so it fails here rather than at the next parameter change.
+
+    Read out of the source with `ast` rather than by importing: the script
+    needs PyGObject, and this suite runs in a venv that cannot see it.
+    """
+    import ast
+    import re
+
+    with open(os.path.join(SLIDES, "render_grc.py"), encoding="utf-8") as fh:
+        tree = ast.parse(fh.read())
+    figures = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(
+                getattr(t, "id", None) == "FIGURES" for t in node.targets):
+            figures = ast.literal_eval(node.value)
+    assert figures, "render_grc.py has no FIGURES manifest any more"
+
+    produced = {stem + ".png"
+                for flowgraph in figures.values() for stem in flowgraph}
+    used = {os.path.basename(src)
+            for src in re.findall(r'<img[^>]+src="img/([^"]+)"', deck)}
+    assert used, "the deck references no rendered figures"
+    assert used <= produced, (
+        "the deck uses figures render_grc.py does not produce: "
+        f"{sorted(used - produced)}")
+
+
+def test_no_rendered_figure_is_dead_weight():
+    """Every committed image is one the deck actually shows."""
+    import re
+    with open(os.path.join(SLIDES, "index.html"), encoding="utf-8") as fh:
+        used = set(re.findall(r'<img[^>]+src="img/([^"]+)"', fh.read()))
+    on_disk = {f for f in os.listdir(os.path.join(SLIDES, "img"))
+               if not f.startswith(".")}
+    assert on_disk - used == set(), \
+        f"committed but never shown: {sorted(on_disk - used)}"
+
+
 def test_nothing_is_loaded_from_a_third_party_at_run_time(deck):
     """A conference room's network is not a dependency.
 

@@ -27,6 +27,15 @@ WORD_BUDGET = 40
 FRAME_BUDGET = 85
 
 
+# Void elements have no end tag, so pushing them onto the tag stack leaves it
+# permanently one deeper and the depth comparison that closes a present block
+# never matches again -- the block then swallows everything after it and
+# reports a word count for half the frame. Cost one wrong failure the day the
+# deck grew its first <img>.
+VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+        "meta", "param", "source", "track", "wbr"}
+
+
 class Deck(HTMLParser):
     """Collect frames, their ids, titles, and present-block word counts."""
 
@@ -49,6 +58,8 @@ class Deck(HTMLParser):
         if "id" in a:
             self.ids.append(a["id"])
         classes = self._classes(attrs)
+        if tag in VOID:
+            return
         self.stack.append(tag)
 
         if tag == "section" and "frame" in classes:
@@ -80,6 +91,8 @@ class Deck(HTMLParser):
             self.cur["present"].append("".join(self.buf))
             self.present_depth = None
             self.buf = []
+        if tag in VOID:
+            return
         if tag == "section" and self.stack and self.stack[-1] == "section":
             self.cur = None
         if self.stack:
@@ -135,6 +148,15 @@ def main():
         if total > FRAME_BUDGET:
             fails.append(f"{where}: {total} present words (budget "
                          f"{FRAME_BUDGET}) -- split the frame")
+
+    for src in sorted(set(re.findall(r'<img[^>]+src="([^"]+)"', source))):
+        if not src.startswith(("http:", "https:", "data:")):
+            if not os.path.exists(os.path.join(HERE, src)):
+                fails.append(f"missing image `{src}` -- render it with "
+                             f"slides/render_grc.py")
+    for tag in re.findall(r'<img[^>]*>', source):
+        if 'alt="' not in tag:
+            fails.append(f"an <img> has no alt text: {tag[:70]}")
 
     dupes = {i for i in deck.ids if deck.ids.count(i) > 1}
     for i in sorted(dupes):

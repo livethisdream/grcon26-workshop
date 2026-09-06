@@ -566,7 +566,15 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
         <p class="pull">Three IIO devices, one block. That is why the stock source cannot do this.</p>
       </div>
       <div class="present">
-        <div class="tablewrap"><table class="params">
+        <figure class="shot">
+          <img src="img/grc-analog-source.png" alt="The M2K Analog Source block on the GNU Radio Companion canvas, listing address, channels, sample rate, input range, output type and trigger.">
+          <figcaption>The <strong>M2K Analog Source</strong> block on the canvas of <code>flowgraphs/m2k_scope.grc</code>.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="depth">
+      <p>Every parameter, and the IIO attribute it quietly becomes:</p>
+      <div class="tablewrap"><table class="params">
           <tr><th>parameter</th><th>quietly becomes</th></tr>
           <tr><td>M2K address</td><td>context URI</td></tr>
           <tr><td>Channel 1 / 2 on</td><td>the channel list</td></tr>
@@ -575,9 +583,6 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
           <tr><td>Output: volts / counts</td><td>the port's data type</td></tr>
           <tr><td>Trigger on / when / level</td><td><code>m2k-adc-trigger</code></td></tr>
         </table></div>
-      </div>
-    </div>
-    <div class="depth">
       <p>The dropdowns are not hand-written. The hardware publishes
       <code>sampling_frequency_available</code>, and that list is what the block offers —
       six exact rates from 100&nbsp;MS/s down to 1&nbsp;kS/s. An earlier version computed
@@ -872,9 +877,42 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
   </div>
 </section>
 
+<section class="frame" id="fg-canvas" data-section="Flow graph">
+  <div class="wrap wide">
+    <h2>The canvas, as GRC draws it</h2>
+    <figure class="shot canvas">
+      <img src="img/flowgraph-spi-signal-path.png" alt="The signal path of m2k_spi_loopback.grc on the GNU Radio Companion canvas: a QT GUI Message Edit Box into M2K SPI Encode into M2K Digital Sink on DIO0-2, and M2K Digital Source on DIO4-6 into M2K SPI Decode into Message Debug, with three Short To Float blocks branching into a QT GUI Time Sink.">
+      <figcaption><code>flowgraphs/m2k_spi_loopback.grc</code> — every parameter
+      on the face of every block.</figcaption>
+    </figure>
+    <div class="depth">
+      <p>Signal path only. Nothing has been redrawn or rearranged — that
+      figure is this region's own extents. Here is the whole canvas, Options
+      block and variables included:</p>
+      <figure class="shot canvas">
+        <img src="img/flowgraph-spi-loopback.png" alt="The complete m2k_spi_loopback.grc canvas: an Options block top left, a row of four Variable blocks under it, and below them the signal path from the message edit box through SPI Encode and the Digital Sink, and from the Digital Source through SPI Decode to Message Debug with a branch into the time sink.">
+        <figcaption>All of <code>m2k_spi_loopback.grc</code>. The empty band is
+        real: the variables sit a screen above the graph.</figcaption>
+      </figure>
+      <p>This is not a drawing of the flowgraph. It is the flowgraph:
+      <code>slides/render_grc.py</code> loads the same <code>.grc</code> a
+      participant opens and hands it to GRC's own Cairo canvas code, so the
+      fonts, the colours, the port shapes and the wire routing are the ones
+      that will be on their screen. A diagram would have started drifting the
+      first time a parameter changed.</p>
+      <p>Two things to read off it before we take it apart. <strong>Solid
+      arrows carry samples; dashed arrows carry messages</strong> — so the two
+      dashed ones, into the encoder and out of the decoder, are the two places
+      a human or a print statement touches this graph. And <strong>the graph is
+      in two halves that do not connect.</strong> Nothing on this canvas joins
+      the Digital Sink to the Digital Source.</p>
+    </div>
+  </div>
+</section>
+
 <section class="frame" id="fg-map" data-section="Flow graph">
   <div class="wrap wide">
-    <h2><code>m2k_spi_loopback.grc</code></h2>
+    <h2>The half of it that is not on the canvas</h2>
     <figure>
       <svg viewBox="0 0 730 430" role="img" aria-label="Flow graph: a message edit box feeds M2K SPI Encode, which feeds M2K Digital Sink on DIO 0, 1 and 2. Three jumper wires carry those to DIO 4, 5 and 6, where M2K Digital Source reads them into M2K SPI Decode and on to Message Debug, with a branch through Short To Float into a QT GUI Time Sink.">
         <style>
@@ -968,9 +1006,21 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
         <text class="t" x="419" y="381">QT GUI</text>
         <text class="t" x="419" y="396">Time Sink</text>
       </svg>
-      <figcaption>Solid lines carry samples. Dashed blue lines carry messages.
-      The dashed red boxes are pins, not blocks — the only part of this diagram
-      that is a piece of wire.</figcaption>
+      <figcaption>The same graph, with the part GRC has no way to draw: the
+      dashed red boxes are pins, and the red line between them is three jumper
+      wires on a bench. Solid black carries samples, dashed blue carries
+      messages.</figcaption>
+      <div class="depth">
+        <p>Worth dwelling on, because it is where a stuck participant usually
+        is. The flowgraph is complete and correct with nothing wired up at all
+        — GRC will validate it, generate it and run it. The loop is closed
+        outside the software, and the only thing that reports the wire is
+        missing is a decoder that never prints.</p>
+        <p>It is also why the two halves have separate rates, separate buffer
+        sizes and separate pin lists that have to agree with each other by
+        hand. Nothing in the graph can check that DIO0 is jumpered to DIO4.
+        <code>bench/dio_continuity.py</code> is what checks it.</p>
+      </div>
     </figure>
   </div>
 </section>
@@ -990,13 +1040,10 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
-          <tr><th>variable</th><th>value</th><th>why</th></tr>
-          <tr><td><code>samp_rate</code></td><td><code>100000</code></td><td>the DIO clock, 100 kS/s</td></tr>
-          <tr><td><code>half</code></td><td><code>8</code></td><td>samples per half clock &rarr; 6.25 kHz bus</td></tr>
-          <tr><td><code>buffer_len</code></td><td><code>16384</code></td><td>the sink's DMA buffer</td></tr>
-          <tr><td><code>frame</code></td><td><code>128 + 16*half*8</code></td><td>one transaction, in samples</td></tr>
-        </table></div>
+        <figure class="shot">
+          <img src="img/grc-variable-frame.png" alt="A GNU Radio Companion Variable block with ID frame, whose Value line shows the expression 128 + 16 * half * 8 followed by its evaluated result, 1.152k.">
+          <figcaption>GRC shows a computed value beside its expression.</figcaption>
+        </figure>
       </div>
       <div class="present callout">
         <p><code>frame</code> is computed, never typed. The old flowgraph hard-coded it
@@ -1004,6 +1051,19 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
       </div>
     </div>
     <div class="depth">
+      <figure class="shot canvas">
+        <img src="img/grc-variables.png" alt="Four GNU Radio Companion variable blocks in a row: samp_rate 100k, half 8, buffer_len 16.384k, and frame showing 128 + 16 * half * 8 = 1.152k.">
+        <figcaption>All four, where they sit on the canvas — above the graph,
+        with the Options block.</figcaption>
+      </figure>
+      <p>What each one is for:</p>
+      <div class="tablewrap"><table class="params">
+          <tr><th>variable</th><th>value</th><th>why</th></tr>
+          <tr><td><code>samp_rate</code></td><td><code>100000</code></td><td>the DIO clock, 100 kS/s</td></tr>
+          <tr><td><code>half</code></td><td><code>8</code></td><td>samples per half clock &rarr; 6.25 kHz bus</td></tr>
+          <tr><td><code>buffer_len</code></td><td><code>16384</code></td><td>the sink's DMA buffer</td></tr>
+          <tr><td><code>frame</code></td><td><code>128 + 16*half*8</code></td><td>one transaction, in samples</td></tr>
+        </table></div>
       <p>The arithmetic: 128 samples of quiet either side (64 lead-in, 8 setup, 8
       tail, 48 idle after) plus 16 samples per bit &times; 8 bits &times; one byte's worth
       of half-clocks. Change <code>half</code> live in a running flowgraph and the frame
@@ -1031,14 +1091,10 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
-          <tr><th>parameter</th><th>value</th></tr>
-          <tr><td>Label</td><td><code>Send over SPI</code></td></tr>
-          <tr><td>Type</td><td><code>string</code></td></tr>
-          <tr><td>Is Pair</td><td><code>False</code> — the message is the payload</td></tr>
-          <tr><td>Is Static</td><td><code>True</code></td></tr>
-          <tr><td>Default</td><td><code>M2K</code></td></tr>
-        </table></div>
+        <figure class="shot">
+          <img src="img/grc-entry.png" alt="The QT GUI Message Edit Box block on the canvas, with type String, value M2K and the label "Send over SPI".">
+          <figcaption>The block, on the canvas.</figcaption>
+        </figure>
       </div>
       <div class="present">
         <p>A stock block. Type something, press Enter, and one message leaves on
@@ -1047,6 +1103,15 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
       </div>
     </div>
     <div class="depth">
+      <p>Its parameters:</p>
+      <div class="tablewrap"><table class="params">
+          <tr><th>parameter</th><th>value</th></tr>
+          <tr><td>Label</td><td><code>Send over SPI</code></td></tr>
+          <tr><td>Type</td><td><code>string</code></td></tr>
+          <tr><td>Is Pair</td><td><code>False</code> — the message is the payload</td></tr>
+          <tr><td>Is Static</td><td><code>True</code></td></tr>
+          <tr><td>Default</td><td><code>M2K</code></td></tr>
+        </table></div>
       <p>Worth pausing on because it sets the shape of everything after it. This
       is <em>send on demand</em>: nothing repeats, the bus rests at idle between
       messages, and a transaction happens because a person asked for one.</p>
@@ -1075,13 +1140,10 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
-          <tr><th>parameter</th><th>value</th><th>what it means</th></tr>
-          <tr><td>Bits per word</td><td><code>8</code></td><td>a byte</td></tr>
-          <tr><td>Chip select</td><td>active low</td><td>unless a datasheet says otherwise</td></tr>
-          <tr><td>Samples per half clock</td><td><code>half</code></td><td>the bus speed</td></tr>
-          <tr><td>Align frames to</td><td><code>buffer_len</code></td><td>the sink's buffer — see below</td></tr>
-        </table></div>
+        <figure class="shot">
+          <img src="img/grc-spi-encode.png" alt="The M2K SPI Encode block on the canvas: bits per word 8, chip select active low, samples per half clock half=8, align frames to buffer_len=16.384k, and three output ports.">
+          <figcaption>A variable shows as expression <em>and</em> value.</figcaption>
+        </figure>
       </div>
       <div class="present callout">
         <p>Message in, <strong>three sample streams out</strong>. It never touches the
@@ -1089,6 +1151,14 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
       </div>
     </div>
     <div class="depth">
+      <p>What each parameter is for:</p>
+      <div class="tablewrap"><table class="params">
+          <tr><th>parameter</th><th>value</th><th>what it means</th></tr>
+          <tr><td>Bits per word</td><td><code>8</code></td><td>a byte</td></tr>
+          <tr><td>Chip select</td><td>active low</td><td>unless a datasheet says otherwise</td></tr>
+          <tr><td>Samples per half clock</td><td><code>half</code></td><td>the bus speed</td></tr>
+          <tr><td>Align frames to</td><td><code>buffer_len</code></td><td>the sink's buffer — see below</td></tr>
+        </table></div>
       <p>Four more parameters set the quiet either side of the clocked bits, in
       samples: <code>64 / 8 / 8 / 48</code> for idle-before, CS-to-first-clock,
       last-clock-to-CS and idle-after. Those are the five rows of the frame
@@ -1130,7 +1200,20 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
+        <figure class="shot">
+          <img src="img/grc-digital-sink.png" alt="The M2K Digital Sink block on the canvas: three pins on DIO0, DIO1 and DIO2 labelled SCLK, MOSI and CS, 1 MS/s, and three input ports.">
+          <figcaption>Three pins, each with its DIO and its label.</figcaption>
+        </figure>
+      </div>
+      <div class="present callout trap">
+        <p><strong>The two directions never share a rate.</strong> <code>-tx</code> and
+        <code>-rx</code> hold separate <code>sampling_frequency</code>. A Sink and a Source given
+        different rates disagree about time, and neither complains.</p>
+      </div>
+    </div>
+    <div class="depth">
+      <p>The parameters, in full:</p>
+      <div class="tablewrap"><table class="params">
           <tr><th>parameter</th><th>value</th></tr>
           <tr><td>M2K address</td><td><code>ip:192.168.2.1</code></td></tr>
           <tr><td>Sample rate</td><td><code>1000000</code> — the <code>-tx</code> rate</td></tr>
@@ -1141,14 +1224,6 @@ gnuradio-companion flowgraphs/m2k_scope.grc</code></pre>
           <tr><td>Buffer size</td><td><code>buffer_len</code></td></tr>
           <tr><td>Drive / idle level</td><td>push-pull / low</td></tr>
         </table></div>
-      </div>
-      <div class="present callout trap">
-        <p><strong>The two directions never share a rate.</strong> <code>-tx</code> and
-        <code>-rx</code> hold separate <code>sampling_frequency</code>. A Sink and a Source given
-        different rates disagree about time, and neither complains.</p>
-      </div>
-    </div>
-    <div class="depth">
       <p>The buffer size here is the number <code>Align frames to</code> on the encoder
       has to match. They are one setting split across two blocks; a mismatch tears
       a frame at a seam that nothing else in the graph can see.</p>
@@ -1216,7 +1291,20 @@ DIO2  ->  DIO6     CS</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
+        <figure class="shot">
+          <img src="img/grc-digital-source.png" alt="The M2K Digital Source block on the canvas: three pins on DIO4, DIO5 and DIO6 labelled SCLK, MOSI and CS, with "Trigger on: Free running" as its last parameter.">
+          <figcaption>The mirror of the sink, on DIO4&ndash;6. Note the last line.</figcaption>
+        </figure>
+      </div>
+      <div class="present callout trap">
+        <p><strong>Do not trigger this.</strong> gr-iio's <code>device_source</code> returns
+        <code>WORK_DONE</code> on any refill error — including a timeout. One message
+        decodes, and the capture never comes back.</p>
+      </div>
+    </div>
+    <div class="depth">
+      <p>The parameters, in full:</p>
+      <div class="tablewrap"><table class="params">
           <tr><th>parameter</th><th>value</th></tr>
           <tr><td>M2K address</td><td><code>ip:192.168.2.1</code></td></tr>
           <tr><td>Sample rate</td><td><code>1000000</code> — the <code>-rx</code> rate</td></tr>
@@ -1226,14 +1314,6 @@ DIO2  ->  DIO6     CS</code></pre>
           <tr><td>Buffer size</td><td><code>buffer_len</code></td></tr>
           <tr><td class="res">Trigger pin</td><td class="res"><code>off</code></td></tr>
         </table></div>
-      </div>
-      <div class="present callout trap">
-        <p><strong>Do not trigger this.</strong> gr-iio's <code>device_source</code> returns
-        <code>WORK_DONE</code> on any refill error — including a timeout. One message
-        decodes, and the capture never comes back.</p>
-      </div>
-    </div>
-    <div class="depth">
       <p>This is the single most counter-intuitive setting in the flow graph. The
       board <em>has</em> a digital trigger, it works, and arming it on CS falling is
       exactly what you would do with a logic analyser. It is also what makes a
@@ -1266,12 +1346,10 @@ DIO2  ->  DIO6     CS</code></pre>
     </div>
     <div class="stage split">
       <div class="present">
-        <div class="tablewrap"><table class="params">
-          <tr><th>parameter</th><th>value</th><th>what it means</th></tr>
-          <tr><td>Bits per word</td><td><code>8</code></td><td>12 and 16 are real widths; 8 is a byte</td></tr>
-          <tr><td>Chip select</td><td>active low</td><td>must match the encoder</td></tr>
-          <tr><td>Text in metadata</td><td>Yes</td><td>the bytes as characters, beside the hex</td></tr>
-        </table></div>
+        <figure class="shot">
+          <img src="img/grc-spi-decode.png" alt="The M2K SPI Decode block on the canvas: three stream inputs, one message output, and only three parameters.">
+          <figcaption>Three stream inputs, one message output, and no address anywhere on it.</figcaption>
+        </figure>
         <p>Three streams in — SCLK, MOSI, CS. One message out.</p>
       </div>
       <div class="present callout">
@@ -1281,6 +1359,13 @@ DIO2  ->  DIO6     CS</code></pre>
       </div>
     </div>
     <div class="depth">
+      <p>Its three parameters:</p>
+      <div class="tablewrap"><table class="params">
+          <tr><th>parameter</th><th>value</th><th>what it means</th></tr>
+          <tr><td>Bits per word</td><td><code>8</code></td><td>12 and 16 are real widths; 8 is a byte</td></tr>
+          <tr><td>Chip select</td><td>active low</td><td>must match the encoder</td></tr>
+          <tr><td>Text in metadata</td><td>Yes</td><td>the bytes as characters, beside the hex</td></tr>
+        </table></div>
       <p><strong>The message carries the bytes and their reading.</strong> The payload
       is the words that were on the wire; the metadata carries the same words as
       text. So a Message Debug prints both, and the text line is the quickest
@@ -1317,11 +1402,15 @@ DIO2  ->  DIO6     CS</code></pre>
     </div>
     <div class="stage">
       <div class="present">
+        <figure class="shot">
+          <img src="img/grc-message-debug.png" alt="The M2K SPI Decode block on the GNU Radio Companion canvas with a dashed message connection into a Message Debug block whose Print PDU contents is On.">
+          <figcaption>Set <strong>Print PDU contents</strong> on, or you get the
+          metadata and no bytes.</figcaption>
+        </figure>
 <pre><code>((text . M2K))
 pdu length =          3 bytes
 pdu vector contents =
 0000: 4d 32 4b</code></pre>
-        <p>Set <strong>en_uvec</strong> to True or you get the metadata and no bytes.</p>
       </div>
       <div class="present">
         <p>Beside it, the same three streams through <strong>Short To Float</strong> into
@@ -1330,6 +1419,10 @@ pdu vector contents =
       </div>
     </div>
     <div class="depth">
+      <figure class="shot canvas">
+        <img src="img/grc-display.png" alt="The display branch on the GNU Radio Companion canvas: three Short To Float blocks, one per line, feeding the three inputs of a QT GUI Time Sink.">
+        <figcaption>The display branch, on the canvas.</figcaption>
+      </figure>
       <p>The time sink's trigger is where the trigger belongs. Channel 2 is CS,
       the slope is negative, and normal mode means the display holds its last
       frame rather than free-running — so a transaction that happened four

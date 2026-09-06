@@ -125,6 +125,12 @@ display), and the session material itself.
 - **2026-09-06** — Slides are written for the demos that run, with the two that do not
   as labelled placeholders. Reason: the SPI half is bench-verified end to end and
   gating the whole deck on the ultrasonic link would leave nothing written this month.
+- **2026-09-06** — Block and flowgraph figures are rendered from GRC's own canvas
+  code, not drawn and not screenshotted by hand. Reason: a drawing is a second copy
+  of the flowgraph that drifts on the next parameter change, and it teaches
+  recognising a picture rather than the canvas participants will sit in front of.
+  The hand-drawn schematic is kept for the one thing GRC cannot draw: the three
+  jumper wires that close the loop outside the software.
 
 # Plan
 
@@ -152,11 +158,16 @@ the stretch goal if the FSK link lands early.
   390 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
 - **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
   fails if the committed copy drifts.
-- **`slides/` — 47 frames**, frame view, read and present from one document. IIO,
+- **`slides/` — 48 frames**, frame view, read and present from one document. IIO,
   the M2K, the six blocks, SPI, and the loopback built one block at a time;
   ultrasonic and the colorimeter are labelled placeholders. `slides/check_deck.py`
-  gates titles, ids and the 40-word present budget; every frame fits one screen at
-  1024x768, 1280x800 and 1440x900, and it prints 49 sheets rather than 1.
+  gates titles, ids, alt text, missing images and the 40-word present budget; every
+  frame fits one screen at 1024x768, 1280x800 and 1440x900, and it prints one sheet
+  per frame rather than 1 for the deck.
+- **The GRC figures are rendered from GRC's own canvas code** by
+  `slides/render_grc.py` -- the real `.grc`, GRC's layout, Cairo. Needs `gnuradio`
+  and `gir1.2-gtk-3.0` from the distro plus `xvfb-run`; no board. A test fails if
+  the deck shows a figure the manifest cannot produce, or the reverse.
 - **Bench checklist sections 1-13 all pass.** Section 9 is a real SPI mode-0 bus over
   all 256 byte values; 11 runs `m2k_spi_decode` live at half = 4, 8, 16; 12 is
   send-on-demand, 20 sends clean at 100 kS/s, which also proves an untriggered capture

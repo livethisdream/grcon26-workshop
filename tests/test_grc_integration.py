@@ -10,6 +10,7 @@ it hunts for one and skips if there is none, rather than failing on a
 machine that simply has no GNU Radio.
 """
 
+import importlib.util
 import json
 import os
 import shutil
@@ -38,6 +39,16 @@ def _find_python_with_gnuradio():
 GR_PYTHON = _find_python_with_gnuradio()
 needs_gnuradio = pytest.mark.skipif(
     GR_PYTHON is None, reason="no Python with gnuradio available")
+
+# A few tests read the block and flowgraph YAML in THIS interpreter rather
+# than in `GR_PYTHON`, and this project has no dependencies on purpose -- so
+# PyYAML is only ever here by accident. GRC pulls it in, but for whichever
+# interpreter the distro built gnuradio for, which is precisely the one
+# `_find_python_with_gnuradio` exists because it is not us. Skip on the same
+# rule as the rest of the file: a missing dependency is not a failure.
+needs_yaml = pytest.mark.skipif(
+    importlib.util.find_spec("yaml") is None,
+    reason="no PyYAML in the interpreter running the tests")
 
 
 def run_in_gr(script, *args):
@@ -144,6 +155,7 @@ def test_an_untouched_dropdown_writes_nothing(repo_root, generated_blocks):
 
 
 @needs_gnuradio
+@needs_yaml
 def test_flowgraph_description_stays_single_line(repo_root):
     """GRC comments out only the first line of a description.
 
@@ -195,6 +207,7 @@ def test_scope_block_loads_and_reads_plainly(repo_root):
 
 
 @needs_gnuradio
+@needs_yaml
 def test_option_labels_survived_yaml(repo_root):
     """YAML 1.1 reads On/Off/Yes/No as booleans.
 
@@ -526,6 +539,7 @@ def test_the_decoded_pdu_carries_the_text(repo_root):
 
 
 @needs_gnuradio
+@needs_yaml
 def test_flowgraph_parameter_names_are_real(repo_root):
     """A key a block does not define is silently ignored by GRC.
 

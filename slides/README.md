@@ -36,6 +36,48 @@ phone: key points beside the table or the diagram they talk to.
 | `stage split` / `split-r` | the wider track goes left / right, for a table beside a callout |
 | `present callout` | the one present block that keeps a box in both modes |
 
+## The GRC figures are rendered, not screenshotted
+
+Every block and canvas picture in the deck comes out of GNU Radio Companion's
+own drawing code:
+
+```
+xvfb-run -a ./slides/render_grc.py          # into slides/img/
+xvfb-run -a ./slides/render_grc.py --list   # block ids per flowgraph
+```
+
+It loads the same `.grc` a participant opens, asks GRC to lay it out, and
+draws it to Cairo. Same fonts, same colours, same port shapes, same wire
+routing — so the slide and their screen match, and a changed parameter shows
+up by re-running the script rather than by somebody noticing.
+
+Rendering a **subset** is not a crop: the named blocks are drawn into a
+surface sized to their own extents, and a connection comes along when both of
+its ends do. That is how a two-block figure shows the wire between them and
+nothing bleeds in at the edges.
+
+`--scale` is pixels per canvas unit and defaults to **3**. A block figure is
+displayed at roughly the width of a slide column, which is wider than the
+block itself, so at 2 the deck upscales it and the text goes soft.
+
+**What it needs, and why it is not in `uv sync`.** PyGObject and GNU Radio are
+native, so they live in system site-packages where the project venv cannot see
+them — the script uses `#!/usr/bin/python3` for the same reason
+`iio_discover.py` does. On Ubuntu 24.04:
+
+```
+sudo apt install gnuradio gir1.2-gtk-3.0
+```
+
+Gtk needs a display to lay text out, so a headless machine needs `xvfb-run`.
+No board and no running flowgraph are involved: GRC parses the `.grc` and the
+block YAML and never constructs a block's Python class.
+
+One thing to know if it ever stops working: `GRC_BLOCKS_PATH` **replaces** the
+search path rather than adding to it, so the script names the stock block
+directory alongside `gr-m2k/grc`. Without the stock path the platform cannot
+find `options` and refuses to build a library at all.
+
 ## Keys
 
 <kbd>&rarr;</kbd> <kbd>&larr;</kbd> move · <kbd>P</kbd> present or read ·
@@ -54,9 +96,9 @@ present mode would send projector-sized type to A4.
 is always shown on paper: the handout carries the material the projected deck
 does not.
 
-Measured, not assumed: 47 frames print as 49 sheets (two long frames spill to a
-second page). If a change ever makes that number 1, the print block has been
-overridden.
+Measured, not assumed: 48 frames print as 58 sheets — one each, plus the ten
+where a rendered canvas and its notes run past a single side. If a change ever
+makes that number 1, the print block has been overridden.
 
 ## Hosting it
 
@@ -79,7 +121,8 @@ people: every frame has a title (or the contents overlay cannot name it), ids
 are unique (or deep links land in the wrong place), a `cut` frame actually has
 a present layer, no present block is over **40 words**, and no frame's present
 layer is over **85**. It also asserts that every id `frames.js` reaches for by
-name still exists in the markup.
+name still exists in the markup, that every `<img>` the deck names is on disk,
+and that each one has alt text.
 
 **What it cannot check is layout.** Whether a frame fits one screen in present
 mode is a question for a browser. The way to answer it:
@@ -109,4 +152,7 @@ assets/frames.css   the scroller, present/read, the present layer, print
 assets/shell.js     one popover implementation
 assets/frames.js    position, counter, laser, contents, keys, modes
 check_deck.py       the structural check
+render_grc.py       the GRC figures, from GRC's own canvas code
+img/                what it produces -- generated, but committed, so the
+                    deck opens on a machine with no GNU Radio
 ```

@@ -169,7 +169,10 @@ and the detail is always in the page, so presenting cannot lose it. Printing
 gives the notes back, one frame per sheet.
 
 It is [ECE 444's frame view](https://github.com/livethisdream/ece444) ported to
-a standalone page: no book, no generator, nothing to install.
+a standalone page: no book, no generator, nothing to install. The block and
+flowgraph figures are rendered from GNU Radio Companion's own canvas code by
+`slides/render_grc.py`, so a slide and a participant's screen cannot drift
+apart.
 `slides/README.md` has the authoring rules and `slides/check_deck.py` enforces
 the ones that are invisible until they are wrong in front of people.
 
