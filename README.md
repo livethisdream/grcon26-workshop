@@ -157,6 +157,25 @@ participant reading a flowgraph never has to leave GRC to find out what
 The browser has a **generate .block.yml** button that does the same thing
 for whichever device you are looking at.
 
+## The deck
+
+```
+xdg-open slides/index.html
+```
+
+One HTML file. **Read** mode is continuous notes; **present** mode is one frame
+a screen with the detail collapsed behind *More detail +* — the same document,
+and the detail is always in the page, so presenting cannot lose it. Printing
+gives the notes back, one frame per sheet.
+
+It is [ECE 444's frame view](https://github.com/livethisdream/ece444) ported to
+a standalone page: no book, no generator, nothing to install. The block and
+flowgraph figures are rendered from GNU Radio Companion's own canvas code by
+`slides/render_grc.py`, so a slide and a participant's screen cannot drift
+apart.
+`slides/README.md` has the authoring rules and `slides/check_deck.py` enforces
+the ones that are invisible until they are wrong in front of people.
+
 ## Where meaning comes from
 
 Every line of output is tagged with its source, so fact, convention and
@@ -249,6 +268,9 @@ iio_libm2k_data.json  generated cache of that
 iio_overlays.py       board-specific knowledge, confidence-tagged
 fixtures/             synthetic M2K snapshot
 docs/                 generated participant handout
+gr-m2k/               the ADALM2000 blocks and their GRC definitions
+flowgraphs/           the flowgraphs those blocks are used in
+slides/               the workshop deck -- one HTML file, read or present
 tests/                pytest, no hardware required
 ```
 
