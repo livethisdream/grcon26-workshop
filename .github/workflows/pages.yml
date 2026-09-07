@@ -18,11 +18,13 @@ permissions:
   pages: write
   id-token: write
 
-# One deployment at a time, and let a newer push win rather than queueing
-# behind a run whose output it would replace anyway.
+# One deployment at a time. A newer push queues rather than cancelling the
+# run ahead of it: cancel-in-progress would kill a deployment mid-flight, and
+# a half-applied Pages deployment is a worse outcome than waiting a minute for
+# one whose output is about to be replaced anyway.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   check:
