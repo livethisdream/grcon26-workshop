@@ -9,6 +9,10 @@ the encoder's idea of mode 0 changed, so would the picture.
 
     ./slides/render_spi.py          # into slides/img/
 
+The figures carry a key and nothing else. Explanation belongs in the text
+around a graphic rather than inside it, so what these drawings once said in
+prose now sits in the frame's bullets and its caption.
+
 `SpiEncoder` imports nothing, so this needs no GNU Radio, no libiio and no
 board -- only the standard library. It writes SVG rather than PNG: these are
 line drawings, they cost a couple of kB, and they stay sharp on a projector
@@ -159,7 +163,7 @@ def mode0(path_out):
     byte = 0xA5
     sclk, mosi, cs = levels([[byte]])
     n = len(sclk)
-    fig = Figure(560, 210)
+    fig = Figure(560, 178)
 
     rows = [("SCLK", sclk), ("MOSI", mosi), ("CS", cs)]
     tops = []
@@ -182,14 +186,9 @@ def mode0(path_out):
         fig.parts.append(
             f'<text class="bit" x="{x:.2f}" y="{tops[0] - 10:.2f}">{mosi[i]}</text>')
 
-    # Both notes go at the bottom: the top line belongs to the bit labels,
-    # and a long note there ran straight through them.
-    fig.parts.append(
-        f'<text class="note" x="{fig.x0}" y="{fig.h - 24}">'
-        f'MOSI settles while SCLK is low, and is held across the edge</text>')
-    fig.parts.append(
-        f'<text class="note" x="{fig.x0}" y="{fig.h - 8}">'
-        f'rising edge samples MOSI &#183; MSB first &#183; 0x{byte:02X}</text>')
+    # No prose inside the graphic. A figure carries a key; the page around it
+    # does the explaining, so what these notes used to say now sits in the
+    # frame's bullets and its caption.
     with open(path_out, "w") as handle:
         handle.write(fig.svg(
             f"SPI mode 0 waveform for one byte, 0x{byte:02X}: SCLK, MOSI and CS, "
@@ -202,7 +201,7 @@ def budget(path_out):
     """The same frame, dimensioned: where the 256 samples go."""
     sclk, mosi, cs = levels([[0xA5]])
     n = len(sclk)
-    fig = Figure(560, 224)
+    fig = Figure(560, 206)
 
     edges = [0, LEAD, LEAD + SETUP, n - GAP - TAIL, n - GAP, n]
     names = ["lead-in", "setup", "8 clocks", "tail", "idle after"]
@@ -231,8 +230,6 @@ def budget(path_out):
         fig.parts.append(f'<text class="dimt" x="{mid:.2f}" y="{bar + 17}">{name}</text>')
         fig.parts.append(f'<text class="dimt" x="{mid:.2f}" y="{bar + 29}">{counts[k]}</text>')
 
-    fig.parts.append(f'<text class="note" x="{fig.x0}" y="18">'
-                     f'one transaction &#183; {n} samples &#183; half = {HALF}</text>')
     with open(path_out, "w") as handle:
         handle.write(fig.svg(
             f"The same one-byte SPI frame with its {n} samples dimensioned: "
@@ -254,9 +251,7 @@ def framing(path_out):
     total = max(len(one[0]), len(many[0]))
 
     fig = Figure(560, 272)
-    fig.parts.append(f'<text class="note" x="{fig.x0}" y="16">'
-                     f'one send &#183; CS falls once &#183; the capture starts '
-                     f'at the message</text>')
+    fig.parts.append(f'<text class="note" x="{fig.x0}" y="16">one send</text>')
     y = 26
     fig.trace("CS", "CS", one[2], y, total)
     for i in falling(one[2]):
@@ -265,14 +260,11 @@ def framing(path_out):
                          f'x2="{x:.2f}" y2="{y + fig.ROW_H + 6:.2f}"/>')
         fig.parts.append(f'<text class="bit" x="{x:.2f}" y="{y + fig.ROW_H + 18:.2f}">'
                          f'arm</text>')
-    fig.parts.append(f'<text class="note" x="{fig.x0}" y="{y + fig.ROW_H + 40:.2f}">'
-                     f'MOSI &#183; three bytes inside one assertion</text>')
     fig.trace("MOSI", "MOSI", one[1], y + fig.ROW_H + 48, total)
 
     y2 = 160
     fig.parts.append(f'<text class="warn" x="{fig.x0}" y="{y2 - 8:.2f}">'
-                     f'three sends &#183; CS falls three times &#183; every buffer '
-                     f'starts on some byte</text>')
+                     f'three sends</text>')
     fig.trace("CS", "CS", many[2], y2, total)
     for i in falling(many[2]):
         x = fig.at(i, total)

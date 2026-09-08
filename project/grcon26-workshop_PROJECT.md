@@ -125,6 +125,11 @@ display), and the session material itself.
 - **2026-09-06** — Slides are written for the demos that run, with the two that do not
   as labelled placeholders. Reason: the SPI half is bench-verified end to end and
   gating the whole deck on the ultrasonic link would leave nothing written this month.
+- **2026-09-08** — The deck's prose follows ECE444's `VOICE.md`, and
+  `check_deck.py` gates the unambiguous rules. Reason: it is a calibration set
+  built from Neil's own review corrections, not a style opinion, and the deck
+  was written without reading it -- it broke rules 1, 2, 3 and 9 throughout.
+  Figures now carry a key only; explanation moved to the caption and bullets.
 - **2026-09-07** — Present blocks are bullets and pictures, never paragraphs.
   Reason: Neil talks to and about the slide rather than reading it, and a
   paragraph on screen is one the room reads instead of listening. Running prose

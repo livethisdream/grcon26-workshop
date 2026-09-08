@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 224" role="img" aria-label="The same one-byte SPI frame with its 256 samples dimensioned: lead-in 64, setup 8, eight clocks 128, tail 8, idle after 48.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 206" role="img" aria-label="The same one-byte SPI frame with its 256 samples dimensioned: lead-in 64, setup 8, eight clocks 128, tail 8, idle after 48.">
   <style>
   .bg   { fill: #fafaf7; }
   .trace{ fill: none; stroke: #1a1a1a; stroke-width: 2.2;
@@ -26,7 +26,7 @@
     .band { fill: rgba(140,196,238,.10); }
   }
   </style>
-  <rect class="bg" x="0" y="0" width="560" height="224"/>
+  <rect class="bg" x="0" y="0" width="560" height="206"/>
   <rect class="band" x="52.00" y="22.00" width="124.50" height="122"/>
   <rect class="band" x="192.06" y="22.00" width="249.00" height="122"/>
   <rect class="band" x="456.62" y="22.00" width="93.38" height="122"/>
@@ -61,5 +61,4 @@
   <line class="dim" x1="550.00" y1="174" x2="550.00" y2="182"/>
   <text class="dimt" x="503.31" y="195">idle after</text>
   <text class="dimt" x="503.31" y="207">48</text>
-  <text class="note" x="52" y="18">one transaction &#183; 256 samples &#183; half = 8</text>
 </svg>

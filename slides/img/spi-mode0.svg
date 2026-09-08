@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 210" role="img" aria-label="SPI mode 0 waveform for one byte, 0xA5: SCLK, MOSI and CS, with the eight rising clock edges marked and the bit each one samples labelled, most significant first.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 178" role="img" aria-label="SPI mode 0 waveform for one byte, 0xA5: SCLK, MOSI and CS, with the eight rising clock edges marked and the bit each one samples labelled, most significant first.">
   <style>
   .bg   { fill: #fafaf7; }
   .trace{ fill: none; stroke: #1a1a1a; stroke-width: 2.2;
@@ -26,7 +26,7 @@
     .band { fill: rgba(140,196,238,.10); }
   }
   </style>
-  <rect class="bg" x="0" y="0" width="560" height="210"/>
+  <rect class="bg" x="0" y="0" width="560" height="178"/>
   <text class="lbl" x="8" y="52">SCLK</text>
   <path class="trace" d="M52.00,56.00 H207.62 V30.00 H223.19 V56.00 H238.75 V30.00 H254.31 V56.00 H269.88 V30.00 H285.44 V56.00 H301.00 V30.00 H316.56 V56.00 H332.12 V30.00 H347.69 V56.00 H363.25 V30.00 H378.81 V56.00 H394.38 V30.00 H409.94 V56.00 H425.50 V30.00 H441.06 V56.00 H550.00"/>
   <text class="lbl" x="8" y="100">MOSI</text>
@@ -57,6 +57,4 @@
   <line class="edge" x1="425.50" y1="24.00" x2="425.50" y2="104.00"/>
   <circle class="dot" cx="425.50" cy="78.00" r="3"/>
   <text class="bit" x="425.50" y="20.00">1</text>
-  <text class="note" x="52" y="186">MOSI settles while SCLK is low, and is held across the edge</text>
-  <text class="note" x="52" y="202">rising edge samples MOSI &#183; MSB first &#183; 0xA5</text>
 </svg>

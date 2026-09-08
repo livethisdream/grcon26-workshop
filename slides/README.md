@@ -28,6 +28,18 @@ A frame marked `cut` shows only its `<h2>` and its `.present` blocks on screen.
 Two present blocks in one `.stage` sit side by side on a laptop and stack on a
 phone: key points beside the table or the diagram they talk to.
 
+**The prose voice** follows ECE 444's `VOICE.md`, which is a calibration set
+built from Neil's own review corrections rather than a style opinion. The four
+that this deck kept breaking: do not narrate your own rhetorical moves ("worth
+pausing on", "the interesting part") — say the thing; never vouch for the
+material's own honesty or rigor; no cost-and-payment metaphors; active voice
+with the agent named. `check_deck.py` gates the unambiguous ones. Passive voice
+and verbless sentences need a reader, so they are not gated — the guide's own
+self-check greps are the way to find them.
+
+Bullets are the exception to "complete sentences": a `<ul>` is a list, and a
+list item is a fragment by convention. A `<p>` is not.
+
 **What goes in a present block.** Bullets and pictures — things to talk *about*.
 Not paragraphs: a paragraph on screen is a paragraph the room reads instead of
 listening, and the presenter ends up reading it too. The shapes that earn a
@@ -151,8 +163,8 @@ request blocked. A conference room's network is not a dependency.
 uv run pytest tests/test_slides.py
 ```
 
-The structural check enforces what is invisible until it is wrong in front of
-people: every frame has a title (or the contents overlay cannot name it), ids
+The structural check enforces the voice rules above and what is invisible
+until it is wrong in front of people: every frame has a title (or the contents overlay cannot name it), ids
 are unique (or deep links land in the wrong place), a `cut` frame actually has
 a present layer, no present block is over **40 words**, and no frame's present
 layer is over **85**. It also asserts that every id `frames.js` reaches for by

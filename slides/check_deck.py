@@ -103,6 +103,44 @@ class Deck(HTMLParser):
             self.buf.append(data)
 
 
+# The deck's prose follows ECE 444's voice guide, which is a calibration set
+# built from Neil's own review corrections rather than a style opinion. Only
+# the unambiguous rules are gated here; passive voice and verbless sentences
+# need a reader, and a grep that flags them would cry wolf until somebody
+# turned it off.
+BANNED = {
+    # Rule 2 -- never vouch for the material's own honesty or rigor. Claiming
+    # it implies the surrounding material is not.
+    r"\b(honest|honestly|genuinely|truly|rigorous)\b": "self-praise",
+    r"\bno hand-waving\b": "self-praise",
+    # Rule 1 -- do not narrate your own rhetorical moves. Say the thing.
+    r"\bworth (pausing|dwelling|quoting|noting|more than)\b": "narration",
+    r"\bit is worth\b": "narration",
+    r"\bthe single most\b": "narration",
+    r"\bthe interesting part\b": "narration",
+    # Rule 3 -- no cost-and-payment metaphors.
+    r"\bis the price\b": "metaphor",
+    r"\bthat is the trade\b": "metaphor",
+}
+
+
+def prose(source):
+    """The running text, which is what the voice rules govern.
+
+    Bullets are a list and take fragments; `alt` text is a description for a
+    screen reader and is not prose anyone reads aloud. What is left is the
+    depth, the callouts, the pull claims and the captions.
+    """
+    out = []
+    for pattern in (r'<div class="depth">(.*?)\n    </div>',
+                    r'<div class="present[^"]*callout[^"]*">(.*?)\n      </div>',
+                    r'<p class="pull">(.*?)</p>',
+                    r'<figcaption>(.*?)</figcaption>'):
+        for m in re.finditer(pattern, source, re.S):
+            out.append(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", m.group(1))))
+    return out
+
+
 def words(text):
     """Words a person reads off the screen.
 
@@ -157,6 +195,12 @@ def main():
     for tag in re.findall(r'<img[^>]*>', source):
         if 'alt="' not in tag:
             fails.append(f"an <img> has no alt text: {tag[:70]}")
+
+    for blob in prose(source):
+        for pattern, why in BANNED.items():
+            for hit in re.finditer(pattern, blob, re.I):
+                start = max(0, hit.start() - 40)
+                fails.append(f"{why}: ...{blob[start:hit.end() + 40].strip()}...")
 
     dupes = {i for i in deck.ids if deck.ids.count(i) > 1}
     for i in sorted(dupes):

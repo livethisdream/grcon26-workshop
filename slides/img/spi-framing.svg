@@ -27,15 +27,14 @@
   }
   </style>
   <rect class="bg" x="0" y="0" width="560" height="272"/>
-  <text class="note" x="52" y="16">one send &#183; CS falls once &#183; the capture starts at the message</text>
+  <text class="note" x="52" y="16">one send</text>
   <text class="lbl" x="8" y="48">CS</text>
   <path class="trace" d="M52.00,26.00 H93.50 V52.00 H352.88 V26.00 H384.00"/>
   <line class="edge" x1="93.50" y1="22.00" x2="93.50" y2="58.00"/>
   <text class="bit" x="93.50" y="70.00">arm</text>
-  <text class="note" x="52" y="92.00">MOSI &#183; three bytes inside one assertion</text>
   <text class="lbl" x="8" y="122">MOSI</text>
   <path class="trace" d="M52.00,126.00 H109.06 V100.00 H119.44 V126.00 H140.19 V100.00 H160.94 V126.00 H171.31 V100.00 H181.69 V126.00 H202.44 V100.00 H223.19 V126.00 H243.94 V100.00 H254.31 V126.00 H275.06 V100.00 H285.44 V126.00 H306.19 V100.00 H316.56 V126.00 H326.94 V100.00 H347.69 V126.00 H384.00"/>
-  <text class="warn" x="52" y="152.00">three sends &#183; CS falls three times &#183; every buffer starts on some byte</text>
+  <text class="warn" x="52" y="152.00">three sends</text>
   <text class="lbl" x="8" y="182">CS</text>
   <path class="trace" d="M52.00,160.00 H93.50 V186.00 H186.88 V160.00 H259.50 V186.00 H352.88 V160.00 H425.50 V186.00 H518.88 V160.00 H550.00"/>
   <line class="edge" x1="93.50" y1="156.00" x2="93.50" y2="192.00"/>
