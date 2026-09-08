@@ -90,29 +90,25 @@
 </section>
 
 <section class="frame cut" id="roadmap">
-  <div class="wrap">
-    <h2>Where this goes</h2>
+  <div class="wrap narrow">
+    <h2>Our Roadmap</h2>
     <div class="stage">
       <div class="present">
-        <ol>
-          <li><strong>IIO</strong> — one interface for every converter Linux knows about.</li>
-          <li><strong>The M2K</strong> — fourteen IIO devices pretending to be a bench.</li>
-          <li><strong>Six blocks</strong> — the bench, in GNU&nbsp;Radio's vocabulary.</li>
-          <li><strong>An SPI bus</strong> — built one block at a time, then run.</li>
-        </ol>
-      </div>
-      <div class="present callout">
-        <p>Everything here has been run on a real Rev.D board. Where it has not, the frame says so.</p>
+        <ul>
+          <li><strong>Crawl</strong> — IIO, and a loopback on the board's own generator</li>
+          <li><strong>Walk</strong> — the M2K blocks, and what each parameter writes</li>
+          <li><strong>Run</strong> — an SPI bus on the digital pins</li>
+        </ul>
       </div>
     </div>
     <div class="depth">
-      <p>The shape is crawl / walk / run. The crawl is a loopback: the board's own
-      generator into the board's own input, so a station with no other hardware
-      still has something to measure. The walk is what a block parameter writes. The run is a protocol on the digital pins.</p>
-      <p>Two ground rules for the session. Nothing gets installed in the room —
-      the setup instructions went out two weeks ago and the tooling is standard
-      library only. And every number on a slide came off a bench or out of a
-      test; where a claim is still an assumption the frame says so.</p>
+      <p>We will follow a crawl, walk, run approach. The crawl is a loopback:
+      the board's own generator into the board's own input, so a station with
+      no other hardware still has something to measure. The walk is what a
+      block parameter writes. The run is a protocol on the digital pins.</p>
+      <p>Setup is short and happens before the session: install the M2K
+      drivers and download the flowgraphs. Nothing else gets installed in the
+      room.</p>
       <p><strong>Press <kbd>P</kbd></strong> to switch between the projected deck and
       these notes. The notes are always in the page, in both modes — the deck
       view hides them, it never drops them. Printing gives you the notes, one

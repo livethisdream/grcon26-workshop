@@ -153,7 +153,8 @@ has closed the absolute error. Open: a DC power supply block, a capability GNU R
 does not have at all.
 
 **Timing:** GRCon26 is this month and Phase 3 has not started. The deck exists for
-everything that runs; setup instructions are due two weeks prior.
+everything that runs. Participants need a short setup before the session:
+install the M2K drivers and download the flowgraphs.
 
 **Phase 2 — walk:** IIO block anatomy. One intro slide on what IIO is and which M2K
 attributes matter, from `iio_explain.py --glossary`. `docs/reading-iio-attributes.md`
@@ -230,7 +231,9 @@ the stretch goal if the FSK link lands early.
       `bench/spi_flowgraph.py M2K 8 --csv`, DIO0-2 wired to DIO4-6.
 - [ ] Delete the merged `m2k-discovery-gui` branch.
 - [ ] Decide which demo becomes the hands-on participant station.
-- [ ] Write participant setup instructions; send two weeks before the session.
+- [ ] Write the participant setup: install the M2K drivers, download the
+      flowgraphs. Short enough to do the morning of, and it is the only thing
+      anyone installs.
 - [ ] Turn on Settings -> Pages -> Source: GitHub Actions so `pages.yml` can publish.
 - [ ] Fill the two placeholder frames (`#ultrasonic`, `#colorimeter`) once those
       demos run. Everything else in `slides/` is written.
