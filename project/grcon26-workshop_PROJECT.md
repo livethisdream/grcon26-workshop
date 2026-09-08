@@ -125,6 +125,20 @@ display), and the session material itself.
 - **2026-09-06** — Slides are written for the demos that run, with the two that do not
   as labelled placeholders. Reason: the SPI half is bench-verified end to end and
   gating the whole deck on the ultrasonic link would leave nothing written this month.
+- **2026-09-08** — The deck's prose follows ECE444's `VOICE.md`, and
+  `check_deck.py` gates the unambiguous rules. Reason: it is a calibration set
+  built from Neil's own review corrections, not a style opinion, and the deck
+  was written without reading it -- it broke rules 1, 2, 3 and 9 throughout.
+  Figures now carry a key only; explanation moved to the caption and bullets.
+- **2026-09-07** — Present blocks are bullets and pictures, never paragraphs.
+  Reason: Neil talks to and about the slide rather than reading it, and a
+  paragraph on screen is one the room reads instead of listening. Running prose
+  moves to `.depth`, which is the notes and the printed handout. Documented in
+  `slides/README.md`.
+- **2026-09-07** — The SPI waveforms are rendered from `SpiEncoder` by
+  `slides/render_spi.py`, the same way the blocks come from GRC. Reason: the
+  three SPI concept frames had no picture at all, and a drawing of mode 0 is a
+  claim about mode 0 rather than the thing the board actually puts on the pins.
 - **2026-09-06** — Block and flowgraph figures are rendered from GRC's own canvas
   code, not drawn and not screenshotted by hand. Reason: a drawing is a second copy
   of the flowgraph that drifts on the next parameter change, and it teaches
@@ -164,6 +178,11 @@ the stretch goal if the FSK link lands early.
   gates titles, ids, alt text, missing images and the 40-word present budget; every
   frame fits one screen at 1024x768, 1280x800 and 1440x900, and it prints one sheet
   per frame rather than 1 for the deck.
+- **The present layer is bullets and pictures.** 34 cut frames; the running
+  prose that used to sit on 45 of the 68 present blocks is now in `.depth`.
+  Three SPI waveform figures come from `slides/render_spi.py`, including
+  `spi-framing.svg`, which draws the per-byte-CS bug as two calls to the same
+  encoder.
 - **The GRC figures are rendered from GRC's own canvas code** by
   `slides/render_grc.py` -- the real `.grc`, GRC's layout, Cairo. Needs `gnuradio`
   and `gir1.2-gtk-3.0` from the distro plus `xvfb-run`; no board. A test fails if

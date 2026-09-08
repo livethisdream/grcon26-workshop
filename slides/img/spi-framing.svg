@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 272" role="img" aria-label="Two chip-select framings of the message M2K. Above, one send: CS falls once and all three bytes are clocked inside it, so a capture armed on that edge starts at the message. Below, three sends: CS falls before each byte, so a capture starts on an arbitrary one.">
+  <style>
+  .bg   { fill: #fafaf7; }
+  .trace{ fill: none; stroke: #1a1a1a; stroke-width: 2.2;
+          stroke-linejoin: miter; stroke-linecap: butt; }
+  .lbl  { fill: #004a85; font: 700 13px ui-monospace, Menlo, Consolas, monospace; }
+  .note { fill: #5a5a5a; font: 400 11px ui-monospace, Menlo, Consolas, monospace; }
+  .bit  { fill: #b01e24; font: 700 12px ui-monospace, Menlo, Consolas, monospace;
+          text-anchor: middle; }
+  .edge { stroke: #b01e24; stroke-width: 1; stroke-dasharray: 3 3; }
+  .dot  { fill: #b01e24; }
+  .dim  { stroke: #0067b9; stroke-width: 1; }
+  .dimt { fill: #0067b9; font: 400 10.5px ui-monospace, Menlo, Consolas, monospace;
+          text-anchor: middle; }
+  .band { fill: rgba(0,103,185,.07); }
+  .warn { fill: #b01e24; font: 700 12px ui-monospace, Menlo, Consolas, monospace; }
+  @media (prefers-color-scheme: dark) {
+    .bg   { fill: #0d1826; }
+    .trace{ stroke: #e9eef4; }
+    .lbl  { fill: #8cc4ee; }
+    .note { fill: #93a3b5; }
+    .bit, .dot, .warn { fill: #e4737a; }
+    .edge { stroke: #e4737a; }
+    .dim  { stroke: #58a7e5; }
+    .dimt { fill: #58a7e5; }
+    .band { fill: rgba(140,196,238,.10); }
+  }
+  </style>
+  <rect class="bg" x="0" y="0" width="560" height="272"/>
+  <text class="note" x="52" y="16">one send</text>
+  <text class="lbl" x="8" y="48">CS</text>
+  <path class="trace" d="M52.00,26.00 H93.50 V52.00 H352.88 V26.00 H384.00"/>
+  <line class="edge" x1="93.50" y1="22.00" x2="93.50" y2="58.00"/>
+  <text class="bit" x="93.50" y="70.00">arm</text>
+  <text class="lbl" x="8" y="122">MOSI</text>
+  <path class="trace" d="M52.00,126.00 H109.06 V100.00 H119.44 V126.00 H140.19 V100.00 H160.94 V126.00 H171.31 V100.00 H181.69 V126.00 H202.44 V100.00 H223.19 V126.00 H243.94 V100.00 H254.31 V126.00 H275.06 V100.00 H285.44 V126.00 H306.19 V100.00 H316.56 V126.00 H326.94 V100.00 H347.69 V126.00 H384.00"/>
+  <text class="warn" x="52" y="152.00">three sends</text>
+  <text class="lbl" x="8" y="182">CS</text>
+  <path class="trace" d="M52.00,160.00 H93.50 V186.00 H186.88 V160.00 H259.50 V186.00 H352.88 V160.00 H425.50 V186.00 H518.88 V160.00 H550.00"/>
+  <line class="edge" x1="93.50" y1="156.00" x2="93.50" y2="192.00"/>
+  <text class="bit" x="93.50" y="204.00">arm</text>
+  <line class="edge" x1="259.50" y1="156.00" x2="259.50" y2="192.00"/>
+  <text class="bit" x="259.50" y="204.00">arm</text>
+  <line class="edge" x1="425.50" y1="156.00" x2="425.50" y2="192.00"/>
+  <text class="bit" x="425.50" y="204.00">arm</text>
+  <text class="lbl" x="8" y="256">MOSI</text>
+  <path class="trace" d="M52.00,260.00 H109.06 V234.00 H119.44 V260.00 H140.19 V234.00 H160.94 V260.00 H171.31 V234.00 H181.69 V260.00 H285.44 V234.00 H306.19 V260.00 H326.94 V234.00 H337.31 V260.00 H441.06 V234.00 H451.44 V260.00 H472.19 V234.00 H482.56 V260.00 H492.94 V234.00 H513.69 V260.00 H550.00"/>
+</svg>

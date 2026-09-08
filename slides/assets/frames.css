@@ -223,6 +223,15 @@ figure.shot img {
 /* A whole-canvas figure earns the column; a single block keeps its own size
    until the column is narrower than it is. */
 figure.shot.canvas img { width: 100%; }
+/* The waveform figures are ours, not screenshots: `render_spi.py` gives each
+   one its own light and dark palette behind a `prefers-color-scheme` query,
+   so they need no white mat to sit on and should not have one. An <img> can
+   run its own media query; what it cannot see is the page's custom
+   properties, which is why the palette is inside the file. */
+figure.shot.wave img {
+  width: 100%; background: none; border: none; box-shadow: none;
+  border-radius: 0;
+}
 /* One screen is the budget, and a block image is the tallest thing on these
    frames -- 58vh leaves nothing for the title and the chain strip above it. */
 [data-mode="present"] .frame.cut .present figure.shot img { max-height: 44vh; }

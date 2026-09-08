@@ -50,37 +50,75 @@ def test_every_asset_the_deck_asks_for_is_checked_in(deck):
         assert os.path.exists(os.path.join(SLIDES, ref)), ref
 
 
-def test_every_grc_figure_the_deck_uses_is_one_render_grc_produces(deck):
-    """A picture of a flowgraph drifts; a render of one cannot.
+def _manifest():
+    """Every figure the two renderers know how to make.
 
-    The point of `render_grc.py` is that re-running it reproduces every
-    figure in the deck. An `<img>` pointing at a file the script does not
-    know how to make is a hand-placed screenshot that will quietly go stale,
-    so it fails here rather than at the next parameter change.
+    Read out of the source with `ast` rather than by importing them:
+    `render_grc.py` needs PyGObject, which is native and lives in system
+    site-packages where this venv cannot see it.
 
-    Read out of the source with `ast` rather than by importing: the script
-    needs PyGObject, and this suite runs in a venv that cannot see it.
+    The two manifests are shaped differently on purpose. `render_grc.py` maps
+    a flowgraph to {stem: block ids}, so it literal-evals; `render_spi.py`
+    maps a stem to the function that draws it, which does not, so only its
+    keys are read.
     """
     import ast
-    import re
+
+    produced = set()
 
     with open(os.path.join(SLIDES, "render_grc.py"), encoding="utf-8") as fh:
-        tree = ast.parse(fh.read())
-    figures = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and any(
-                getattr(t, "id", None) == "FIGURES" for t in node.targets):
-            figures = ast.literal_eval(node.value)
-    assert figures, "render_grc.py has no FIGURES manifest any more"
+        for node in ast.walk(ast.parse(fh.read())):
+            if isinstance(node, ast.Assign) and any(
+                    getattr(t, "id", None) == "FIGURES" for t in node.targets):
+                for flowgraph in ast.literal_eval(node.value).values():
+                    produced |= {stem + ".png" for stem in flowgraph}
 
-    produced = {stem + ".png"
-                for flowgraph in figures.values() for stem in flowgraph}
+    with open(os.path.join(SLIDES, "render_spi.py"), encoding="utf-8") as fh:
+        for node in ast.walk(ast.parse(fh.read())):
+            if isinstance(node, ast.Assign) and any(
+                    getattr(t, "id", None) == "FIGURES" for t in node.targets):
+                produced |= {k.value + ".svg" for k in node.value.keys}
+
+    return produced
+
+
+def test_every_figure_the_deck_uses_is_one_a_renderer_produces(deck):
+    """A picture of a flowgraph drifts; a render of one cannot.
+
+    The point of both renderers is that re-running them reproduces every
+    figure in the deck. An `<img>` pointing at a file neither script knows
+    how to make is a hand-placed screenshot that will quietly go stale, so it
+    fails here rather than at the next parameter change.
+    """
+    import re
+
+    produced = _manifest()
+    assert produced, "neither renderer has a FIGURES manifest any more"
     used = {os.path.basename(src)
             for src in re.findall(r'<img[^>]+src="img/([^"]+)"', deck)}
     assert used, "the deck references no rendered figures"
     assert used <= produced, (
-        "the deck uses figures render_grc.py does not produce: "
+        "the deck uses figures no renderer produces: "
         f"{sorted(used - produced)}")
+
+
+def test_the_renderers_do_not_collide_on_a_filename():
+    """Two scripts writing the same path would race, silently."""
+    import ast
+    stems = []
+    for name in ("render_grc.py", "render_spi.py"):
+        with open(os.path.join(SLIDES, name), encoding="utf-8") as fh:
+            for node in ast.walk(ast.parse(fh.read())):
+                if isinstance(node, ast.Assign) and any(
+                        getattr(t, "id", None) == "FIGURES"
+                        for t in node.targets):
+                    if name == "render_grc.py":
+                        for fg in ast.literal_eval(node.value).values():
+                            stems += list(fg)
+                    else:
+                        stems += [k.value for k in node.value.keys]
+    assert len(stems) == len(set(stems)), \
+        f"two renderers claim the same stem: {sorted(set(stems))}"
 
 
 def test_no_rendered_figure_is_dead_weight():

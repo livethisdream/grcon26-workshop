@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 206" role="img" aria-label="The same one-byte SPI frame with its 256 samples dimensioned: lead-in 64, setup 8, eight clocks 128, tail 8, idle after 48.">
+  <style>
+  .bg   { fill: #fafaf7; }
+  .trace{ fill: none; stroke: #1a1a1a; stroke-width: 2.2;
+          stroke-linejoin: miter; stroke-linecap: butt; }
+  .lbl  { fill: #004a85; font: 700 13px ui-monospace, Menlo, Consolas, monospace; }
+  .note { fill: #5a5a5a; font: 400 11px ui-monospace, Menlo, Consolas, monospace; }
+  .bit  { fill: #b01e24; font: 700 12px ui-monospace, Menlo, Consolas, monospace;
+          text-anchor: middle; }
+  .edge { stroke: #b01e24; stroke-width: 1; stroke-dasharray: 3 3; }
+  .dot  { fill: #b01e24; }
+  .dim  { stroke: #0067b9; stroke-width: 1; }
+  .dimt { fill: #0067b9; font: 400 10.5px ui-monospace, Menlo, Consolas, monospace;
+          text-anchor: middle; }
+  .band { fill: rgba(0,103,185,.07); }
+  .warn { fill: #b01e24; font: 700 12px ui-monospace, Menlo, Consolas, monospace; }
+  @media (prefers-color-scheme: dark) {
+    .bg   { fill: #0d1826; }
+    .trace{ stroke: #e9eef4; }
+    .lbl  { fill: #8cc4ee; }
+    .note { fill: #93a3b5; }
+    .bit, .dot, .warn { fill: #e4737a; }
+    .edge { stroke: #e4737a; }
+    .dim  { stroke: #58a7e5; }
+    .dimt { fill: #58a7e5; }
+    .band { fill: rgba(140,196,238,.10); }
+  }
+  </style>
+  <rect class="bg" x="0" y="0" width="560" height="206"/>
+  <rect class="band" x="52.00" y="22.00" width="124.50" height="122"/>
+  <rect class="band" x="192.06" y="22.00" width="249.00" height="122"/>
+  <rect class="band" x="456.62" y="22.00" width="93.38" height="122"/>
+  <text class="lbl" x="8" y="52">SCLK</text>
+  <path class="trace" d="M52.00,56.00 H207.62 V30.00 H223.19 V56.00 H238.75 V30.00 H254.31 V56.00 H269.88 V30.00 H285.44 V56.00 H301.00 V30.00 H316.56 V56.00 H332.12 V30.00 H347.69 V56.00 H363.25 V30.00 H378.81 V56.00 H394.38 V30.00 H409.94 V56.00 H425.50 V30.00 H441.06 V56.00 H550.00"/>
+  <text class="lbl" x="8" y="100">MOSI</text>
+  <path class="trace" d="M52.00,104.00 H176.50 V78.00 H223.19 V104.00 H254.31 V78.00 H285.44 V104.00 H347.69 V78.00 H378.81 V104.00 H409.94 V78.00 H441.06 V104.00 H550.00"/>
+  <text class="lbl" x="8" y="148">CS</text>
+  <path class="trace" d="M52.00,126.00 H176.50 V152.00 H456.62 V126.00 H550.00"/>
+  <line class="dim" x1="52.00" y1="178" x2="176.50" y2="178"/>
+  <line class="dim" x1="52.00" y1="174" x2="52.00" y2="182"/>
+  <line class="dim" x1="176.50" y1="174" x2="176.50" y2="182"/>
+  <text class="dimt" x="114.25" y="195">lead-in</text>
+  <text class="dimt" x="114.25" y="207">64</text>
+  <line class="dim" x1="176.50" y1="178" x2="192.06" y2="178"/>
+  <line class="dim" x1="176.50" y1="174" x2="176.50" y2="182"/>
+  <line class="dim" x1="192.06" y1="174" x2="192.06" y2="182"/>
+  <text class="dimt" x="184.28" y="195">setup</text>
+  <text class="dimt" x="184.28" y="207">8</text>
+  <line class="dim" x1="192.06" y1="178" x2="441.06" y2="178"/>
+  <line class="dim" x1="192.06" y1="174" x2="192.06" y2="182"/>
+  <line class="dim" x1="441.06" y1="174" x2="441.06" y2="182"/>
+  <text class="dimt" x="316.56" y="195">8 clocks</text>
+  <text class="dimt" x="316.56" y="207">128</text>
+  <line class="dim" x1="441.06" y1="178" x2="456.62" y2="178"/>
+  <line class="dim" x1="441.06" y1="174" x2="441.06" y2="182"/>
+  <line class="dim" x1="456.62" y1="174" x2="456.62" y2="182"/>
+  <text class="dimt" x="448.84" y="195">tail</text>
+  <text class="dimt" x="448.84" y="207">8</text>
+  <line class="dim" x1="456.62" y1="178" x2="550.00" y2="178"/>
+  <line class="dim" x1="456.62" y1="174" x2="456.62" y2="182"/>
+  <line class="dim" x1="550.00" y1="174" x2="550.00" y2="182"/>
+  <text class="dimt" x="503.31" y="195">idle after</text>
+  <text class="dimt" x="503.31" y="207">48</text>
+</svg>

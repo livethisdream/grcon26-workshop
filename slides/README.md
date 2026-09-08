@@ -28,6 +28,26 @@ A frame marked `cut` shows only its `<h2>` and its `.present` blocks on screen.
 Two present blocks in one `.stage` sit side by side on a laptop and stack on a
 phone: key points beside the table or the diagram they talk to.
 
+**The prose voice** follows ECE 444's `VOICE.md`, which is a calibration set
+built from Neil's own review corrections rather than a style opinion. The four
+that this deck kept breaking: do not narrate your own rhetorical moves ("worth
+pausing on", "the interesting part") — say the thing; never vouch for the
+material's own honesty or rigor; no cost-and-payment metaphors; active voice
+with the agent named. `check_deck.py` gates the unambiguous ones. Passive voice
+and verbless sentences need a reader, so they are not gated — the guide's own
+self-check greps are the way to find them.
+
+Bullets are the exception to "complete sentences": a `<ul>` is a list, and a
+list item is a fragment by convention. A `<p>` is not.
+
+**What goes in a present block.** Bullets and pictures — things to talk *about*.
+Not paragraphs: a paragraph on screen is a paragraph the room reads instead of
+listening, and the presenter ends up reading it too. The shapes that earn a
+slide are a `<ul>` of fragments, a figure, a code block, a table, and one
+`<p class="pull">` carrying the frame's claim. Running prose belongs in
+`.depth`, where it is the notes. When a beat needs a sentence to be understood,
+that is the sentence to say out loud, not to project.
+
 | class | means |
 | --- | --- |
 | `frame cut` | has a present layer; present mode shows only that |
@@ -78,6 +98,33 @@ search path rather than adding to it, so the script names the stock block
 directory alongside `gr-m2k/grc`. Without the stock path the platform cannot
 find `options` and refuses to build a library at all.
 
+## The SPI waveforms come out of the encoder
+
+```
+./slides/render_spi.py          # into slides/img/
+```
+
+Same principle one layer down. `slides/render_spi.py` asks `SpiEncoder` — the
+module that builds the levels the M2K puts on DIO0–2 — for the actual samples,
+and draws them. Nothing is drawn from a description of SPI: if the encoder's
+idea of mode 0 changed, so would the picture. The bit labels on
+`spi-mode0.svg` are read off MOSI at each rising edge rather than out of the
+byte, so LSB-first would show up as labels in the wrong order.
+
+`spi-framing.svg` is the one worth knowing about. Both halves come from the
+same encoder; the only difference is that the top called `send` once with three
+bytes and the bottom called it three times. That is exactly the bug from
+section 11 of the bench checklist, drawn rather than described.
+
+`SpiEncoder` imports nothing, so this needs no GNU Radio and no board — just
+the standard library, on any interpreter.
+
+**Two things about the SVGs.** They carry their own light/dark palette in an
+internal `@media (prefers-color-scheme: dark)` block, because an `<img>` cannot
+see the page's custom properties; the deck follows the OS scheme too, so they
+stay in step. And the viewBox is deliberately narrow (560 units): an SVG's type
+scales with its box, and at 760 the annotations landed at 7px on a 1280 screen.
+
 ## Keys
 
 <kbd>&rarr;</kbd> <kbd>&larr;</kbd> move · <kbd>P</kbd> present or read ·
@@ -96,7 +143,7 @@ present mode would send projector-sized type to A4.
 is always shown on paper: the handout carries the material the projected deck
 does not.
 
-Measured, not assumed: 48 frames print as 58 sheets — one each, plus the ten
+Measured, not assumed: 48 frames print as 59 sheets — one each, plus the ten
 where a rendered canvas and its notes run past a single side. If a change ever
 makes that number 1, the print block has been overridden.
 
@@ -116,8 +163,8 @@ request blocked. A conference room's network is not a dependency.
 uv run pytest tests/test_slides.py
 ```
 
-The structural check enforces what is invisible until it is wrong in front of
-people: every frame has a title (or the contents overlay cannot name it), ids
+The structural check enforces the voice rules above and what is invisible
+until it is wrong in front of people: every frame has a title (or the contents overlay cannot name it), ids
 are unique (or deep links land in the wrong place), a `cut` frame actually has
 a present layer, no present block is over **40 words**, and no frame's present
 layer is over **85**. It also asserts that every id `frames.js` reaches for by
@@ -153,6 +200,7 @@ assets/shell.js     one popover implementation
 assets/frames.js    position, counter, laser, contents, keys, modes
 check_deck.py       the structural check
 render_grc.py       the GRC figures, from GRC's own canvas code
-img/                what it produces -- generated, but committed, so the
+render_spi.py       the SPI waveforms, from the encoder that drives the pins
+img/                what they produce -- generated, but committed, so the
                     deck opens on a machine with no GNU Radio
 ```
