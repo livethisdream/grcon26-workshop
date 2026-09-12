@@ -69,6 +69,14 @@ display), and the session material itself.
   WORK_DONE on a timeout, so a triggered source waiting on a human never comes back --
   one message decodes and the capture is gone. `set_timeout_ms` stores its value and
   never hands it to libiio. Free-run the source; trigger the display.
+- **A rail comes up at +3 V before it comes up at what you asked for.** `ad5627`'s
+  `raw` is 2048 from reset -- mid-scale, about +3 V past the amplifier -- so clearing
+  the two `powerdown`s before writing the setpoint powers the rail up at 3 V until the
+  next write lands. Setpoint first, always.
+- **Ask V- for a positive voltage and it sits at 0 V, reading back perfectly.** The
+  negative rail's amplifier has the sign in it, so its count is positive; a positive
+  setpoint produces a negative count, which clamps at zero. Every attribute then
+  confirms exactly what was written. `check_supply_volts` refuses it instead.
 - **A non-cyclic digital sink pushes one DMA buffer at a time and need not join them.**
   A frame lying across the seam tears mid-message. `m2k_spi_encode`'s "Align frames to"
   holds a queued frame until the next boundary; its sample count is the sink's position.
@@ -135,6 +143,15 @@ display), and the session material itself.
   paragraph on screen is one the room reads instead of listening. Running prose
   moves to `.depth`, which is the notes and the printed handout. Documented in
   `slides/README.md`.
+- **2026-09-12** — The supply block has no ports, and its rail stays up when the
+  flowgraph stops. Reason: a rail is not a stream -- nothing flows to it and nothing
+  comes back -- and an amplifier the M2K is feeding should not lose its supply because
+  somebody stopped a capture to fix a plot. It matches the generator, which holds its
+  last cyclic buffer.
+- **2026-09-12** — Setpoint writes are rate limited, and held rather than dropped.
+  Reason: a dragged slider is hundreds of round trips to the board, and the value most
+  likely to arrive inside the interval is the last one of the drag -- the one that
+  decides where the rail ends up.
 - **2026-09-07** — The SPI waveforms are rendered from `SpiEncoder` by
   `slides/render_spi.py`, the same way the blocks come from GRC. Reason: the
   three SPI concept frames had no picture at all, and a drawing of mode 0 is a
@@ -148,9 +165,10 @@ display), and the session material itself.
 
 # Plan
 
-**Phase 1 (current) — crawl:** Six blocks built, all bench-verified; calibration
-has closed the absolute error. Open: a DC power supply block, a capability GNU Radio
-does not have at all.
+**Phase 1 (current) — crawl:** Seven blocks built; calibration has closed the
+absolute error. Six are bench-verified. The seventh is the DC power supply, a
+capability GNU Radio does not have at all: built, tested off the board, and waiting
+on a meter -- nothing has ever measured the 5.02 and -5.1 its arithmetic rests on.
 
 **Timing:** GRCon26 is this month and Phase 3 has not started. The deck exists for
 everything that runs; setup instructions are due two weeks prior.
@@ -165,11 +183,20 @@ the stretch goal if the FSK link lands early.
 
 # Status
 
-- **Repo:** branch `spi-send-on-demand`, PR open against `main`.
-- **`gr-m2k/` — six blocks**: `analog_source`, `analog_sink`, `digital_source`,
-  `digital_sink`, `spi_decode`, `spi_encode`, plus `m2k_calibrate.py`, `m2k_scale.py`
-  and `spi_decode.py`/`spi_encode.py` (arithmetic, import nothing) and `m2k_config.py`.
-  390 tests pass. Decoded messages carry the bytes as text in the PDU metadata.
+- **Repo:** branch `claude/colorimeter-poc-r74n8z`, off `main`. The deck and SPI
+  branches are merged.
+- **`gr-m2k/` — seven blocks**: `analog_source`, `analog_sink`, `digital_source`,
+  `digital_sink`, `spi_decode`, `spi_encode`, `power_supply`, plus `m2k_calibrate.py`,
+  `m2k_scale.py` and `spi_decode.py`/`spi_encode.py` (arithmetic, import nothing),
+  `rate_limit.py` and `m2k_config.py`. 390 tests pass, plus the supply's 31, which
+  need neither GNU Radio nor a board. Decoded messages carry the bytes as text in the
+  PDU metadata.
+- **The supply block is built and unmeasured.** One instance per rail, no ports,
+  setpoint in volts from a slider. It writes `raw` and `powerdown` on `ad5627`,
+  `powerdown` on `m2k-fabric` (`voltage2` for V+, `voltage3` for V-), and applies the
+  context's `cal,*_dac` corrections -- four places for one number, two of them
+  inverted, one of them on no device at all. `bench/dc_rail.py` is the two-point sweep
+  against a meter; checklist section 15 says what would falsify the arithmetic.
 - **The two digital ymls are generated** by `gr-m2k/generate_digital_grc.py`; a test
   fails if the committed copy drifts.
 - **`slides/` — 48 frames**, frame view, read and present from one document. IIO,
@@ -204,12 +231,15 @@ the stretch goal if the FSK link lands early.
 # ToDo
 
 **DC power supply block**
-- [ ] Fetch `m2kpowersupply_impl.cpp` via `iio_libm2k_fetch.py` for the raw-to-rail
-      expression; measure a two-point sweep against the meter and let the meter win.
-- [ ] Block: float setpoint in volts, rate-limited writes, one instance per rail.
+- [x] Raw-to-rail expression, from `m2kpowersupply_impl.cpp`. In `m2k_scale.py`:
+      `(volts * gain + offset) * 4095 / (rail_gain * 1.2)`, rail_gain 5.02 and -5.1.
+- [x] Block: float setpoint in volts, rate-limited writes, one instance per rail.
       Clears `powerdown` on both `m2k-fabric` user_supply and `ad5627`, applies the
-      context `cal,*` corrections.
-- [ ] Precision demo — rail to input 1, commanded vs measured.
+      context `cal,*` corrections. Writes the setpoint before it powers anything up.
+- [ ] Run the two-point sweep against the meter and let the meter win —
+      `bench/dc_rail.py`, checklist section 15. Nothing has measured 5.02 or -5.1.
+- [ ] Precision demo as a flowgraph — rail to input 1, slider, commanded vs measured.
+      Held back until GRC can validate it; the bench script covers the measurement.
 - [ ] Then the PWM LED application off `digital_sink`.
 
 **Ultrasonic**
@@ -221,6 +251,16 @@ the stretch goal if the FSK link lands early.
 - [ ] Bench it, then measure range and off-axis falloff.
 - [ ] Confirm non-cyclic analog streaming holds at 750 kS/s; fall back to one cyclic
       buffer if it underruns.
+
+**Colorimeter — blocked on which board**
+- [ ] Confirm which colorimeter is in hand. A colleague's proof of concept
+      (`thorenscientific/gnuradio_projects`, `colorimeter/`) is NOT the CN0363: it
+      drives an RGB LED straight off DIO13-15 at three frequencies, powers a
+      transimpedance amp from V+ and V-, and reads reference and sample on the M2K's
+      own ADC. That path needs no second driver and reuses `digital_sink`,
+      `analog_source` and the new supply block. The CN0363 is a different job.
+- [ ] Then: the excitation buffer as arithmetic that imports nothing, a flowgraph that
+      plays it, and per-colour magnitudes as a ratio rather than hand-picked FFT bins.
 
 **Loose ends**
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.

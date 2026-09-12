@@ -1,0 +1,106 @@
+id: m2k_power_supply
+label: M2K Power Supply
+category: '[ADALM2000]'
+flags: [python]
+
+parameters:
+-   id: uri
+    label: M2K address
+    dtype: string
+    default: ip:192.168.2.1
+
+-   id: rail
+    label: Rail
+    dtype: enum
+    default: "'positive'"
+    options: ["'positive'", "'negative'"]
+    option_labels: ['V+', 'V-']
+
+-   id: voltage
+    label: Voltage (V)
+    dtype: float
+    default: '5.0'
+
+-   id: enabled
+    label: Rail output
+    dtype: enum
+    default: 'True'
+    options: ['True', 'False']
+    option_labels: ['Powered', 'Down']
+
+-   id: calibrated
+    label: Correction
+    dtype: enum
+    default: 'True'
+    options: ['True', 'False']
+    option_labels: ["This board's own", 'None']
+
+-   id: min_interval_ms
+    label: Shortest gap between writes (ms)
+    dtype: int
+    default: '100'
+
+asserts:
+- ${ abs(voltage) <= 5.0 }
+- ${ rail == "'negative'" or voltage >= 0 }
+- ${ rail == "'positive'" or voltage <= 0 }
+- ${ min_interval_ms >= 0 }
+
+templates:
+    imports: from m2k_blocks.power_supply import power_supply
+    make: |-
+        power_supply(
+            uri=${uri}, rail=${rail}, voltage=${voltage},
+            enabled=${enabled}, calibrated=${calibrated},
+            min_interval_ms=${min_interval_ms})
+    callbacks:
+    - set_voltage(${voltage})
+    - set_enabled(${enabled})
+
+documentation: |-
+    The M2K's two power rails, V+ and V-, on the small connector beside the
+    scope inputs. About +5 V and -5 V, 50 mA each.
+
+    This block has no ports, and that is the point. A rail is not a signal:
+    nothing streams to it, nothing comes back from it, and GNU Radio has no
+    idea such a thing exists. Drop the block on the canvas and the rail is
+    set before the flowgraph starts.
+
+    Rail / Rail output
+      One instance per rail. V+ takes a positive voltage, V- a negative one,
+      and asking either for the other sign is refused here rather than
+      discovered later -- the count would clamp at zero and the rail would
+      sit at 0 V with every attribute reading back exactly as you wrote it.
+
+    Voltage (V)
+      Attach a QT GUI Range to this and the rail follows the slider while
+      the flowgraph runs.
+
+    Correction
+      This board's own applies cal,gain_*_dac and cal,offset_*_dac, two
+      numbers that belong to this particular board and live in the IIO
+      context rather than on any device. None commands the rail with the
+      bare arithmetic, which is about 0.14% and 3 mV different. Worth
+      switching between with a meter on the rail.
+
+    Shortest gap between writes (ms)
+      Every change is a write to the board. Dragging a slider produces
+      hundreds; this holds them to ten a second by default. The last value
+      of a drag is always applied -- held values are not dropped, they are
+      replaced.
+
+    The rail stays up when the flowgraph stops, like the generator holding
+    its last cyclic buffer. Set Rail to Down, or run bench/dc_rail.py --off,
+    to bring it back down.
+
+    One setpoint, four places: `raw` and `powerdown` on ad5627 -- not the
+    DAC behind W1 and W2, a different converter whose own output only
+    reaches 1.2 V -- the rail regulator's `powerdown` on m2k-fabric, and
+    two corrections stored on no device at all. Two of the four are
+    inverted, where 0 means on.
+
+    Order matters and nothing says so: `raw` comes up from reset at
+    mid-scale, about +3 V. The block writes the setpoint before it powers
+    anything up.
+
+file_format: 1

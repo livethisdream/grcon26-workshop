@@ -22,11 +22,18 @@ on a machine with no GNU Radio at all.
 
 from .m2k_scale import (ADC_FILTER_COMP, BASE_RATE, DAC_FILTER_COMP,
                         RANGE_GAIN, RANGE_VOLTS, SAMPLE_RATES,
+                        SUPPLY_DAC_FULL_SCALE_V, SUPPLY_DAC_MV_PER_COUNT,
+                        SUPPLY_LIMIT_V, SUPPLY_MAX_RAW, SUPPLY_RAIL_GAIN,
                         adc_filter_compensation, check_sample_rate,
-                        dac_filter_compensation, divider_for, raw_to_volts,
-                        volts_per_count, volts_to_raw)
+                        check_supply_volts, dac_filter_compensation,
+                        divider_for, raw_to_volts, supply_counts_per_volt,
+                        supply_raw_to_volts, volts_per_count, volts_to_raw,
+                        volts_to_supply_raw)
 
 __all__ = ["ADC_FILTER_COMP", "BASE_RATE", "DAC_FILTER_COMP", "RANGE_GAIN",
-           "RANGE_VOLTS", "SAMPLE_RATES", "adc_filter_compensation",
-           "check_sample_rate", "dac_filter_compensation", "divider_for",
-           "raw_to_volts", "volts_per_count", "volts_to_raw"]
+           "RANGE_VOLTS", "SAMPLE_RATES", "SUPPLY_DAC_FULL_SCALE_V",
+           "SUPPLY_DAC_MV_PER_COUNT", "SUPPLY_LIMIT_V", "SUPPLY_MAX_RAW",
+           "SUPPLY_RAIL_GAIN", "adc_filter_compensation", "check_sample_rate",
+           "check_supply_volts", "dac_filter_compensation", "divider_for",
+           "raw_to_volts", "supply_counts_per_volt", "supply_raw_to_volts",
+           "volts_per_count", "volts_to_raw", "volts_to_supply_raw"]

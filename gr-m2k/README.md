@@ -214,6 +214,74 @@ Like the decoder, the arithmetic lives in a module that imports nothing
 through both halves has been checked against an independent reading of
 the same three rules, on a machine with no gnuradio and no board.
 
+## M2K Power Supply
+
+The two rails on the small connector, V+ and V-. About +5 V and -5 V,
+50 mA each, and the only instrument on the board that GNU Radio has no
+concept of at all.
+
+**The block has no ports.** A rail is not a signal: nothing streams to
+it and nothing comes back. Drop it on the canvas and the rail is set
+before the flowgraph starts; wire a QT GUI Range to its **Voltage (V)**
+and the rail follows the slider while it runs.
+
+| parameter | values | quietly becomes |
+| --- | --- | --- |
+| M2K address | `ip:192.168.2.1` | context uri |
+| Rail | V+ / V- | `voltage0` or `voltage1` on `ad5627` |
+| Voltage (V) | volts, one sign per rail | `raw`, as a count |
+| Rail output | Powered / Down | `powerdown` in two places, inverted |
+| Correction | This board's own / None | the context's `cal,*_dac` |
+| Shortest gap between writes (ms) | 100 | how often `raw` is written |
+
+One instance per rail. V+ takes a positive voltage and V- a negative one;
+the other sign is refused in GRC, because the arithmetic would clamp the
+count at zero and leave the rail sitting at 0 V with every attribute
+reading back exactly as written.
+
+### One setpoint, four places
+
+| where | what | |
+| --- | --- | --- |
+| `ad5627` `voltageN` | `raw` | the setpoint, as a count |
+| `ad5627` `voltageN` | `powerdown` | the DAC's output stage — 0 means on |
+| `m2k-fabric` `voltage2`/`voltage3` | `powerdown` | the rail regulator — 0 means on |
+| the context | `cal,gain_*_dac`, `cal,offset_*_dac` | this board's corrections |
+
+Two of the four are inverted, two are on a device nobody would guess, and
+one is not on a device at all — the corrections are attributes of the IIO
+*context*, which is a place most people never look. `ad5627` is not the
+DAC behind W1 and W2 either; it is a separate 12-bit part whose own
+output only reaches 1.2 V, with an amplifier of about 5.02 (and about
+-5.1) after it. That amplifier is the entire reason a 1.2 V converter can
+set a 5 V rail.
+
+**Order matters and nothing says so.** `raw` comes up from reset at 2048
+— mid-scale, about +3 V at the rail. Clear the powerdowns first and the
+rail comes up at 3 V until the next write lands. The block always writes
+the setpoint before it powers anything up.
+
+**The rail stays up when the flowgraph stops**, like the generator
+holding its last cyclic buffer. An amplifier being fed by the M2K should
+not lose its supply because someone stopped a capture to fix a plot. Set
+**Rail output** to Down, or run `bench/dc_rail.py --off`.
+
+### Writes are rate limited
+
+Every change is a round trip to the board, and a dragged slider makes
+hundreds. `m2k_blocks/rate_limit.py` holds them to ten a second — and
+holds rather than drops, because the last value of a drag is the one that
+decides where the rail ends up and it is the one most likely to arrive
+too soon.
+
+### None of it has met a meter
+
+The conversion is libm2k's, and 5.02 and -5.1 are somebody else's
+measurement of somebody else's board. `bench/dc_rail.py` walks the rail
+across two setpoints, reads each back through the scope, and fits what
+the meter says against what was commanded. If that slope is not 1.000,
+`SUPPLY_RAIL_GAIN` is wrong and the meter wins.
+
 ## What has been checked
 
 

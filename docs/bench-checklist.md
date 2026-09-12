@@ -817,6 +817,54 @@ settings you understand:
 
 ---
 
+## 15. The power supplies — NOT RUN
+
+The rails are the one instrument here whose numbers have never met a
+signal, let alone a meter. `raw = (volts * gain + offset) * 4095 /
+(rail_gain * 1.2)`, with `rail_gain` 5.02 for V+ and -5.1 for V-, is
+libm2k's arithmetic about libm2k's board.
+
+Wiring, one rail at a time:
+
+```
+V+  -> 1+        1- -> GND        meter across V+ and GND
+V-  -> 1+        1- -> GND        meter across V- and GND
+```
+
+The capture uses the ±25 V input range — the one called `low` — because
+5 V is off the end of the other one. That is ~16 mV per count, so read
+the mean of a buffer, not a sample.
+
+```
+python3 bench/dc_rail.py                        # V+, 1 V then 5 V
+python3 bench/dc_rail.py 1 5 --meter 1.002 4.987
+python3 bench/dc_rail.py --rail negative        # V-, -1 V then -5 V
+python3 bench/dc_rail.py --off
+```
+
+The rail holds its setpoint with the flowgraph stopped, so there is no
+rush between the capture and the meter. Record, per rail:
+
+- commanded, the count written, what input 1 read, what the meter said
+- the fitted slope and intercept the script prints
+
+**What would falsify the arithmetic.** A slope that is not 1.000 within
+the meter's own resolution says `SUPPLY_RAIL_GAIN` is wrong — divide it
+by the slope. An intercept of a few millivolts is the rail's own offset
+and belongs in the same table as the generators'.
+
+**Worth doing twice**, with `--uncorrected` the second time. That is the
+board's `cal,*_dac` corrections earning their place or not, and it is
+the demo the slide wants: two numbers that live in the IIO context, on
+no device at all, worth a measurable amount of millivolts.
+
+**Also check the order.** With both rails down, clear only the
+powerdowns and read the rail before writing `raw`: it should sit near
++3 V, because `raw` comes up from reset at 2048. That is the trap the
+block exists to avoid, and it is worth seeing once.
+
+---
+
 ## Things known to be assumptions
 
 | assumption | status |
@@ -838,6 +886,7 @@ settings you understand:
 | non-cyclic digital output joins its buffers seamlessly | **not needed** — aligned frames never cross a seam; 20/20 sends whole at 100 kS/s |
 | an untriggered digital capture is gapped between rx buffers | **no** — 20 sends, no tear; the gap in section 11 is the trigger re-arming |
 | a gr-iio source survives a refill timeout | **wrong** — `work()` returns WORK_DONE on any refill error, and the block is done |
+| the rails' `raw` conversion from libm2k | **not run** — nothing has measured 5.02 or -5.1; section 15 |
 
 ---
 
@@ -856,6 +905,8 @@ gnuradio-companion flowgraphs/m2k_spi_loopback_continuous.grc  # 11
 gnuradio-companion flowgraphs/m2k_spi_loopback.grc             # 12
 python3 bench/dc_point.py 0.0 --output w1       # 10, one point
 python3 bench/dc_point.py 1.0 --output w1 --meter 1.051
+python3 bench/dc_rail.py 1 5 --meter 1.002 4.987        # 15, V+
+python3 bench/dc_rail.py --rail negative --off             # 15, rail down
 python3 bench/spi_flowgraph.py M2K 8 --csv /tmp/bus.csv     # 13, on hardware
 ```
 

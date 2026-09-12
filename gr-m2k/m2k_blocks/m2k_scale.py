@@ -196,3 +196,120 @@ def check_dac_sample_rate(sample_rate):
             "from %s" % (sample_rate,
                          ", ".join(str(r) for r in DAC_SAMPLE_RATES)))
     return rate
+
+
+# ---------------------------------------------------------------------
+# The power supplies, V+ and V-.
+#
+# These are not the generator with a different name. W1 and W2 play
+# samples; the rails hold a level, and nothing streams to them at all.
+# Behind each one is a channel of an entirely different converter --
+# ad5627, a two-channel 12-bit DAC that also serves calibration -- with
+# a fixed-gain amplifier after it.
+#
+# The DAC's own output is small. It publishes scale = 0.29296875, which
+# is mV per count: 4096 counts over 1.2 V. The board multiplies that up,
+# by about 5.02 for V+ and about -5.1 for V-, and those two numbers are
+# the only reason a 1.2 V converter can set a 5 V rail.
+#
+# From M2kPowerSupplyImpl's constructor:
+#
+#     write_coefficient = 4095.0 / (rail_gain * 1.2)
+#
+# which is counts per volt AT THE RAIL, amplifier included. Both figures
+# are libm2k's and neither has met a meter here yet.
+# ---------------------------------------------------------------------
+
+# What the ad5627 puts out at full scale, before the rail amplifier.
+SUPPLY_DAC_FULL_SCALE_V = 1.2
+
+# mV per count at the DAC, which the board publishes as `scale` and which
+# is the same 0.29297 mV/count the calibration path converts at.
+SUPPLY_DAC_MV_PER_COUNT = 1000.0 * SUPPLY_DAC_FULL_SCALE_V / 4096
+
+# The fixed gain between the DAC and the rail. The negative rail's is
+# negative, which is what makes a positive count produce a negative
+# voltage -- the same trick as the generator's sign inversion, in
+# hardware rather than in the arithmetic.
+SUPPLY_RAIL_GAIN = {"positive": 5.02, "negative": -5.1}
+
+# The DAC is 12 bits and libm2k divides by 4095, not 4096. Kept as it is
+# rather than tidied: the off-by-one is worth about 0.2 counts at the top
+# of the range and changing it would put us a count away from Scopy for
+# no measured reason.
+SUPPLY_MAX_RAW = 4095
+
+# libm2k refuses anything past this and so do we. The rails reach about
+# 6 V by the arithmetic; the board is specified to 5.
+SUPPLY_LIMIT_V = 5.0
+
+
+def supply_counts_per_volt(rail):
+    """Counts per volt at the rail, amplifier included."""
+    if rail not in SUPPLY_RAIL_GAIN:
+        raise ValueError("unknown rail %r; expected 'positive' or 'negative'"
+                         % (rail,))
+    return SUPPLY_MAX_RAW / (SUPPLY_RAIL_GAIN[rail] * SUPPLY_DAC_FULL_SCALE_V)
+
+
+def check_supply_volts(volts, rail):
+    """Reject a setpoint the rail cannot hold, including a sign it cannot.
+
+    The sign check is not pedantry. Ask V- for +5 and the arithmetic
+    produces a negative count, the count clamps at zero, and the rail
+    sits at 0 V with every attribute reading back exactly as written.
+    That is a long afternoon, so it is an error here instead.
+    """
+    value = float(volts)
+    if abs(value) > SUPPLY_LIMIT_V:
+        raise ValueError(
+            "the M2K's supplies are limited to +/-%g V; %g V is outside that"
+            % (SUPPLY_LIMIT_V, value))
+    if rail == "positive" and value < 0:
+        raise ValueError(
+            "V+ cannot hold %g V. Negative setpoints belong on V-, which is "
+            "a separate instance of the block." % (value,))
+    if rail == "negative" and value > 0:
+        raise ValueError(
+            "V- cannot hold %g V. Positive setpoints belong on V+, which is "
+            "a separate instance of the block." % (value,))
+    return value
+
+
+def volts_to_supply_raw(volts, rail, gain=1.0, offset=0.0):
+    """A rail setpoint in volts, as the count the DAC wants.
+
+    From M2kPowerSupply::pushChannel():
+
+        raw = (volts * gain + offset) * counts_per_volt
+
+    `gain` and `offset` are the board's own corrections, which live in
+    the context attributes rather than on any device -- cal,gain_pos_dac
+    and cal,offset_pos_dac for V+, the neg pair for V-. They default to
+    the identity here so the bare conversion can be checked on its own.
+
+    The result is clamped rather than allowed to wrap. libm2k clamps the
+    bottom for the same reason: a small setpoint plus a positive offset
+    correction can land below zero, and a negative count written to a
+    12-bit register is not a small voltage, it is a large one.
+
+    Rounded, where libm2k passes a double and lets the kernel truncate.
+    That is at most one count -- about 1.5 mV at the rail -- and it is
+    deliberate: the demo compares commanded against measured, so the
+    commanded number should be the closest one available.
+    """
+    value = check_supply_volts(volts, rail)
+    raw = (value * float(gain) + float(offset)) * supply_counts_per_volt(rail)
+    return max(0, min(SUPPLY_MAX_RAW, int(round(raw))))
+
+
+def supply_raw_to_volts(raw, rail, gain=1.0, offset=0.0):
+    """The inverse: what a count already in the register asks the rail for.
+
+    Note this is what was COMMANDED, not what the rail is doing. The
+    board holds a separate reading of each rail on ad9963; the scope and
+    a meter are better answers still, and disagreeing with this one is
+    the entire point of the precision demo.
+    """
+    volts = int(raw) / supply_counts_per_volt(rail)
+    return (volts - float(offset)) / float(gain)
