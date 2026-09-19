@@ -1,7 +1,7 @@
 ---
 name: "#grcon26-workshop"
 dateCreated: 2026-08-18
-dateModified: 2026-09-16
+dateModified: 2026-09-19
 container: cdocker
 ---
 # Overview
@@ -107,8 +107,8 @@ display), and the session material itself.
 a DC power supply block, a capability GNU Radio does not have.
 
 **Timing:** GRCon26 is this month. Phases 1 and 3 are closed and merged; the deck
-covers everything that runs and is published. Setup instructions are due two weeks
-prior and are the nearest deadline.
+covers everything that runs and is published. Participants need a short setup before
+the session: install the M2K drivers and download the flowgraphs.
 
 **Phase 2 — walk:** IIO block anatomy, one intro slide from `iio_explain.py
 --glossary`; `docs/reading-iio-attributes.md` is the participant artifact.
@@ -187,8 +187,9 @@ tier that costs participants a compiler.
       runs all day.
 
 **Loose ends**
-- [ ] Write participant setup instructions, to send two weeks out. The pip route is
-      what to send them.
+- [ ] Write the participant setup: install the M2K drivers, download the flowgraphs.
+      Short enough to do the morning of, and the only thing anyone installs. The pip
+      route is what to send them.
 - [ ] Decide which demo is the hands-on participant station.
 - [ ] Add `flowgraphs/m2k_digital_loopback.grc` — sink at DIO0, source at DIO1.
 - [ ] Raise `samp_rate` on `m2k_spi_loopback.grc` from 100 kS/s step by step and record
