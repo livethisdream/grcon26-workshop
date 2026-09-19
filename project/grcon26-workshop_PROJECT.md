@@ -142,7 +142,7 @@ tier that costs participants a compiler.
   green strip repeats to 0.3%, and color naming and the Blank button both passed on the
   board. `flowgraphs/m2k_colorimeter.grc`, `bench/colorimeter.py`; numbers in the
   archive. Provisional: the 85 / 5 / 1.3 thresholds rest on one filter.
-- **`slides/` — 56 frames**, 42 cut, 45 carrying depth, no placeholders left, published
+- **`slides/` — 57 frames**, 44 cut, 47 carrying depth, no placeholders left, published
   at <https://livethisdream.github.io/grcon26-workshop/> on every push to `slides/`.
   Figures are generated from source and a test fails on drift; `check_deck.py` gates
   titles, ids, alt text and the 40-word budget. Stale facts to fix — see ToDo.
