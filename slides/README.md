@@ -61,6 +61,20 @@ slide are a `<ul>` of fragments, a figure, a code block, a table, and one
 `.depth`, where it is the notes. When a beat needs a sentence to be understood,
 that is the sentence to say out loud, not to project.
 
+**If it can be a bullet, it is a bullet.** A callout and a `<p class="pull">`
+are the two ways a frame raises its voice, and a frame gets **one of them, or
+neither** — `check_deck.py` fails a present layer carrying two. A box beside a
+pull claim is not twice the emphasis, it is none: the eye has nothing left to
+land on. So the default shape is a `<ul>`, and the box is what survives that
+question. Three frames in the deck keep one, and all three are traps a
+participant would otherwise hit.
+
+The callout has one color. There used to be a red `trap` variant and a green
+`win` one; a trap now reads as a trap because it opens with a bold sentence
+saying so, which works in both themes and does not ask the room to learn a
+key. Red is left to the chrome — the pressed HUD buttons — and to the one
+thing on a slide that is not software, the `wire` chip in the chain strip.
+
 | class | means |
 | --- | --- |
 | `frame cut` | has a present layer; present mode shows only that |
@@ -68,6 +82,7 @@ that is the sentence to say out loud, not to project.
 | `frame read-only` | notes material, skipped by present mode *and* by the counter |
 | `stage split` / `split-r` | the wider track goes left / right, for a table beside a callout |
 | `present callout` | the one present block that keeps a box in both modes |
+| `pull` | the frame's claim; never on a frame that has a callout |
 
 ## Three pictures are not generated
 

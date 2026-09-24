@@ -405,11 +405,9 @@ ad9963  ad5627  ad5625  pll  xadc</code></pre>
           <li>Kernel subsystem for <strong>ADCs, DACs, sensors</strong></li>
           <li>One driver model, one sysfs layout, one sample path</li>
           <li>A thermometer, a scope front end, a software radio — same shape</li>
+          <li><strong>libiio</strong> over it, <strong>gr-iio</strong> over that
+          — in GNU&nbsp;Radio since 3.10</li>
         </ul>
-      </div>
-      <div class="present callout">
-        <p><strong>libiio</strong> over it. <strong>gr-iio</strong> over that — in
-        GNU&nbsp;Radio since 3.10.</p>
       </div>
     </div>
     <div class="depth">
@@ -618,9 +616,11 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <li><strong>The legal values come from the hardware.</strong></li>
         </ol>
       </div>
-      <div class="present callout">
-        <p>The meaning travels with the block — the Documentation tab carries the
-        kernel's own words.</p>
+      <div class="present">
+        <ul>
+          <li>The meaning travels with the block</li>
+          <li>The Documentation tab carries the kernel's own words</li>
+        </ul>
       </div>
     </div>
     <div class="depth">
@@ -695,10 +695,10 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <li>16 DIO pins; a block claims what it needs</li>
           <li><strong>Number of pins</strong> 3 &rarr; three dropdowns</li>
           <li>Each takes an optional label — <code>MOSI (DIO7)</code> in an error</li>
+          <li>The list is the port order, not a range</li>
         </ul>
-        <p class="pull">The list is the port order, not a range.</p>
       </div>
-      <div class="present callout trap">
+      <div class="present callout">
         <p>A pin is an input <em>or</em> an output. GRC cannot see across two
         blocks — that one is yours.</p>
       </div>
@@ -1084,9 +1084,12 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <figcaption>GRC shows a computed value beside its expression.</figcaption>
         </figure>
       </div>
-      <div class="present callout">
-        <p>The flowgraph computes <code>frame</code>; nobody types it. The old one hard-coded it
-        at 256 and any other <code>half</code> silently mismatched the buffer.</p>
+      <div class="present">
+        <ul>
+          <li>The flowgraph computes <code>frame</code>; nobody types it</li>
+          <li>The old one hard-coded it at 256</li>
+          <li>Any other <code>half</code> then mismatched the buffer, silently</li>
+        </ul>
       </div>
     </div>
     <div class="depth">
@@ -1183,9 +1186,12 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <figcaption>A variable shows as expression <em>and</em> value.</figcaption>
         </figure>
       </div>
-      <div class="present callout">
-        <p>Message in, <strong>three sample streams out</strong>. It never touches the
-        board — the arithmetic imports nothing.</p>
+      <div class="present">
+        <ul>
+          <li>Message in, <strong>three sample streams out</strong></li>
+          <li>It never touches the board</li>
+          <li>The arithmetic imports nothing</li>
+        </ul>
       </div>
     </div>
     <div class="depth">
@@ -1242,7 +1248,7 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <figcaption>Each of the three pins carries its DIO number and its label.</figcaption>
         </figure>
       </div>
-      <div class="present callout trap">
+      <div class="present callout">
         <p><strong>The two directions never share a rate.</strong> <code>-tx</code> and
         <code>-rx</code> hold separate <code>sampling_frequency</code>, and neither
         complains.</p>
@@ -1339,7 +1345,7 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
           <figcaption>The source mirrors the sink on DIO4&ndash;6. Read the last line.</figcaption>
         </figure>
       </div>
-      <div class="present callout trap">
+      <div class="present callout">
         <p><strong>Do not trigger this.</strong> gr-iio's <code>device_source</code> returns
         <code>WORK_DONE</code> on any refill error — including a timeout. One message
         decodes, and the capture never comes back.</p>
@@ -1395,9 +1401,12 @@ gnuradio-companion flowgraphs/m2k_blinky.grc</code></pre>
         </figure>
         <p>Three streams in — SCLK, MOSI, CS. One message out.</p>
       </div>
-      <div class="present callout">
-        <p>Holds no context, writes no attribute, <strong>never touches the
-        board</strong>.</p>
+      <div class="present">
+        <ul>
+          <li>Holds no context</li>
+          <li>Writes no attribute</li>
+          <li><strong>Never touches the board</strong></li>
+        </ul>
       </div>
     </div>
     <div class="depth">
@@ -2139,10 +2148,13 @@ gnuradio-companion flowgraphs/m2k_colorimeter.grc</code></pre>
         </table></div>
         <p class="pull">It passes green, attenuates blue, kills red. Which is what a green filter is.</p>
       </div>
-      <div class="present callout trap">
-        <p><strong>An empty beam is not 1.0.</strong> The splitter does not split
-        evenly and the two photodiodes are not the same part twice. Blank
-        first, or every reading is tilted.</p>
+      <div class="present">
+        <ul>
+          <li><strong>An empty beam is not 1.0</strong></li>
+          <li>The splitter does not split evenly</li>
+          <li>The two photodiodes are not the same part twice</li>
+          <li>Blank first, or every reading is tilted</li>
+        </ul>
       </div>
     </div>
     <div class="depth">
@@ -2199,9 +2211,11 @@ gnuradio-companion flowgraphs/m2k_colorimeter.grc</code></pre>
           <li>There is a great deal more you can do with them.</li>
         </ol>
       </div>
-      <div class="present callout">
-        <p>Every flowgraph, every block and every number in this deck is in the
-        repository. Open one and change a parameter.</p>
+      <div class="present">
+        <ul>
+          <li>Every flowgraph, every block and every number is in the repository</li>
+          <li>Open one and change a parameter</li>
+        </ul>
       </div>
     </div>
     <div class="depth">

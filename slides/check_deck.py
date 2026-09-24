@@ -69,6 +69,7 @@ class Deck(HTMLParser):
                 "section": a.get("data-section", ""),
                 "title": None,
                 "present": [],
+                "emphasis": 0,   # callouts and pull claims, present layer only
                 "depth": False,
             }
             self.frames.append(self.cur)
@@ -78,7 +79,11 @@ class Deck(HTMLParser):
                 self.buf = []
             elif "present" in classes and self.present_depth is None:
                 self.present_depth = len(self.stack)
+                if "callout" in classes:
+                    self.cur["emphasis"] += 1
                 self.buf = []
+            elif "pull" in classes and self.present_depth is not None:
+                self.cur["emphasis"] += 1
             elif "depth" in classes:
                 self.cur["depth"] = True
 
@@ -208,6 +213,14 @@ def main():
         if not f["title"] and "title-frame" not in f["classes"]:
             fails.append(f"{where}: no <h1>/<h2>, so the contents overlay "
                          f"cannot name it")
+        # A frame gets one thing shouting at a time. A box beside a pull
+        # claim is two, and the second one reads as decoration rather than as
+        # emphasis -- which is how a slide ends up with nothing emphasised.
+        # Everything that can be a bullet is one; the box is what is left.
+        if f["emphasis"] > 1:
+            fails.append(f"{where}: {f['emphasis']} emphasis blocks in the "
+                         f"present layer (a callout or a pull, not both) -- "
+                         f"make the weaker one a bullet")
         if "cut" in f["classes"] and not f["present"]:
             fails.append(f"{where}: marked `cut` but carries no present block, "
                          f"so present mode shows a bare title")
