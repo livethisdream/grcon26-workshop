@@ -163,15 +163,16 @@ kbd {
   display: flex; flex-direction: column; gap: .6em;
 }
 .callout p { max-width: 58ch; }
-.callout.trap { background: var(--soft-red); border-left-color: var(--red); }
-.callout.trap strong { color: var(--red); }
-.callout.win { background: var(--soft-green); border-left-color: var(--green); }
+/* There used to be a red `.trap` variant and a green `.win` one. A callout is
+   now a callout: one accent, and at most one box on a frame, so the box
+   itself is the emphasis and does not need a second signal in color. A trap
+   still reads as a trap, because a trap opens with a bold sentence saying so. */
 
 /* a claim that carries the frame, rather than a bullet among bullets */
 .pull {
   font-size: var(--step-1); line-height: 1.28; font-weight: 600;
   color: var(--blue-dark); max-width: 44ch;
-  border-left: 4px solid var(--red); padding-left: .7em;
+  border-left: 4px solid var(--blue); padding-left: .7em;
 }
 
 /* ---- table ---------------------------------------------------------- */

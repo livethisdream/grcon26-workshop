@@ -61,6 +61,20 @@ slide are a `<ul>` of fragments, a figure, a code block, a table, and one
 `.depth`, where it is the notes. When a beat needs a sentence to be understood,
 that is the sentence to say out loud, not to project.
 
+**If it can be a bullet, it is a bullet.** A callout and a `<p class="pull">`
+are the two ways a frame raises its voice, and a frame gets **one of them, or
+neither** — `check_deck.py` fails a present layer carrying two. A box beside a
+pull claim is not twice the emphasis, it is none: the eye has nothing left to
+land on. So the default shape is a `<ul>`, and the box is what survives that
+question. Three frames in the deck keep one, and all three are traps a
+participant would otherwise hit.
+
+The callout has one color. There used to be a red `trap` variant and a green
+`win` one; a trap now reads as a trap because it opens with a bold sentence
+saying so, which works in both themes and does not ask the room to learn a
+key. Red is left to the chrome — the pressed HUD buttons — and to the one
+thing on a slide that is not software, the `wire` chip in the chain strip.
+
 | class | means |
 | --- | --- |
 | `frame cut` | has a present layer; present mode shows only that |
@@ -68,6 +82,7 @@ that is the sentence to say out loud, not to project.
 | `frame read-only` | notes material, skipped by present mode *and* by the counter |
 | `stage split` / `split-r` | the wider track goes left / right, for a table beside a callout |
 | `present callout` | the one present block that keeps a box in both modes |
+| `pull` | the frame's claim; never on a frame that has a callout |
 
 ## Three pictures are not generated
 
@@ -275,6 +290,36 @@ document.querySelectorAll('.frame:not(.read-only)').forEach(f => {
 Run in present mode. Every frame currently fits at 1024&times;768, 1280&times;800 and
 1440&times;900, and nothing overflows horizontally at 390px. When a frame overruns,
 **split it or move detail into `depth` — never cut the content.**
+
+**Nor can it check that a picture is the right shape**, which is the other
+thing only a browser knows. `figure` is a column flex box, so a replaced child
+is stretched to the column unless something says otherwise, and a `max-height`
+then clamps height alone — a stretched picture rather than a fitted one. That
+shipped once, at up to 113% off on a block figure in present mode. The check:
+
+```js
+// present mode, and again in read
+const bad = [];
+document.querySelectorAll('.wrap img').forEach(im => {
+  if (!im.naturalWidth) return;
+  const cs = getComputedStyle(im);
+  // the content box, not the border box: a 1px border on a 990x153 strip
+  // is 1.5% of the ratio by itself
+  const w = im.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const h = im.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+  if (w < 2 || h < 2) return;
+  const want = im.naturalWidth / im.naturalHeight;
+  const off = Math.abs(w / h - want) / want;
+  // `object-fit: contain` is how the wave SVGs take a height cap: the box
+  // is the wrong ratio and the drawing in it is not
+  if (off > 0.005 && cs.objectFit !== 'contain') bad.push(im.src + ' ' + Math.round(off * 100) + '%');
+});
+```
+
+Zero in both modes. An SVG with a `viewBox` and no `width` attribute has a
+ratio but no intrinsic size, so `width: auto` would collapse it to the 300px
+default — that is why the wave figures keep `width: 100%` and lean on
+`object-fit` instead.
 
 ## Files
 
